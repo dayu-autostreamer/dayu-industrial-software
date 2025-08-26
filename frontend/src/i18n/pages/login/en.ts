@@ -1,6 +1,6 @@
 export default {
 	label: {
-		one1: 'System Information',
+		one1: '系统信息',
 		two2: 'Mobile number',
 	},
 	link: {

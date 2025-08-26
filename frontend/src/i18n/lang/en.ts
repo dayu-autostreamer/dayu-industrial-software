@@ -1,11 +1,11 @@
 export default {
     router: {
-        home: 'HomePage',
-        install: 'Application Installation',
-        dag: 'DAG Orchestration',
-        datasource: 'Source Configuration',
-        result: 'Result Visualization',
-        system: 'System Visualization',
+        home: '主页',
+        install: '服务下装',
+        dag: '应用编排',
+        datasource: '数据源配置',
+        result: '结果可视化',
+        system: '系统可视化',
 
         limits: 'limits',
         limitsFrontEnd: 'FrontEnd',
