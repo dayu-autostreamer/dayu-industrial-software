@@ -1,0 +1,20 @@
+position: both
+pod-template:
+  image: audio-classification
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: PROCESSOR_NAME
+      value: "audio_classifier_processor"
+    - name: AUDIO_CLASSIFIER_PARAMETERS
+      value: "{'weights':'audio_model.pth', 'device':'cuda:0'}"
+    - name: SCENARIOS_EXTRACTORS
+      value: "[]"
+    - name: PRO_QUEUE_NAME
+      value: "priority"
+port-open:
+  pos: both
+  port: 9000
+file-mount:
+  - pos: both
+    path: "processor/audio-classification/"
+

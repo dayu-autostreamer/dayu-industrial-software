@@ -11,11 +11,11 @@ default-image-meta:
   registry: repo:5000
   repository: dayuhub
   tag: is-v1.1
-default-file-mount-prefix: "/data/dayu-files"
+default-file-mount-prefix: "/data/dayu-industrial-software-files"
 datasource:
   use-simulation: true
   node: edgex1
-  data-root: "/data/datasource/"
+  data-root: "/data/datasource-is/"
   play-mode: cycle
 scheduler-policies:
   !include scheduler_policies.yaml

@@ -1,0 +1,17 @@
+position: both
+pod-template:
+  image: edge-eye-stage3
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: PROCESSOR_NAME
+      value: "universal_processor"
+    - name: SCENARIOS_EXTRACTORS
+      value: "[]"
+    - name: PRO_QUEUE_NAME
+      value: "priority"
+port-open:
+  pos: both
+  port: 9000
+file-mount:
+  - pos: both
+    path: "processor/edge-eye/"

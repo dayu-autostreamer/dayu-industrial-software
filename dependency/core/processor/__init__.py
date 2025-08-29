@@ -2,4 +2,8 @@ from .detector_processor import DetectorProcessor
 from .detector_tracker_processor import DetectorTrackerProcessor
 from .classifier_processor import ClassifierProcessor
 from .processor_server import ProcessorServer
+from .audio_sampler_processor import AudioSamplerProcessor
+from .audio_classifier_processor import AudioClassifierProcessor
+from .imu_tracker_processor import IMUTrackerProcessor
+from .universal_processor import UniversalProcessor
 

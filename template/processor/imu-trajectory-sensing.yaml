@@ -1,0 +1,17 @@
+position: both
+pod-template:
+  image: imu-trajectory-sensing
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: PROCESSOR_NAME
+      value: "imu_tracker_processor"
+    - name: SCENARIOS_EXTRACTORS
+      value: "[]"
+    - name: PRO_QUEUE_NAME
+      value: "priority"
+port-open:
+  pos: both
+  port: 9000
+file-mount:
+  - pos: both
+    path: "processor/imu-trajectory-sensing/"

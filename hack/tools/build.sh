@@ -35,10 +35,13 @@ declare -A DOCKERFILES=(
     [controller]="build/controller.Dockerfile"
     [monitor]="build/monitor.Dockerfile"
     [scheduler]="build/scheduler.Dockerfile"
-    [car-detection]="build/car_detection_[amd64/arm64].Dockerfile"
-    [face-detection]="build/face_detection_[amd64/arm64].Dockerfile"
-    [gender-classification]="build/gender_classification_[amd64/arm64].Dockerfile"
 
+    [audio-sampling]="build/audio_sampling.Dockerfile"
+    [audio-classification]="build/audio_classification_[amd64/arm64].Dockerfile"
+    [edge-eye-stage1]="build/edge_eye_stage1.Dockerfile"
+    [edge-eye-stage2]="build/edge_eye_stage2.Dockerfile"
+    [edge-eye-stage3]="build/edge_eye_stage3.Dockerfile"
+    [imu-trajectory-sensing]="build/imu_trajectory_sensing.Dockerfile"
 )
 
 # Corresponding platforms
@@ -52,17 +55,19 @@ declare -A PLATFORMS=(
     [controller]="linux/amd64,linux/arm64"
     [monitor]="linux/amd64,linux/arm64"
     [scheduler]="linux/amd64"
-    [car-detection]="linux/amd64,linux/arm64"
-    [face-detection]="linux/amd64,linux/arm64"
-    [gender-classification]="linux/amd64,linux/arm64"
+
+    [audio-sampling]="linux/amd64,linux/arm64"
+    [audio-classification]="linux/amd64,linux/arm64"
+    [edge-eye-stage1]="linux/amd64,linux/arm64"
+    [edge-eye-stage2]="linux/amd64,linux/arm64"
+    [edge-eye-stage3]="linux/amd64,linux/arm64"
+    [imu-trajectory-sensing]="linux/amd64,linux/arm64"
 
 )
 
 # Images requiring special treatment, their platforms, and Dockerfiles
 declare -A SPECIAL_BUILD=(
-    [car-detection]="linux/amd64:build/car_detection_amd64.Dockerfile,linux/arm64:build/car_detection_arm64.Dockerfile"
-    [face-detection]="linux/amd64:build/face_detection_amd64.Dockerfile,linux/arm64:build/face_detection_arm64.Dockerfile"
-    [gender-classification]="linux/amd64:build/gender_classification_amd64.Dockerfile,linux/arm64:build/gender_classification_arm64.Dockerfile"
+    [audio-classification]="linux/amd64:build/audio_classification_amd64.Dockerfile,linux/arm64:build/audio_classification_arm64.Dockerfile"
 
 )
 
