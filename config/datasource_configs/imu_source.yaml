@@ -1,0 +1,14 @@
+source_name: "工厂机器惯性传感器"
+source_type: "imu"
+source_mode: "http_imu"
+source_list:
+  - name: "imu_source_0"
+    url: ""
+    dir: "imu_0/"
+    metadata:
+      fps: 1
+  - name: "imu_source_1"
+    url: ""
+    dir: "imu_1/"
+    metadata:
+      fps: 1

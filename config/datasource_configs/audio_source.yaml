@@ -1,0 +1,14 @@
+source_name: "工厂麦克风"
+source_type: "audio"
+source_mode: "http_audio"
+source_list:
+  - name: "audio_source_0"
+    url: ""
+    dir: "audio_0/"
+    metadata:
+      fps: 1
+  - name: "audio_source_1"
+    url: ""
+    dir: "audio_1/"
+    metadata:
+      fps: 1
