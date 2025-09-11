@@ -3,7 +3,7 @@ import redis
 
 import util_ixpe
 
-from core.lib.common import LOGGER,EncodeOps, Context, SystemConstant
+from core.lib.common import LOGGER, EncodeOps, Context, SystemConstant
 from core.lib.network import NodeInfo, PortInfo
 
 
@@ -23,7 +23,7 @@ class EdgeEyeStage3:
         self.lastrs = self.rps
         self.first_done_flag = False
 
-    def __call__(self, input_ctx, redis_address):
+    def __call__(self, input_ctx):
         start = time.time()
         if 'frame' in input_ctx:
             input_ctx['frame'] = EncodeOps.decode_image(input_ctx['frame'])
@@ -45,7 +45,7 @@ class EdgeEyeStage3:
 
         try:
 
-            output_ctx = self.process_task(input_ctx, redis_address)
+            output_ctx = self.process_task(input_ctx)
         except Exception as e:
             output_ctx = {}
 
@@ -63,7 +63,7 @@ class EdgeEyeStage3:
 
         return output_ctx
 
-    def process_task(self, input_ctx, redis_address):
+    def process_task(self, input_ctx):
         output_ctx = {}
 
         if 'frame' not in input_ctx:
@@ -120,13 +120,12 @@ class EdgeEyeStage3:
         # calculate edge positions
         # lps, rps = abnormal_detector.repair(lpx=lps, rpx=rps)  # func3
         # update lps, rps
-        self.set_edge_position(int(self.lps), int(self.rps), redis_address)
+        self.set_edge_position(int(self.lps), int(self.rps))
         output_ctx["frame"] = frame
         output_ctx["lps"] = self.lps
         output_ctx["rps"] = self.rps
         return output_ctx
 
-    def set_edge_position(self, lps, rps, redis_address):
+    def set_edge_position(self, lps, rps):
         self.redis.set("lps", str(lps))
         self.redis.set("rps", str(rps))
-        http_request(url=redis_address, method='POST', json={'lps': lps, 'rps': rps})

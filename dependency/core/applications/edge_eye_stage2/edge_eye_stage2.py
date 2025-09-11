@@ -19,7 +19,7 @@ class EdgeEyeStage2:
         model_path = Context.get_file_path(weights)
         self.sr_generator = util_ixpe.ESCPN(model_path)
 
-    def __call__(self, input_ctx, redis_address):
+    def __call__(self, input_ctx):
 
         start = time.time()
 
@@ -33,7 +33,7 @@ class EdgeEyeStage2:
         end_pre = time.time()
         LOGGER.debug(f'preprocess time: {end_pre - start}s')
 
-        output_ctx = self.process_task(input_ctx, redis_address)
+        output_ctx = self.process_task(input_ctx)
 
         end_process = time.time()
         LOGGER.debug(f'process time: {end_process - end_pre}s')
@@ -62,7 +62,7 @@ class EdgeEyeStage2:
 
         return output_ctx
 
-    def process_task(self, input_ctx, redis_address):
+    def process_task(self, input_ctx):
         output_ctx = {}
 
         if 'frame' not in input_ctx:
@@ -71,7 +71,7 @@ class EdgeEyeStage2:
 
         bar_roi, abs_point, frame = input_ctx["bar_roi"], input_ctx["abs_point"], input_ctx["frame"]
         abs_point = tuple(abs_point)
-        lps, rps = self.get_edge_position(redis_address)
+        lps, rps = self.get_edge_position()
         LOGGER.info(f"lps: {lps}, rps: {rps}")
 
         if lps == 0 and rps == 0:
@@ -119,7 +119,7 @@ class EdgeEyeStage2:
         rroi = bar_roi[p3[1]:p4[1], p3[0]:p4[0]]
         return lroi, rroi, p1, p3
 
-    def get_edge_position(self, redis_address):
+    def get_edge_position(self):
         lps_value = self.redis.get("lps")
         rps_value = self.redis.get("rps")
 
