@@ -172,7 +172,7 @@ class TemplateHelper:
         scheduler_port = PortInfo.get_component_port(SystemConstant.SCHEDULER.value)
         scheduler_address = merge_address(NodeInfo.hostname2ip(scheduler_hostname),
                                           port=scheduler_port,
-                                          path=NetworkAPIPath.SCHEDULER_SELECT_SOURCE_NODE)
+                                          path=NetworkAPIPath.SCHEDULER_SELECT_SOURCE_NODES)
 
         params = []
 
@@ -191,7 +191,7 @@ class TemplateHelper:
             params.append({"source": SOURCE_ENV, "node_set": NODE_SET_ENV, "dag": DAG_ENV})
 
         response = http_request(url=scheduler_address,
-                                method=NetworkAPIMethod.SCHEDULER_SELECT_SOURCE_NODE,
+                                method=NetworkAPIMethod.SCHEDULER_SELECT_SOURCE_NODES,
                                 data={'data': json.dumps(params)},
                                 )
 
