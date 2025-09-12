@@ -147,13 +147,13 @@ class TemplateHelper:
 
         return template_doc
 
-    def finetune_yaml_parameters(self, yaml_dict, source_deploy, scopes=None):
+    def finetune_yaml_parameters(self, yaml_dict, source_deploy, priority, scopes=None):
         edge_nodes = self.get_all_selected_edge_nodes(yaml_dict)
         cloud_node = NodeInfo.get_cloud_node()
 
         docs_list = []
         if not scopes or 'generator' in scopes:
-            docs_list.append(self.finetune_generator_yaml(yaml_dict['generator'], source_deploy))
+            docs_list.append(self.finetune_generator_yaml(yaml_dict['generator'], source_deploy, priority))
         if not scopes or 'controller' in scopes:
             docs_list.append(self.finetune_controller_yaml(yaml_dict['controller'], edge_nodes, cloud_node))
         if not scopes or 'distributor' in scopes:
@@ -167,7 +167,7 @@ class TemplateHelper:
 
         return docs_list
 
-    def finetune_generator_yaml(self, yaml_doc, source_deploy):
+    def finetune_generator_yaml(self, yaml_doc, source_deploy, priority):
         scheduler_hostname = NodeInfo.get_cloud_node()
         scheduler_port = PortInfo.get_component_port(SystemConstant.SCHEDULER.value)
         scheduler_address = merge_address(NodeInfo.hostname2ip(scheduler_hostname),
@@ -241,6 +241,8 @@ class TemplateHelper:
                     {'name': 'SOURCE_URL', 'value': str(source['url'])},
                     {'name': 'SOURCE_TYPE', 'value': str(source['source_type'])},
                     {'name': 'SOURCE_ID', 'value': str(source['id'])},
+                    {'name': 'SOURCE_IMPORTANCE', 'value': str(source['importance'])},
+                    {'name': 'SOURCE_PRIORITY', 'value': str(priority)},
                     {'name': 'SOURCE_METADATA', 'value': str(source['metadata'])},
                     {'name': 'ALL_EDGE_DEVICES', 'value': str(node_set)},
                     {'name': 'DAG', 'value': str(DAG_ENV)},

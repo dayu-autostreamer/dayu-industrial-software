@@ -10,12 +10,21 @@ from core.lib.estimation import TimeEstimator
 
 
 class Generator:
-    def __init__(self, source_id: int, metadata: dict, task_dag: list, ):
+    def __init__(self, source_id: int, source_type: str,
+                 priority_coefficients: dict,
+                 source_importance: int,
+                 metadata: dict, task_dag: list, ):
         """ Initialize the generator."""
 
         """task base information"""
         # source_id points to the corresponding source and is unique for generator
         self.source_id = source_id
+        # source_type indicates the type of source, e.g., video, audio, imu
+        self.source_type = source_type
+        # priority_coefficient indicates the priority coefficients (importance / urgency)
+        self.priority_coefficients = priority_coefficients
+        # source_importance indicates the priority of the source
+        self.source_importance = source_importance
         # task_dag contains offloading decisions
         self.task_dag = Task.extract_dag_from_dict(task_dag)
         # raw_meta_data contains meta configuration of source
@@ -66,6 +75,9 @@ class Generator:
                     task_id=task_id,
                     source_device=self.local_device,
                     all_edge_devices=self.all_edge_devices,
+                    source_type=self.source_type,
+                    priority_coefficients=self.priority_coefficients,
+                    source_importance=self.source_importance,
                     dag=task_dag,
                     metadata=meta_data,
                     raw_metadata=self.raw_meta_data,

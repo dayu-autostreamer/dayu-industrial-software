@@ -17,6 +17,11 @@ datasource:
   node: edgex1
   data-root: "/data/datasource-is/"
   play-mode: cycle
+priority:
+  importance_weight: 0.3
+  urgency_weight: 0.7
+  priority_levels: 10
+  deadline: 0.6
 scheduler-policies:
   !include scheduler_policies.yaml
 services:

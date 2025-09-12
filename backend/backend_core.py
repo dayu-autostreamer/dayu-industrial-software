@@ -23,6 +23,7 @@ class BackendCore:
         self.image_meta = None
         self.schedulers = None
         self.services = None
+        self.priority = None
         self.result_visualization_configs = None
         self.system_visualization_configs = None
         self.customized_source_result_visualization_configs = {}
@@ -62,6 +63,7 @@ class BackendCore:
             self.image_meta = base_info['default-image-meta']
             self.schedulers = base_info['scheduler-policies']
             self.services = base_info['services']
+            self.priority = base_info['priority']
             self.result_visualization_configs = base_info['result-visualizations']
             self.system_visualization_configs = base_info['system-visualizations']
         except KeyError as e:
@@ -86,7 +88,7 @@ class BackendCore:
         second_stage_components = ['generator', 'processor']
 
         LOGGER.info(f'[First Deployment Stage] deploy components:{first_stage_components}')
-        first_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,
+        first_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy, priority = self.priority,
                                                                         scopes=first_stage_components)
         try:
             result, msg = self.install_yaml_templates(first_docs_list)
@@ -104,7 +106,7 @@ class BackendCore:
             return False, msg
 
         LOGGER.info(f'[Second Deployment Stage] deploy components:{second_stage_components}')
-        second_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,
+        second_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,priority = self.priority,
                                                                          scopes=second_stage_components)
         try:
             result, msg = self.install_yaml_templates(second_docs_list)

@@ -7,8 +7,10 @@ source_list:
     dir: "imu_0/"
     metadata:
       fps: 1
+    importance: 3
   - name: "imu_source_1"
     url: ""
     dir: "imu_1/"
     metadata:
       fps: 1
+    importance: 6

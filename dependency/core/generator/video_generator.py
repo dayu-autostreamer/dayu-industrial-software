@@ -6,9 +6,16 @@ from core.lib.common import ClassType, ClassFactory, Context, LOGGER
 
 @ClassFactory.register(ClassType.GENERATOR, alias='video')
 class VideoGenerator(Generator):
-    def __init__(self, source_id: int, source_url: str,
+    def __init__(self, source_id: int, source_type: str,
+                 priority_coefficients: dict,
+                 source_importance: int, source_url: str,
                  source_metadata: dict, dag: list):
-        super().__init__(source_id, source_metadata, dag)
+        super().__init__(source_id,
+                         source_type=source_type,
+                         priority_coefficients=priority_coefficients,
+                         source_importance=source_importance,
+                         metadata=source_metadata,
+                         task_dag=dag)
         self.video_data_source = source_url
 
         self.frame_filter = Context.get_algorithm('GEN_FILTER')

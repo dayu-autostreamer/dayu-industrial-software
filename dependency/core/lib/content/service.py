@@ -2,10 +2,13 @@ import json
 
 
 class Service:
-    def __init__(self, service_name, execute_device='',
+    def __init__(self, service_name, execute_device='', priority=0,
                  transmit_time=0, execute_time=0, real_execute_time=0, content: object = None):
         self.__service_name = service_name
         self.__execute_device = execute_device
+
+        self.__priority = priority
+
         self.__transmit_time = transmit_time
 
         # execute_time means duration of service execution from controller to controller
@@ -29,6 +32,12 @@ class Service:
 
     def set_execute_device(self, execute_device):
         self.__execute_device = execute_device
+
+    def get_priority(self):
+        return self.__priority
+
+    def set_priority(self, priority):
+        self.__priority = priority
 
     def set_transmit_time(self, transmit_time):
         assert transmit_time >= 0, f'transmit time of service "{self.__service_name}" is negative: {transmit_time}!'
@@ -65,6 +74,7 @@ class Service:
         return {
             'service_name': self.get_service_name(),
             'execute_device': self.get_execute_device(),
+            'priority': self.get_priority(),
             'execute_data': {'transmit_time': self.get_transmit_time(),
                              'execute_time': self.get_execute_time(),
                              'real_execute_time': self.get_real_execute_time()},
@@ -76,6 +86,7 @@ class Service:
         service = Service(service_name=dag_dict['service_name'])
 
         service.set_execute_device(dag_dict['execute_device']) if 'execute_device' in dag_dict else None
+        service.set_priority(dag_dict['priority']) if 'priority' in dag_dict else None
         service.set_transmit_time(dag_dict['execute_data']['transmit_time']) \
             if 'execute_data' in dag_dict and 'transmit_time' in dag_dict['execute_data'] else None
         service.set_execute_time(dag_dict['execute_data']['execute_time']) \

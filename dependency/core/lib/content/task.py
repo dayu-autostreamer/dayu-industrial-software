@@ -7,6 +7,7 @@ from .dag import DAG
 
 from core.lib.solver import LCASolver, IntermediateNodeSolver, PathSolver
 from core.lib.common import NameMaintainer
+from core.lib.estimation import PriorityEstimator
 
 
 class Task:
@@ -15,6 +16,9 @@ class Task:
                  task_id: int,
                  source_device: str,
                  all_edge_devices: list,
+                 source_type: str,
+                 priority_coefficients: dict,
+                 source_importance: int,
                  dag: DAG = None,
                  flow_index: str = 'start',
                  past_flow_index: str = None,
@@ -43,6 +47,12 @@ class Task:
         self.__source_device = source_device
         # hostname list of all offloading edge devices
         self.__all_edge_devices = all_edge_devices
+        # source type (modal) of task, e.g., video, audio, imu
+        self.__source_type = source_type
+        # priority coefficients (importance / urgency)
+        self.__priority_coefficients = priority_coefficients
+        # source importance (priority of source)
+        self.__source_importance = source_importance
 
         # metadata of task
         self.__metadata = metadata
@@ -173,6 +183,15 @@ class Task:
     def get_all_edge_devices(self):
         return self.__all_edge_devices
 
+    def get_source_type(self):
+        return self.__source_type
+
+    def get_priority_coefficients(self):
+        return self.__priority_coefficients
+
+    def get_source_importance(self):
+        return self.__source_importance
+
     def get_dag(self):
         return self.__dag_flow
 
@@ -271,7 +290,7 @@ class Task:
     def get_last_content(self):
         last_service_names = self.__dag_flow.get_prev_nodes('end')
         last_contents = [self.__dag_flow.get_node(service_name).service.get_content_data()
-                          for service_name in last_service_names]
+                         for service_name in last_service_names]
         # return one of first non-empty content
         return next((content for content in last_contents if content is not None), None)
 
@@ -282,6 +301,11 @@ class Task:
         assert self.__dag_flow, 'Task DAG is empty!'
         service = self.__dag_flow.get_node(self.__cur_flow_index).service
         return service.get_service_name(), service.get_execute_device()
+
+    def get_current_service(self):
+        assert self.__dag_flow, 'Task DAG is empty!'
+        service = self.__dag_flow.get_node(self.__cur_flow_index).service
+        return service
 
     def save_transmit_time(self, transmit_time):
         assert self.__dag_flow, 'Task DAG is empty!'
@@ -308,6 +332,18 @@ class Task:
 
         return (self.__tmp_data[f'{tag_prefix}:total_end_time'] -
                 self.__tmp_data[f'{tag_prefix}:total_start_time'])
+
+    def get_total_start_time(self):
+        tag_prefix = NameMaintainer.get_time_ticket_tag_prefix(self)
+        if f'{tag_prefix}:total_start_time' not in self.__tmp_data:
+            raise ValueError(f'Timestamp of task starting lacks: "{tag_prefix}:total_start_time"')
+        return self.__tmp_data[f'{tag_prefix}:total_start_time']
+
+    def get_total_end_time(self):
+        tag_prefix = NameMaintainer.get_time_ticket_tag_prefix(self)
+        if f'{tag_prefix}:total_end_time' not in self.__tmp_data:
+            raise ValueError(f'Timestamp of task ending lacks: "{tag_prefix}:total_end_time"')
+        return self.__tmp_data[f'{tag_prefix}:total_end_time']
 
     def calculate_total_time(self):
         assert self.__dag_flow, 'Task DAG is empty!'
@@ -400,7 +436,8 @@ class Task:
         return new_task
 
     def merge_task(self, other_task: 'Task'):
-        lca_service_name = LCASolver(self.__dag_flow).find_lca(self.get_past_flow_index(), other_task.get_past_flow_index())
+        lca_service_name = LCASolver(self.__dag_flow).find_lca(self.get_past_flow_index(),
+                                                               other_task.get_past_flow_index())
 
         merged_dag = self.get_dag()
         other_dag = other_task.get_dag()
@@ -422,6 +459,9 @@ class Task:
             'task_id': self.get_task_id(),
             'source_device': self.get_source_device(),
             'all_edge_devices': self.get_all_edge_devices(),
+            'source_type': self.get_source_type(),
+            'priority_coefficients': self.get_priority_coefficients(),
+            'source_importance': self.get_source_importance(),
             'dag': self.get_dag().to_dict() if self.get_dag() else None,
             'cur_flow_index': self.get_flow_index(),
             'past_flow_index': self.get_past_flow_index(),
@@ -441,7 +481,10 @@ class Task:
         task = cls(source_id=dag_dict['source_id'],
                    task_id=dag_dict['task_id'],
                    source_device=dag_dict['source_device'],
-                   all_edge_devices=dag_dict['all_edge_devices'])
+                   all_edge_devices=dag_dict['all_edge_devices'],
+                   source_type=dag_dict['source_type'],
+                   priority_coefficients=dag_dict['priority_coefficients'],
+                   source_importance=dag_dict['source_importance'])
 
         task.set_dag(DAG.from_dict(dag_dict['dag'])) if 'dag' in dag_dict and dag_dict['dag'] else None
         task.set_flow_index(dag_dict['cur_flow_index']) if 'cur_flow_index' in dag_dict else None
@@ -460,6 +503,24 @@ class Task:
 
     def serialize(self):
         return json.dumps(self.to_dict())
+
+    @property
+    def priority(self):
+        cur_service = self.get_current_service()
+        if cur_service.get_priority() == 0:
+            priority = PriorityEstimator(
+                importance_weight=self.__priority_coefficients['importance_weight'],
+                urgency_weight=self.__priority_coefficients['urgency_weight'],
+                priority_levels=self.__priority_coefficients['priority_levels'],
+                deadline=self.__priority_coefficients['deadline']
+            ).calculate_priority(task=self)
+            cur_service.set_priority(priority)
+            return priority
+        else:
+            return cur_service.get_priority()
+
+    def __lt__(self, other):
+        return self.priority < other.priority
 
     @classmethod
     def deserialize(cls, data: str):
