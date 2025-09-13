@@ -341,8 +341,13 @@ class BackendCore:
 
     def prepare_result_visualization_data(self, task):
         source_id = task.get_source_id()
-        visualizations = self.customized_source_result_visualization_configs[
-            source_id] if source_id in self.customized_source_result_visualization_configs else self.result_visualization_configs
+        if source_id in self.customized_source_result_visualization_configs:
+            visualizations = self.customized_source_result_visualization_configs[source_id]
+        else:
+            visualizations = self.result_visualization_configs[task.get_source_type()] \
+                if (self.result_visualization_configs['allow-flexible-switch'] and
+                    task.get_source_type() in self.result_visualization_configs) \
+                else self.result_visualization_configs['base']
         visualization_data = []
         for idx, vf in enumerate(visualizations):
             try:
@@ -558,8 +563,17 @@ class BackendCore:
 
     def get_result_visualization_config(self, source_id):
         self.parse_base_info()
-        visualizations = self.customized_source_result_visualization_configs[
-            source_id] if source_id in self.customized_source_result_visualization_configs else self.result_visualization_configs
+        source_config = self.find_datasource_configuration_by_label(self.source_label)
+        source_type = source_config['source_type']
+
+        if source_id in self.customized_source_result_visualization_configs:
+            visualizations = self.customized_source_result_visualization_configs[source_id]
+        else:
+            visualizations = self.result_visualization_configs[source_type] \
+                if (self.result_visualization_configs['allow-flexible-switch'] and
+                    source_type in self.result_visualization_configs) \
+                else self.result_visualization_configs['base']
+
         return [{'id': idx, **vf} for idx, vf in enumerate(visualizations)]
 
     def get_system_visualization_config(self):

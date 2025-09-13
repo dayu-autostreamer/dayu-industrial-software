@@ -1,5 +1,6 @@
 psutil
 pytz
+librosa
 
 # The following packages has been pre-installed in the  base image
 # opencv-python
