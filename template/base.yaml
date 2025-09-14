@@ -1,4 +1,4 @@
-namespace: dayu-industrial-software
+namespace: dayu-is
 log-level: DEBUG
 log-file-name:
 pod-permission:
