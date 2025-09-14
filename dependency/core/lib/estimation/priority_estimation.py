@@ -1,8 +1,6 @@
 import json
 import time
 
-from core.lib.content import Task
-
 
 class PriorityEstimator:
     def __init__(self, importance_weight, urgency_weight, priority_levels, deadline):
@@ -11,13 +9,13 @@ class PriorityEstimator:
         self.urgency_weight = urgency_weight
         self.deadline = deadline
 
-    def calculate_priority(self, task: Task):
+    def calculate_priority(self, task):
         importance = task.get_source_importance()
         urgency = self.calculate_urgency(task)
 
         return round(importance * self.importance_weight + urgency * self.urgency_weight)
 
-    def calculate_urgency(self, task: Task):
+    def calculate_urgency(self, task):
         service_name = task.get_current_service_info()[0]
 
         remaining_time = self.get_relative_remaining_time(task.get_total_start_time())

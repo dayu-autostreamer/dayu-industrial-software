@@ -1,5 +1,4 @@
 import time
-from core.lib.content import Task
 from core.lib.common import LOGGER, NameMaintainer
 
 
@@ -25,7 +24,7 @@ class Timer:
 
 class TimeEstimator:
     @staticmethod
-    def record_dag_ts(task: Task, is_end: bool, sub_tag: str = 'transmit') -> (Task, float):
+    def record_dag_ts(task, is_end: bool, sub_tag: str = 'transmit'):
         """
         record dag timestamp in system
         :param task: dag task
@@ -42,7 +41,7 @@ class TimeEstimator:
         return duration
 
     @staticmethod
-    def record_task_ts(task: Task, tag: str, is_end: bool = False) -> (Task, float):
+    def record_task_ts(task, tag: str, is_end: bool = False):
         """
 
         :param task: dag task
@@ -59,7 +58,7 @@ class TimeEstimator:
         return duration
 
     @staticmethod
-    def record_ts(data: dict, tag: str, is_end: bool = False) -> (dict, float):
+    def record_ts(data: dict, tag: str, is_end: bool = False):
         """
         record timestamp in system
         :param data: time dictionary
