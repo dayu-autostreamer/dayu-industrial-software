@@ -54,7 +54,7 @@
     <div>
       <ElRow>
         <ElCol :span="2">
-          <el-button type="warning" @click="draw">定制拓扑应用</el-button>
+          <el-button type="warning" @click="draw">绘制拓扑结构</el-button>
         </ElCol>
         <ElCol :span="18"></ElCol>
         <ElCol :span="2">
