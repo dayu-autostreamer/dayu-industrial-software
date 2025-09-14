@@ -3,7 +3,6 @@ import os
 import cv2
 import numpy as np
 import wave
-import librosa
 import matplotlib.pyplot as plt
 
 from core.lib.common import ClassFactory, ClassType, EncodeOps, LOGGER
@@ -34,6 +33,8 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
         def cal_norm(nparray):
             # [-1, 1]
             return 2 * (nparray - np.min(nparray)) / (np.max(nparray) - np.min(nparray)) - 1
+
+        import librosa
 
         databuffer = np.frombuffer(data, dtype=np.short)
         if nchannels == 2:
