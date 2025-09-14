@@ -1,7 +1,7 @@
 <template>
   <div class="outline">
     <div>
-      <h3>Installed Services</h3>
+      <h3>已安装服务</h3>
     </div>
     <ul style="list-style-type: none" class="svc-container">
       <li v-for="(service, index) in services" :key="index" class="svc-item">
@@ -12,19 +12,19 @@
     </ul>
     <br>
     <div>
-      <h3>Current Service Details<span style="visibility: hidden;">LL</span> <el-button @click="refresh()">Refresh</el-button></h3>
+      <h3>当前服务详情<span style="visibility: hidden;">LL</span> <el-button @click="refresh()">刷新</el-button></h3>
     </div>
 
     <div class="table-container">
       <table>
         <thead>
           <tr>
-            <th>IP Address</th>
-            <th>Hostname</th>
-            <th>CPU Usage</th>
-            <th>Memory Usage</th>
-            <th>Bandwidth</th>
-            <th>Creation Time</th>
+            <th>IP 地址</th>
+            <th>主机名</th>
+            <th>CPU 占用率</th>
+            <th>内存占用率</th>
+            <th>网络带宽</th>
+            <th>创建时间</th>
           </tr>
         </thead>
         <tbody>
@@ -40,7 +40,7 @@
       </table>
     </div>
     <div style="text-align: right; margin-top: 20px;">
-      <el-button type="danger" @click="stopService" :loading="loading" :disabled="installed !== 'install'" >Stop Services</el-button>
+      <el-button type="danger" @click="stopService" :loading="loading" :disabled="installed !== 'install'" >停止服务</el-button>
     </div>
   </div>
 </template>

@@ -6,11 +6,10 @@
       <!-- <el-card shadow="hover" style="margin: 20px;display: flex;justify-content: center;"> -->
       <div style="margin: 20px;">
         <div style="display: flex; align-items: center;">
-          <h3>Data Source</h3>
+          <h3>数据源</h3>
 
           <input type="file" ref="fileInput" style="width: 400px; margin-left: 20px;"/>
-          <!-- <button @click="uploadFile">上传文件</button> -->
-          <el-button plain @click="uploadFile" style="margin-left: 20px;margin-bottom: 8px">Upload File</el-button>
+          <el-button plain @click="uploadFile" style="margin-left: 20px;margin-bottom: 8px">上传文件</el-button>
         </div>
         <div><br/><br/></div>
 
@@ -41,7 +40,7 @@
                         </template>
 
                       </template>
-                      <el-button type="" text>details</el-button>
+                      <el-button type="" text>详情</el-button>
                     </el-tooltip>
                   </div>
 
@@ -59,11 +58,11 @@
 
         <div style="display: flex; justify-content: center;margin-top: 20px;">
           <el-button type="primary" :disabled="state!=='close' || selected_label === null" :loading="loading"
-                     @click="submit_query">Open Datasource
+                     @click="submit_query">打开数据源
           </el-button>
           <el-button type="danger" :disabled="state==='close' || selected_label !== source_label"
                      :loading="kill_loading"
-                     @click="stop_query">Close Datasource
+                     @click="stop_query">关闭数据源
           </el-button>
         </div>
 

@@ -5,7 +5,7 @@
       <el-col :span="24">
         <div class="viz-controls-panel">
           <div class="control-group">
-            <h4>Active Visualizations:</h4>
+            <h4>已激活的可视化模块：</h4>
             <el-checkbox-group v-model="currentActiveVisualizationsArray">
               <el-checkbox
                   v-for="viz in visualizationConfig"

@@ -2,16 +2,16 @@
   <el-form size="large" class="login-content-form">
     <el-form-item class="login-animation1">
       <div class="platform-description">
-        <h3>Welcome to Dayu System</h3>
-        <p>Provide infrastructure for cloud-edge collaborative stream data analysis.</p>
-        <el-tag type="success">System Version: {{ dayuVersion }}</el-tag>
+        <h3>欢迎来到大禹系统</h3>
+        <p>为工业智能制造云边流数据处理提供基础设施</p>
+        <el-tag type="success">系统版本: {{ dayuVersion }}</el-tag>
       </div>
     </el-form-item>
 
     <el-form-item class="login-animation2">
       <el-button type="primary" class="login-content-submit" round v-waves @click="onSignIn"
                  :loading="state.loading.signIn">
-        <span>Enter Dayu System</span>
+        <span>进入大禹系统</span>
       </el-button>
     </el-form-item>
   </el-form>

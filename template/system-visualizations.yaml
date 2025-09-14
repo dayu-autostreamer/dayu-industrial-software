@@ -1,18 +1,18 @@
-- name: CPU Usage
+- name: CPU 占用率
   type: curve
   x_axis: Time
   y_axis: Usage (%)
   variables: []
   hook_name: cpu_usage
   size: 1
-- name: Memory Usage
+- name: 内存占用率
   type: curve
   x_axis: Time
   y_axis: Usage (%)
   variables: []
   hook_name: memory_usage
   size: 1
-- name: Scheduling Overhead
+- name: 调度开销
   type: curve
   x_axis: Time
   y_axis: Overhead (ms)

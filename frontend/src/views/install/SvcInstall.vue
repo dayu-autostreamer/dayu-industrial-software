@@ -1,13 +1,13 @@
 <template>
   <div>
     <div>
-      <h3>Scheduler Policy</h3>
+      <h3>调度策略</h3>
     </div>
     <div>
       <el-select
           style="width: 100%"
           v-model="selectedPolicyIndex"
-          placeholder="Please choose scheduler policy"
+          placeholder="请选择调度策略"
       >
         <template v-for="(option, index) in policyOptions" :key="index">
           <el-option
@@ -24,7 +24,7 @@
 
   <div>
     <div>
-      <h3>DataSource Configuration</h3>
+      <h3>数据源配置</h3>
     </div>
     <div>
       <div>
@@ -32,7 +32,7 @@
             style="width: 100%"
             v-model="selectedDatasourceIndex"
             @change="handleDatasourceChange"
-            placeholder="Please choose datasource config"
+            placeholder="请选择数据源配置"
         >
           <template v-for="(option, index) in datasourceOptions" :key="index">
             <el-option
@@ -101,7 +101,7 @@
         :disabled="installed === 'install'"
         style="margin-top: 25px"
         @click="submitService"
-    >Install
+    >下装
     </el-button>
 
     <el-button
@@ -109,7 +109,7 @@
         round
         style="margin-top: 25px; margin-left: 10px"
         @click="handleClear"
-    >Clear
+    >清除
     </el-button>
   </div>
 </template>

@@ -7,11 +7,11 @@
              :class="{ 'source-loading': isSourceLoading }">
           <div class="flex-margin flex w100">
             <div class="flex-auto" style="font-weight: bold">
-              Choose Datasource: &nbsp;
+              选择数据源： &nbsp;
               <el-select
                   v-model="selectedDataSource"
                   :disabled="isSourceLoading"
-                  placeholder="Please choose datasource"
+                  placeholder="请选择数据源"
                   class="compact-select"
               >
                 <el-option
@@ -29,7 +29,7 @@
                   @click="triggerConfigUpload"
                   style="margin-left: 15px"
               >
-                Upload Config
+                上传配置
                 <template #loading>
                   <i class="el-icon-loading"></i>
                 </template>
@@ -45,7 +45,7 @@
             </div>
             <div v-if="isSourceLoading" class="loading-overlay">
               <i class="el-icon-loading"></i>
-              <span>Loading Visualizations...</span>
+              <span>正在加载可视化...</span>
             </div>
           </div>
         </div>
@@ -57,7 +57,7 @@
               class="export-button"
               @click="exportTaskLog"
           >
-            Export Log
+            导出日志
           </el-button>
         </div>
       </el-col>
@@ -68,7 +68,7 @@
       <el-col :span="24">
         <div class="viz-controls-panel">
           <div class="control-group">
-            <h4>Active Visualizations:</h4>
+            <h4>已激活的可视化模块：</h4>
             <el-checkbox-group v-model="currentActiveVisualizationsArray">
               <el-checkbox
                   v-for="viz in currentVisualizationConfig"

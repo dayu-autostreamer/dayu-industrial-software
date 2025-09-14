@@ -1,20 +1,20 @@
 <template>
   <div class="outline">
     <div>
-      <h3>Add Application Dag</h3>
+      <h3>添加拓扑结构应用</h3>
     </div>
 
     <div>
-      <div class="new-dag-font-style">Dag Name</div>
-      <el-input v-model="newInputName" placeholder="Please fill the dag name"/>
+      <div class="new-dag-font-style">应用名称</div>
+      <el-input v-model="newInputName" placeholder="请填入应用名称"/>
       <br/>
       <br/>
       <div style="display: inline">
         <div class="new-dag-font-style">
-          Service Containers
+          服务容器
           <el-tooltip placement="right">
             <template #content>
-              From docker Registry: https://hub.docker.com/u/dayuhub
+              容器仓库: https://hub.docker.com/u/dayuhub
             </template>
             <el-button size="small" circle>i</el-button>
           </el-tooltip>
@@ -54,7 +54,7 @@
     <div>
       <ElRow>
         <ElCol :span="2">
-          <el-button type="warning" @click="draw">Draw</el-button>
+          <el-button type="warning" @click="draw">定制拓扑应用</el-button>
         </ElCol>
         <ElCol :span="18"></ElCol>
         <ElCol :span="2">
@@ -97,7 +97,7 @@
           <el-icon class="tip-icon">
             <MagicStick/>
           </el-icon>
-          <span>Drag service nodes to build your workflow</span>
+          <span>拖拽服务模块来构建拓扑结构应用</span>
         </div>
 
         <Background pattern-color="#aaa" :gap="16"/>
@@ -118,7 +118,7 @@
     </div>
     <br/><br/>
     <div>
-      <h3>Current Application Dags</h3>
+      <h3>当前应用</h3>
     </div>
 
     <el-table :data="dagList" style="width: 100%">
@@ -148,13 +148,13 @@
                 <el-icon>
                   <Connection/>
                 </el-icon>
-                {{ Object.keys(scope.row.dag).length - 1 }} nodes
+                {{ Object.keys(scope.row.dag).length - 1 }} 节点
               </el-tag>
               <el-tag type="success" size="small">
                 <el-icon>
                   <Link/>
                 </el-icon>
-                {{ countEdges(scope.row.dag) }} links
+                {{ countEdges(scope.row.dag) }} 边
               </el-tag>
             </div>
           </div>
@@ -186,7 +186,7 @@
               size="small"
               type="danger"
               @click="deleteWorkflow(scope.$index, scope.row.dag_id)"
-          >Delete
+          >删除
           </el-button>
         </template>
       </el-table-column>
@@ -355,18 +355,18 @@ export default {
             }, 500);
           })
           .catch((error) => {
-            ElMessage.error("Network error");
+            ElMessage.error("网络错误");
             console.error(error);
           });
     },
 
     handleNewSubmit() {
       if (this.newInputName === "" || this.newInputName === null) {
-        ElMessage.error("Please fill the dag name");
+        ElMessage.error("请填入应用名称");
         return;
       }
       if (this.flowNodes === undefined || this.flowNodes.length === 0) {
-        ElMessage.error("Please choose services");
+        ElMessage.error("请选择服务");
         return;
       }
 
