@@ -1,21 +1,21 @@
 - name: CPU 占用率
   type: curve
-  x_axis: Time
-  y_axis: Usage (%)
+  x_axis: 时间
+  y_axis: 利用率 (%)
   variables: []
   hook_name: cpu_usage
   size: 1
 - name: 内存占用率
   type: curve
-  x_axis: Time
-  y_axis: Usage (%)
+  x_axis: 时间
+  y_axis: 利用率 (%)
   variables: []
   hook_name: memory_usage
   size: 1
-- name: 调度开销
+- name: 任务协同调度周期
   type: curve
-  x_axis: Time
-  y_axis: Overhead (ms)
+  x_axis: 时间
+  y_axis: 调度周期 (毫秒)
   variables: [ "Overhead" ]
   hook_name: schedule_overhead
   size: 1
