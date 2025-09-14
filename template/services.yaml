@@ -2,41 +2,41 @@
   service: edge-eye-stage1
   name: edge-eye stage1
   description: 参考点区域检测
-  input: bbox
-  output: text
+  input: universal_structure
+  output: universal_structure
   yaml: edge-eye-stage1.yaml
 - id: edge_eye_stage2
   service: edge-eye-stage2
   name: edge-eye stage2
   description: 区域超分辨率
-  input: bbox
-  output: text
+  input: universal_structure
+  output: universal_structure
   yaml: edge-eye-stage2.yaml
 - id: edge_eye_stage3
   service: edge-eye-stage3
   name: edge-eye stage3
   description: 材料边缘检测
-  input: bbox
-  output: text
+  input: universal_structure
+  output: universal_structure
   yaml: edge-eye-stage3.yaml
 - id: audio-sampling
   service: audio-sampling
   name: audio sampling
   description: 音频降采样
-  input: bbox
-  output: text
+  input: audio
+  output: audio
   yaml: audio-sampling.yaml
 - id: audio-classification
   service: audio-classification
   name: audio classification
   description: 音频分类
-  input: bbox
+  input: audio
   output: text
   yaml: audio-classification.yaml
 - id: imu-trajectory-sensing
   service: imu-trajectory-sensing
   name: imu trajectory sensing
   description: 惯性轨迹感知
-  input: bbox
+  input: imu_data
   output: text
   yaml: imu-trajectory-sensing.yaml
