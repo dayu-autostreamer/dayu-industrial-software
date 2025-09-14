@@ -16,7 +16,7 @@ ENV OPENBLAS_CORETYPE=ARMV8
 
 COPY ${lib_dir}/requirements.txt ./lib_requirements.txt
 COPY ${base_dir}/requirements.txt ./base_requirements.txt
-COPY ${app_dir}/requirements_amd64.txt ./app_requirements.txt
+COPY ${app_dir}/requirements.txt ./app_requirements.txt
 
 
 RUN pip3 install --upgrade pip && \

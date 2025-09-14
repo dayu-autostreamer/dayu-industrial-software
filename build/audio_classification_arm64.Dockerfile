@@ -29,7 +29,7 @@ RUN apt-get install -y llvm-10 llvm-10-dev \
 
 COPY ${lib_dir}/requirements.txt ./lib_requirements.txt
 COPY ${base_dir}/requirements.txt ./base_requirements.txt
-COPY ${app_dir}/requirements_amd64.txt ./app_requirements.txt
+COPY ${app_dir}/requirements_arm64.txt ./app_requirements.txt
 
 RUN pip3 install --upgrade pip && \
     pip3 uninstall -y numpy && \
