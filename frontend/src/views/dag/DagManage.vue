@@ -63,13 +63,13 @@
               round
               @click="handleNewSubmit"
               v-if="drawing"
-          >Add
+          >添加
           </el-button
           >
         </ElCol>
         <ElCol :span="2">
           <el-button type="primary" round @click="clearInput" v-if="drawing"
-          >Clear
+          >清除
           </el-button
           >
         </ElCol>
@@ -262,7 +262,7 @@ export default {
         fitView()
       } catch (e) {
         console.error("Layout failed:", e)
-        ElMessage.error("DAG layout error")
+        ElMessage.error("拓扑图展示错误")
       }
     }
 
@@ -492,7 +492,7 @@ export default {
 
       } catch (e) {
         console.error("Layout failed:", e);
-        ElMessage.error("DAG layout error");
+        ElMessage.error("拓扑图展示错误");
       }
     },
 
