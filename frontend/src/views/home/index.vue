@@ -1,7 +1,7 @@
 <template>
 	<div class="home-container layout-pd">
 
-		Dayu: An auto scheduling system for stream data processing on distributed cloud-edge platforms
+		大禹：工业感算控多设备协同与多类型任务实时调度系统
 	</div>
 </template>
 

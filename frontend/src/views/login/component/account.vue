@@ -3,7 +3,7 @@
     <el-form-item class="login-animation1">
       <div class="platform-description">
         <h3>欢迎来到大禹系统</h3>
-        <p>为工业智能制造云边流数据处理提供基础设施</p>
+        <p>感算控多设备协同与多类型任务实时调度</p>
         <el-tag type="success">系统版本: {{ dayuVersion }}</el-tag>
       </div>
     </el-form-item>

@@ -122,14 +122,14 @@
     </div>
 
     <el-table :data="dagList" style="width: 100%">
-      <el-table-column label="Dag Name" width="180">
+      <el-table-column label="应用名称" width="180">
         <template #default="scope">
           <div style="display: flex; align-items: center">
             <span style="margin-left: 10px">{{ scope.row.dag_name }}</span>
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="Dag" width="320">
+      <el-table-column label="应用拓扑结构" width="320">
         <template #default="scope">
           <div class="dag-preview"
                @mouseenter="showDagDetail(scope.row, $event)"
@@ -180,7 +180,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="Action">
+      <el-table-column label="操作">
         <template #default="scope">
           <el-button
               size="small"
