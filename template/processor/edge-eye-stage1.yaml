@@ -1,7 +1,7 @@
 position: both
 pod-template:
   image: edge-eye-stage1
-  imagePullPolicy: IfNotPresent
+  imagePullPolicy: Always
   env:
     - name: PROCESSOR_NAME
       value: "universal_processor"
