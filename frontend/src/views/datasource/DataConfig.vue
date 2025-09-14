@@ -6,10 +6,10 @@
       <!-- <el-card shadow="hover" style="margin: 20px;display: flex;justify-content: center;"> -->
       <div style="margin: 20px;">
         <div style="display: flex; align-items: center;">
-          <h3>数据源</h3>
+          <h3>数据源配置</h3>
 
           <input type="file" ref="fileInput" style="width: 400px; margin-left: 20px;"/>
-          <el-button plain @click="uploadFile" style="margin-left: 20px;margin-bottom: 8px">上传文件</el-button>
+          <el-button plain @click="uploadFile" style="margin-left: 20px;margin-bottom: 8px">上传配置</el-button>
         </div>
         <div><br/><br/></div>
 
@@ -22,17 +22,17 @@
                  v-bind:class="{ 'selected': selected_label === item.source_label }"
             >
               <ul style="list-style-type: none;font-size: 16px;" class="info-ui">
-                <li class="info-li">Source Name: {{ item.source_name }}</li>
-                <li class="info-li">Source Type: {{ item.source_type }}</li>
-                <li class="info-li">Source Mode: {{ item.source_mode }}</li>
-                <li class="info-li">Source List:</li>
+                <li class="info-li">数据源名称: {{ item.source_name }}</li>
+                <li class="info-li">数据源模态: {{ item.source_type }}</li>
+                <li class="info-li">数据源模式: {{ item.source_mode }}</li>
+                <li class="info-li">数据源列表:</li>
                 <div class="info-li" v-for="source in item.source_list" style="display: flex; justify-content: center;">
                   <div style="width: 100%; display: flex; align-items: center;">
                     <div style="margin-right: 10px;">{{ source.name }}</div>
                     <el-tooltip class="box-item" effect="dark" placement="right" :hide-after="10"
                                 popper-class="tooltip-width">
                       <template #content>
-                        <div>Source URL: {{ source.url }}</div>
+                        <div>数据源地址: {{ source.url }}</div>
                         <template v-for="(value, key) in source.metadata" :key="key">
                           <div>
                             {{ key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }}: {{ value }}
@@ -49,7 +49,7 @@
               </ul>
               <div style="text-align: center; margin-top: 20px;">
                 <el-button type="danger" :loading="loading" @click="delete_source(item.source_label)"
-                >Delete
+                >删除
                 </el-button>
               </div>
             </div>

@@ -11,7 +11,7 @@
     <el-form-item class="login-animation2">
       <el-button type="primary" class="login-content-submit" round v-waves @click="onSignIn"
                  :loading="state.loading.signIn">
-        <span>进入大禹系统</span>
+        <h4>进入大禹系统</h4>
       </el-button>
     </el-form-item>
   </el-form>

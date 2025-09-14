@@ -1,7 +1,7 @@
 <template>
   <div class="cdf-controls">
     <div class="variable-group">
-      <span class="variable-title">Display Variables:</span>
+      <span class="variable-title">变量：</span>
       <el-checkbox-group
           v-model="selectedVariables"
           @change="handleVariableChange"
