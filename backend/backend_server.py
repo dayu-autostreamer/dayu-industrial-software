@@ -295,9 +295,9 @@ class BackendServer:
                 'dag': dag
             })
 
-            return {'state': 'success', 'msg': 'Add new dag Successfully'}
+            return {'state': 'success', 'msg': '添加新应用成功'}
         else:
-            return {'state': 'fail', 'msg': f'Add new dag failed: {msg}'}
+            return {'state': 'fail', 'msg': f'添加新应用失败：{msg}'}
 
     async def delete_dag_workflow(self, data=Body(...)):
         """
@@ -315,9 +315,9 @@ class BackendServer:
         for index, dag in enumerate(self.server.dags):
             if dag['dag_id'] == dag_id:
                 del self.server.dags[index]
-                return {'state': 'success', 'msg': 'Delete dag successfully'}
+                return {'state': 'success', 'msg': '删除应用成功'}
 
-        return {'state': 'fail', 'msg': 'Delete dag failed: dag not exists'}
+        return {'state': 'fail', 'msg': '删除应用失败：应用不存在'}
 
     async def get_service_info(self, service):
         """
@@ -374,9 +374,9 @@ class BackendServer:
         if config:
 
             self.server.source_configs.append(self.server.fill_datasource_config(config))
-            return {'state': 'success', 'msg': 'Datasource configured successfully'}
+            return {'state': 'success', 'msg': '数据源配置成功'}
         else:
-            return {'state': 'fail', 'msg': 'Datasource configured failed, please check uploading file format'}
+            return {'state': 'fail', 'msg': '数据源配置失败，请检查上传文件格式'}
 
     async def get_datasource_info(self):
         """
@@ -421,9 +421,9 @@ class BackendServer:
         for index, datasource in enumerate(self.server.source_configs):
             if datasource['source_label'] == source_label:
                 del self.server.source_configs[index]
-                return {'state': 'success', 'msg': 'Delete datasource successfully'}
+                return {'state': 'success', 'msg': '删除数据源成功'}
 
-        return {'state': 'fail', 'msg': 'Delete datasource failed: datasource not exists'}
+        return {'state': 'fail', 'msg': '删除数据源失败: 数据源不存在'}
 
     async def install_service(self, data=Body(...)):
         """
@@ -463,24 +463,24 @@ class BackendServer:
 
         policy = self.server.find_scheduler_policy_by_id(policy_id)
         if policy is None:
-            return {'state': 'fail', 'msg': 'Install services failed: scheduler policy not exists'}
+            return {'state': 'fail', 'msg': '下装服务失败: 调度策略不存在'}
 
         source_config = self.server.find_datasource_configuration_by_label(source_label)
         if source_config is None:
-            return {'state': 'fail', 'msg': 'Install services failed: datasource configuration not exists'}
+            return {'state': 'fail', 'msg': '下装服务失败: 数据源配置不存在'}
 
         if len(source_config) != len(dag_list) != len(node_set_list):
-            return {'state': 'fail', 'msg': 'Install services failed: datasource mapping failed'}
+            return {'state': 'fail', 'msg': '下装服务失败: 数据源映射失败'}
 
         for source, dag_id, node_set in zip(source_config['source_list'], dag_list, node_set_list):
 
             dag = self.server.find_dag_by_id(dag_id)
             if dag is None:
-                return {'state': 'fail', 'msg': 'Install services failed: dag not exists'}
+                return {'state': 'fail', 'msg': '下装服务失败: 拓扑应用不存在'}
 
             for node in node_set:
                 if not self.server.check_node_exist(node):
-                    return {'state': 'fail', 'msg': f'Install services failed: edge node "{node}" not exists'}
+                    return {'state': 'fail', 'msg': f'下装应用失败: 边缘节点 "{node}" 不存在'}
 
             source.update({'source_type': source_config['source_type'], 'source_mode': source_config['source_mode']})
 
@@ -491,12 +491,12 @@ class BackendServer:
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
             result = False
-            msg = 'unexpected system error, please refer to logs in backend'
+            msg = '未知系统错误，请查看后端容器日志'
 
         if result:
-            return {'state': 'success', 'msg': 'Install services successfully'}
+            return {'state': 'success', 'msg': '下装服务成功'}
         else:
-            return {'state': 'fail', 'msg': f'Install services failed: {msg}'}
+            return {'state': 'fail', 'msg': f'下装服务失败: {msg}'}
 
     async def uninstall_service(self):
         """
@@ -509,17 +509,17 @@ class BackendServer:
             result, msg = self.server.parse_and_delete_templates()
 
         except Exception as e:
-            LOGGER.warning(f'Uninstall services failed: {str(e)}')
+            LOGGER.warning(f'卸载服务失败: {str(e)}')
             LOGGER.exception(e)
             result = False
-            msg = f'unexpected system error, please refer to logs in backend'
+            msg = f'未知系统错误，请查看后端容器日志'
 
         self.server.clear_yaml_docs()
 
         if result:
-            return {'state': 'success', 'msg': 'Uninstall services successfully'}
+            return {'state': 'success', 'msg': '卸载服务成功'}
         else:
-            return {'state': 'fail', 'msg': f'Uninstall services failed: {msg}'}
+            return {'state': 'fail', 'msg': f'卸载服务失败: {msg}'}
 
     async def get_install_state(self):
         """
@@ -545,7 +545,7 @@ class BackendServer:
 
         source_label = data['source_label']
         if not self.server.find_datasource_configuration_by_label(source_label):
-            return {'state': 'fail', 'msg': 'Datasource configuration not exists'}
+            return {'state': 'fail', 'msg': '数据源打开失败：数据源配置不存在'}
 
         self.server.source_open = True
         self.server.source_label = source_label
@@ -558,7 +558,7 @@ class BackendServer:
         self.server.is_get_result = True
         threading.Thread(target=self.server.run_get_result).start()
 
-        return {'state': 'success', 'msg': 'Datasource open successfully'}
+        return {'state': 'success', 'msg': '数据源打开成功'}
 
     async def stop_query(self):
         """
@@ -574,7 +574,7 @@ class BackendServer:
         self.server.customized_source_result_visualization_configs.clear()
         time.sleep(1)
 
-        return {'state': 'success', 'msg': 'Datasource close successfully'}
+        return {'state': 'success', 'msg': '数据源关闭成功'}
 
     async def get_query_state(self):
         """
@@ -662,9 +662,9 @@ class BackendServer:
         FileOps.remove_file('result_visualization_config.yaml')
         if config:
             self.server.customized_source_result_visualization_configs[source_id] = copy.deepcopy(config)
-            return {'state': 'success', 'msg': 'Visualization configured successfully'}
+            return {'state': 'success', 'msg': '可视化模块配置成功'}
         else:
-            return {'state': 'fail', 'msg': 'Visualization configured failed, please check uploading file format'}
+            return {'state': 'fail', 'msg': '可视化模块配置失败，请检查上传文件格式'}
 
     async def get_system_visualization_config(self):
         """

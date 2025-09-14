@@ -95,11 +95,11 @@ class BackendCore:
         except timeout_exceptions.FunctionTimedOut as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
             result = False
-            msg = 'first-stage install timeout after 60 seconds'
+            msg = '第一阶段下装超过预定时间（60秒）'
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
             result = False
-            msg = 'unexpected system error, please refer to logs in backend'
+            msg = '未知系统错误，请查看后端容器日志'
         finally:
             self.save_component_yaml(first_docs_list)
         if not result:
@@ -113,11 +113,11 @@ class BackendCore:
         except timeout_exceptions.FunctionTimedOut as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
             result = False
-            msg = 'second-stage install timeout after 60 seconds'
+            msg = '第二阶段下装超过预定时间（60秒）'
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
             result = False
-            msg = 'unexpected system error, please refer to logs in backend'
+            msg = '未知系统错误，请查看后端容器日志'
         finally:
             self.save_component_yaml(first_docs_list + second_docs_list)
         if not result:
@@ -130,14 +130,14 @@ class BackendCore:
         try:
             result, msg = self.uninstall_yaml_templates(docs)
         except timeout_exceptions.FunctionTimedOut as e:
-            msg = 'timeout after 120 seconds'
+            msg = '超出预定时间（120秒）'
             result = False
             LOGGER.warning(f'Uninstall services failed: {msg}')
         except Exception as e:
             LOGGER.warning(f'Uninstall services failed: {str(e)}')
             LOGGER.exception(e)
             result = False
-            msg = f'unexpected system error, please refer to logs in backend'
+            msg = f'未知系统错误，请查看后端容器日志'
 
         return result, msg
 
@@ -306,12 +306,12 @@ class BackendCore:
                     parent_service = self.find_service_by_id(parent)
                     child_service = self.find_service_by_id(child)
                     if not parent_service or not child_service:
-                        error_msg = f"Missing service definition for node {parent if not parent_service else child}"
+                        error_msg = f"服务节点缺失： {parent if not parent_service else child}"
                         LOGGER.error(f"DAG Validation Error: {error_msg}")
                         return False, error_msg
                     if child_service['input'] != parent_service['output']:
                         error_msg = (
-                            f"Node connection mismatch, '{parent}' output '{parent_service['output']}', '{child}' input '{child_service['input']}' "
+                            f"前后服务节点不匹配, '{parent}' 输出 '{parent_service['output']}', '{child}' 输入 '{child_service['input']}' "
                         )
                         LOGGER.error(f"DAG Validation Error: {error_msg}")
                         return False, error_msg
@@ -321,7 +321,7 @@ class BackendCore:
                         queue.append(child)
 
             if len(topo_order) != len(in_degree):
-                error_msg = "DAG contains cycles or unreachable nodes"
+                error_msg = "应用拓扑图存在循环"
                 LOGGER.warning(f"DAG Validation Error: {error_msg}")
                 return False, error_msg
 
