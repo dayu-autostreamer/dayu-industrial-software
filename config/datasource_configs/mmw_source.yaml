@@ -1,0 +1,10 @@
+source_name: "毫米波"
+source_type: "mmw"
+source_mode: "http_mmw"
+source_list:
+  - name: "mmw_source_0"
+    url: ""
+    dir: "mmw_0/"
+    metadata:
+      fps: 1
+    importance: 7
