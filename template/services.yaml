@@ -40,3 +40,10 @@
   input: imu_data
   output: text
   yaml: imu-trajectory-sensing.yaml
+- id: waveform-detection
+  service: waveform-detection
+  name: waveform detection
+  description: waveform detection (detection-pure)
+  input: frame
+  output: bbox
+  yaml: waveform-detection.yaml

@@ -1,0 +1,10 @@
+source_name: "钢材涡流"
+source_type: "video"
+source_mode: "rtsp_video"
+source_list:
+  - name: "waveform_source_0"
+    url: ""
+    dir: "shy_waveform/"
+    metadata:
+      fps: 1
+    importance: 7
