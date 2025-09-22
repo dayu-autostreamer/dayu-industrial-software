@@ -4,8 +4,11 @@ export default {
         install: '服务下装',
         dag: '应用编排',
         datasource: '数据源配置',
-        result: '结果可视化',
+        result: '周期监控任务',
         system: '系统可视化',
+        priority: '优先级队列',
+        free: '自由查询任务',
+        event: '事件触发任务',
 
         limits: 'limits',
         limitsFrontEnd: 'FrontEnd',

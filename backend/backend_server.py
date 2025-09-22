@@ -152,6 +152,12 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_RESET_DATASOURCE]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_PRIORITY_QUEUE,
+                     self.get_priority_queue,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_PRIORITY_QUEUE]
+                     ),
+
         ], log_level='trace', timeout=6000)
 
         self.app.add_middleware(
@@ -705,3 +711,46 @@ class BackendServer:
             filename=f'{file_name}.json',
             background=backtask.add_task(FileOps.remove_file, self.server.log_file_path)
         )
+
+    async def get_priority_info(self):
+        """
+        :return:
+        {
+            "nodes": ["node1","node2",...],
+            "services": {"node1":["service1",...], "node2":["service2",...]},
+            "priority_num":10
+        }
+        """
+        pass
+
+    async def get_priority_queue(self, node):
+        """
+        node: node name
+        :return:
+        [
+            # stage1
+            [
+                # priority queue 1
+                [{
+                source_id: 1,
+                task_id: 1,
+                importance: 1
+                urgency: 1
+                },{},{},{}],
+                [],
+                [],
+                [],
+                []
+            ],
+            # stage2
+            [
+                [],
+                [],
+                [],
+                [],
+                []
+
+            ]
+        ]
+        """
+        pass

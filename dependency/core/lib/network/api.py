@@ -47,6 +47,8 @@ class NetworkAPIPath:
     BACKEND_EDGE_NODE = '/edge_node'
     BACKEND_DATASOURCE_STATE = '/datasource_state'
     BACKEND_RESET_DATASOURCE = '/reset_datasource'
+    BACKEND_PRIORITY_INFO = '/priority_info'
+    BACKEND_PRIORITY_QUEUE = '/priority_queue/{node}'
 
 
 class NetworkAPIMethod:
@@ -98,5 +100,5 @@ class NetworkAPIMethod:
     BACKEND_EDGE_NODE = 'GET'
     BACKEND_DATASOURCE_STATE = 'GET'
     BACKEND_RESET_DATASOURCE = 'POST'
-
-
+    BACKEND_PRIORITY_INFO = 'GET'
+    BACKEND_PRIORITY_QUEUE = 'GET'
