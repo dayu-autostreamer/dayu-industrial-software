@@ -5,7 +5,7 @@ export default {
         dag: '应用编排',
         datasource: '数据源配置',
         result: '周期监控任务',
-        system: '系统可视化',
+        system: '系统监测',
         priority: '优先级队列',
         free: '自由查询任务',
         event: '事件触发任务',

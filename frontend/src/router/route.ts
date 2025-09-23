@@ -120,36 +120,6 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
                 },
             },
             {
-                path: '/system',
-                name: 'system',
-                component: () => import('/@/views/system/index.vue'),
-                meta: {
-                    title: 'message.router.system',
-                    isLink: '',
-                    isHide: false,
-                    isKeepAlive: true,
-                    isAffix: false,
-                    isIframe: false,
-                    roles: ['dayu', 'common'],
-                    icon: 'iconfont icon-ico_shuju',
-                }
-            },
-            {
-                path: '/priority',
-                name: 'priority',
-                component: () => import('/@/views/priority/index.vue'),
-                meta: {
-                    title: 'message.router.priority',
-                    isLink: '',
-                    isHide: false,
-                    isKeepAlive: true,
-                    isAffix: false,
-                    isIframe: false,
-                    roles: ['dayu', 'common'],
-                    icon: 'iconfont icon--chaifenhang',
-                }
-            },
-            {
                 path: '/free',
                 name: 'free',
                 component: () => import('/@/views/free/index.vue'),
@@ -177,6 +147,36 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
                     isIframe: false,
                     roles: ['dayu', 'common'],
                     icon: 'iconfont icon-jinridaiban',
+                }
+            },
+            {
+                path: '/priority',
+                name: 'priority',
+                component: () => import('/@/views/priority/index.vue'),
+                meta: {
+                    title: 'message.router.priority',
+                    isLink: '',
+                    isHide: false,
+                    isKeepAlive: true,
+                    isAffix: false,
+                    isIframe: false,
+                    roles: ['dayu', 'common'],
+                    icon: 'iconfont icon--chaifenhang',
+                }
+            },
+            {
+                path: '/system',
+                name: 'system',
+                component: () => import('/@/views/system/index.vue'),
+                meta: {
+                    title: 'message.router.system',
+                    isLink: '',
+                    isHide: false,
+                    isKeepAlive: true,
+                    isAffix: false,
+                    isIframe: false,
+                    roles: ['dayu', 'common'],
+                    icon: 'iconfont icon-ico_shuju',
                 }
             },
         ],
