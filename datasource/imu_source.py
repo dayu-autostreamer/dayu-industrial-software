@@ -115,7 +115,7 @@ class IMUSource:
                 try:
                     df = pd.read_csv(self._cur_csv_path)
                     self._cur_csv_df = df
-                    start_ids, end_ids = [0], [len(df) - 1]
+                    start_ids, end_ids = self._end_point_detection(df)
                     # Normalized to int and closed interval
                     self._segments = [(int(s), int(e)) for s, e in zip(start_ids, end_ids)]
                     self._segment_idx = 0
@@ -155,7 +155,7 @@ class IMUSource:
             raise HTTPException(status_code=400, detail=f"Invalid segment range: {s}..{e}")
 
         # Column Range Check (If your CSV column layout is different, please adjust it accordingly)
-        need_max_col = max(21, 8)  # We used column index 21 (starting from 0).
+        need_max_col = 21  # We used column index 21 (starting from 0).
         if df.shape[1] <= need_max_col:
             raise HTTPException(
                 status_code=400,
@@ -178,6 +178,41 @@ class IMUSource:
 
         data = np.column_stack((data_time, data_gyro, data_acc))
         return np.ascontiguousarray(data)
+
+    def _end_point_detection(self, csv_df):
+        import numpy as np
+
+        n = len(csv_df)
+        if n == 0:
+            return [], []
+
+        t = csv_df.iloc[:, 1].to_numpy(dtype=float)
+
+        gap_threshold = getattr(self, "gap_threshold", 0.5)
+        ts_in_ms = getattr(self, "timestamp_in_ms", False)
+        min_len = int(getattr(self, "min_len", 1))
+
+        if ts_in_ms:
+            t = t / 1000.0
+
+        dt = np.diff(t)
+        dt[~np.isfinite(dt)] = 0.0
+
+        cuts = np.where(dt > float(gap_threshold))[0]
+
+        starts = np.r_[0, cuts + 1]
+        ends = np.r_[cuts, n - 1]
+
+        if min_len > 1:
+            keep = (ends - starts + 1) >= min_len
+            starts = starts[keep]
+            ends = ends[keep]
+
+        if starts.size == 0:
+            starts = np.array([0], dtype=int)
+            ends = np.array([n - 1], dtype=int)
+
+        return starts.astype(int).tolist(), ends.astype(int).tolist()
 
 
 @app.post("/admin/add_source")

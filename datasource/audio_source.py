@@ -124,7 +124,7 @@ class AudioSource:
 async def add_source(request: SourceRequest):
     if request.path in sources:
         return {"status": "error", "message": "Path already exists"}
-    source = VideoSource(request.root, request.path, request.play_mode)
+    source = AudioSource(request.root, request.path, request.play_mode)
     app.include_router(source.router, prefix=f"/{request.path}")
     sources[request.path] = source
     return {"status": "success"}
