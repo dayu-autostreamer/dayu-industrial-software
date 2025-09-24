@@ -38,7 +38,7 @@ class AudioSource:
         self.router.add_api_route('/file', self.get_source_file, methods=['GET'])
 
         self.data_root = data_root
-        self.data_dir = os.path.join(self.data_root, 'frames')
+        self.data_dir = self.data_root
 
         self.play_mode = play_mode
         self.frames_per_task = 1
