@@ -178,6 +178,7 @@ async def add_source(request: SourceRequest):
         return {"status": "error", "message": "Path already exists"}
     source = AudioSource(request.root, request.play_mode)
     app.include_router(source.router, prefix=f"/{request.path}")
+    LOGGER.info(f"Added source: {request.path}")
     sources[request.path] = source
     return {"status": "success"}
 
