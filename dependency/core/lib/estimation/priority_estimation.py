@@ -10,10 +10,22 @@ class PriorityEstimator:
         self.deadline = deadline
 
     def calculate_priority(self, task):
-        importance = task.get_source_importance()
-        urgency = self.calculate_urgency(task)
+        importance = task.get_source_importance()  # Value range: 0~(priority_level_num-1)
+        urgency = self.calculate_urgency(task)     # Value range: 0~(priority_level_num-1)
 
-        return round(importance * self.importance_weight + urgency * self.urgency_weight)
+        # Normalize to [0, 1]
+        denominator = self.priority_level_num - 1 if self.priority_level_num > 1 else 1
+        importance_norm = importance / denominator
+        urgency_norm = urgency / denominator
+
+        # Weighted normalized score
+        score = importance_norm * self.importance_weight + urgency_norm * self.urgency_weight
+        max_score = self.importance_weight + self.urgency_weight
+        normalized_score = score / max_score if max_score > 0 else 0
+
+        # Ensure priority_levels integers
+        priority = int(normalized_score * (self.priority_level_num - 1) + 0.5)
+        return priority
 
     def calculate_urgency(self, task):
         service_name = task.get_current_service_info()[0]

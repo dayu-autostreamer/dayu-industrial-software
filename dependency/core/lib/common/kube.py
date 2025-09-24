@@ -1,3 +1,4 @@
+from typing import List, Dict
 from kubernetes import client, config
 from collections import defaultdict
 
@@ -10,14 +11,14 @@ class KubeConfig:
     SERVICE_PREFIX = 'processor-'
 
     @classmethod
-    def _get_api(cls):
+    def _get_api(cls) -> client.CoreV1Api:
         if not cls._api:
             config.load_incluster_config()
             cls._api = client.CoreV1Api()
         return cls._api
 
     @classmethod
-    def get_service_nodes_dict(cls):
+    def get_service_nodes_dict(cls) -> Dict[str, List[str]]:
         """
         Get nodes for each service based on pod name pattern
         Returns:
@@ -49,7 +50,7 @@ class KubeConfig:
         return {svc: list(nodes) for svc, nodes in service_nodes.items()}
 
     @classmethod
-    def get_node_services_dict(cls):
+    def get_node_services_dict(cls) -> Dict[str, List[str]]:
         """
         Get services on each node by reversing service-node mapping
         Returns:
@@ -69,7 +70,7 @@ class KubeConfig:
         return {node: list(svcs) for node, svcs in node_services.items()}
 
     @classmethod
-    def get_services_on_node(cls, node_name):
+    def get_services_on_node(cls, node_name: str) -> List[str]:
         """
         Get services on specified node
         Args:
@@ -80,7 +81,7 @@ class KubeConfig:
         return cls.get_node_services_dict().get(node_name, [])
 
     @classmethod
-    def get_nodes_for_service(cls, service_name):
+    def get_nodes_for_service(cls, service_name: str) -> List[str]:
         """
         Get nodes running specified service
         Args:

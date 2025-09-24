@@ -7,7 +7,7 @@ import func_timeout.exceptions as timeout_exceptions
 import os
 import time
 from core.lib.content import Task
-from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant
+from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig
 from core.lib.network import http_request, NodeInfo, PortInfo, merge_address, NetworkAPIPath, NetworkAPIMethod
 
 from kube_helper import KubeHelper
@@ -88,7 +88,8 @@ class BackendCore:
         second_stage_components = ['generator', 'processor']
 
         LOGGER.info(f'[First Deployment Stage] deploy components:{first_stage_components}')
-        first_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy, priority = self.priority,
+        first_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,
+                                                                        priority=self.priority,
                                                                         scopes=first_stage_components)
         try:
             result, msg = self.install_yaml_templates(first_docs_list)
@@ -106,7 +107,8 @@ class BackendCore:
             return False, msg
 
         LOGGER.info(f'[Second Deployment Stage] deploy components:{second_stage_components}')
-        second_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,priority = self.priority,
+        second_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,
+                                                                         priority=self.priority,
                                                                          scopes=second_stage_components)
         try:
             result, msg = self.install_yaml_templates(second_docs_list)
@@ -579,3 +581,24 @@ class BackendCore:
     def get_system_visualization_config(self):
         self.parse_base_info()
         return [{'id': idx, **vf} for idx, vf in enumerate(self.system_visualization_configs)]
+
+    def get_priority_info(self):
+        """
+        :return:
+        {
+            "nodes": [node1,node2,...],
+            "services": {node1:[service1,...], node2:[service2,...]},
+            "priority_num":10
+        }
+        """
+        self.parse_base_info()
+        node_services = KubeConfig.get_node_services_dict()
+
+        return {
+            'nodes': list(node_services.keys()),
+            'services': node_services,
+            'priority_num': self.priority['priority_levels']
+        }
+
+    def get_priority_queue(self):
+        pass

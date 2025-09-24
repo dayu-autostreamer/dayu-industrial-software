@@ -2,7 +2,7 @@ import json
 
 
 class Service:
-    def __init__(self, service_name, execute_device='', priority=0,
+    def __init__(self, service_name, execute_device='', priority=None,
                  transmit_time=0, execute_time=0, real_execute_time=0, content: object = None):
         self.__service_name = service_name
         self.__execute_device = execute_device

@@ -507,7 +507,7 @@ class Task:
     @property
     def priority(self):
         cur_service = self.get_current_service()
-        if cur_service.get_priority() == 0:
+        if cur_service.get_priority() is None:
             priority = PriorityEstimator(
                 importance_weight=self.__priority_coefficients['importance_weight'],
                 urgency_weight=self.__priority_coefficients['urgency_weight'],

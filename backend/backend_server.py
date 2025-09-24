@@ -152,6 +152,11 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_RESET_DATASOURCE]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_PRIORITY_INFO,
+                     self.get_priority_info,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_PRIORITY_INFO]
+                     ),
             APIRoute(NetworkAPIPath.BACKEND_PRIORITY_QUEUE,
                      self.get_priority_queue,
                      response_class=JSONResponse,
@@ -716,19 +721,21 @@ class BackendServer:
         """
         :return:
         {
-            "nodes": ["node1","node2",...],
-            "services": {"node1":["service1",...], "node2":["service2",...]},
+            "nodes": [node1,node2,...],
+            "services": {node1:[service1,...], node2:[service2,...]},
             "priority_num":10
         }
         """
-        pass
+        return self.server.get_priority_info()
+
+
 
     async def get_priority_queue(self, node):
         """
         node: node name
         :return:
-        [
-            # stage1
+        {
+            service1:
             [
                 # priority queue 1
                 [{
@@ -742,7 +749,7 @@ class BackendServer:
                 [],
                 []
             ],
-            # stage2
+            service2:
             [
                 [],
                 [],
@@ -751,6 +758,6 @@ class BackendServer:
                 []
 
             ]
-        ]
+        }
         """
-        pass
+        return self.server.get_priority_queue(node)
