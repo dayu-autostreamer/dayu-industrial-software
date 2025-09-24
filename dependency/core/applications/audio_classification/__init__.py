@@ -1,3 +1,3 @@
-from .audio_classification import AudioClassification as AudioClassifier
+from .audio_classification import AudioClassification as Audio_Classifier
 
-__all__ = ["AudioClassifier"]
+__all__ = ["Audio_Classifier"]

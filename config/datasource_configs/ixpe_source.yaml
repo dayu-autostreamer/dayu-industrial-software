@@ -1,4 +1,4 @@
-source_name: "工业IXPE发泡塑料生产线摄像头"
+source_name: "发泡塑料产线摄像头"
 source_type: "video"
 source_mode: "rtsp_video"
 source_list:
@@ -11,13 +11,13 @@ source_list:
       encoding: "mp4v"
       buffer_size: 1
     importance: 5
-  - name: "ixpe_camera_1"
-    url: ""
-    dir: "ixpe_1/"
-    metadata:
-      resolution: "540p"
-      fps: 30
-      encoding: "mp4v"
-      buffer_size: 1
-    importance: 4
+#  - name: "ixpe_camera_1"
+#    url: ""
+#    dir: "ixpe_1/"
+#    metadata:
+#      resolution: "540p"
+#      fps: 30
+#      encoding: "mp4v"
+#      buffer_size: 1
+#    importance: 4
 

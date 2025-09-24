@@ -3,7 +3,6 @@ import os
 import cv2
 import numpy as np
 import wave
-import matplotlib.pyplot as plt
 
 from core.lib.common import ClassFactory, ClassType, EncodeOps, LOGGER
 from core.lib.content import Task
@@ -35,6 +34,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
             return 2 * (nparray - np.min(nparray)) / (np.max(nparray) - np.min(nparray)) - 1
 
         import librosa
+        import matplotlib.pyplot as plt
 
         databuffer = np.frombuffer(data, dtype=np.short)
         if nchannels == 2:

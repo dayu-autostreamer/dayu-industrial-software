@@ -11,7 +11,7 @@ import asyncio
 from pydantic import BaseModel
 
 from fastapi import FastAPI, Form, BackgroundTasks
-from fastapi.routing import  APIRouter
+from fastapi.routing import APIRouter
 from starlette.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -32,7 +32,7 @@ class SourceRequest(BaseModel):
 
 
 class VideoSource:
-    def __init__(self, data_root, path, play_mode):
+    def __init__(self, data_root, play_mode):
         self.router = APIRouter()
         self.router.add_api_route('/source', self.get_source_data, methods=['GET'])
         self.router.add_api_route('/file', self.get_source_file, methods=['GET'])
@@ -124,7 +124,7 @@ class VideoSource:
 async def add_source(request: SourceRequest):
     if request.path in sources:
         return {"status": "error", "message": "Path already exists"}
-    source = VideoSource(request.root, request.path, request.play_mode)
+    source = VideoSource(request.root, request.play_mode)
     app.include_router(source.router, prefix=f"/{request.path}")
     sources[request.path] = source
     return {"status": "success"}

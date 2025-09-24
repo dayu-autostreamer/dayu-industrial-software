@@ -8,7 +8,7 @@ from core.lib.network import NodeInfo, PortInfo
 
 
 class EdgeEyeStage2:
-    def __init__(self, weights):
+    def __init__(self, weights, device='cpu'):
         self.max_connections = Context.get_parameter('MAX_REDIS_CONNECTIONS', '10', direct=False)
         self.storage_timeout = Context.get_parameter('REDIS_STORAGE_TIMEOUT', '3600', direct=False)
         self.pool = redis.ConnectionPool(host=NodeInfo.hostname2ip(NodeInfo.get_cloud_node()),
@@ -17,7 +17,7 @@ class EdgeEyeStage2:
         self.redis = redis.Redis(connection_pool=self.pool)
 
         model_path = Context.get_file_path(weights)
-        self.sr_generator = util_ixpe.ESCPN(model_path)
+        self.sr_generator = util_ixpe.ESCPN(model_path, device)
 
     def __call__(self, input_ctx):
 

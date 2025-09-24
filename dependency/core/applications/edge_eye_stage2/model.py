@@ -46,9 +46,3 @@ class Net_Grow(nn.Module): # 2
         x = F.tanh(self.conv2(x))
         x = F.sigmoid(self.pixel_shuffle(self.conv3(x)))
         return x
-
-if __name__ == "__main__":
-    model = Net(upscale_factor=2)
-    model_1 = Net_Compressed(upscale_factor=2)
-    model_2 = Net_Grow(upscale_factor=2)
-    print(model, model_1, model_2)

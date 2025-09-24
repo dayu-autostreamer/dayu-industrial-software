@@ -9,9 +9,8 @@ pod-template:
       value: "[]"
     - name: PRO_QUEUE_NAME
       value: "priority"
+    - name: RESAMPLE_RATE
+      value: "16000"
 port-open:
   pos: both
   port: 9000
-file-mount:
-  - pos: both
-    path: "processor/audio-sampling/"

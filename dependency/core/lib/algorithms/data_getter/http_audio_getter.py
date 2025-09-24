@@ -25,9 +25,11 @@ class HttpAudioGetter(BaseDataGetter, abc.ABC):
     def request_source_data(self, system, task_id):
         response = None
         while not response:
-            response = http_request(url=system.audio_data_source, no_decode=True, stream=True)
-            self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
+            response = http_request(url=system.audio_data_source + '/file', no_decode=True, stream=True)
+            if not response:
+                continue
 
+            self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
             with open(self.file_name, 'wb') as f:
                 response.raw.decode_content = True
                 shutil.copyfileobj(response.raw, f)

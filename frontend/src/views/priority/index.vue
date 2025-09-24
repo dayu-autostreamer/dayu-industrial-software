@@ -41,7 +41,6 @@
                     <div style="height: 100%">
                         <div class="flex-margin flex w100">
                             <div class="flex-auto">
-                                <!-- <PriorityAnimation :data="priorityData" /> -->
                                 <PriorityView :priority_num="priority_num" :stage="stage"
                                     :queue_result="queue_result" />
                             </div>
@@ -109,7 +108,7 @@ export default {
             if(!this.selectedNode){
                 return;
             }
-            fetch('/api/queue_result/' + this.selectedNode)
+            fetch('/api/priority_queue/' + this.selectedNode)
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
