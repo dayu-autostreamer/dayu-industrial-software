@@ -11,6 +11,7 @@ import threading
 import time
 import asyncio
 from pydantic import BaseModel
+from scipy.signal import find_peaks
 
 from fastapi import FastAPI
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -115,7 +116,7 @@ class IMUSource:
                 try:
                     df = pd.read_csv(self._cur_csv_path)
                     self._cur_csv_df = df
-                    start_ids, end_ids = self._end_point_detection(df)
+                    start_ids, end_ids = self.end_point_detection(df)
                     # Normalized to int and closed interval
                     self._segments = [(int(s), int(e)) for s, e in zip(start_ids, end_ids)]
                     self._segment_idx = 0
@@ -179,40 +180,82 @@ class IMUSource:
         data = np.column_stack((data_time, data_gyro, data_acc))
         return np.ascontiguousarray(data)
 
-    def _end_point_detection(self, csv_df):
-        import numpy as np
+    def end_point_detection(self, csv_data):
+        linear_acceleration = csv_data.iloc[:, 19:22].values
+        angular_velocity = csv_data.iloc[:, 6:9].values
+        timestamp = csv_data.iloc[:, 1:2].values
+        # transform unit
+        # gyro : from deg to rad
+        angular_velocity = angular_velocity / 180 * np.pi
+        # linearacc: from g to m/s/s
+        linear_acceleration = linear_acceleration * 9.81
+        start_id, end_id = self.extractMotionLPMS3(timestamp, angular_velocity, linear_acceleration, 2)
+        return start_id, end_id
 
-        n = len(csv_df)
-        if n == 0:
-            return [], []
+    def extractMotionLPMS3(self, lpms_time, lpms_gyro, lpms_linearacc, thre):
+        x1 = np.sqrt(np.sum(lpms_linearacc ** 2, axis=1))
+        x2 = np.sqrt(np.sum(lpms_gyro ** 2, axis=1))
+        x = x1 + 5 * x2
+        wlen = 10
+        inc = 5
+        win = np.hanning(wlen + 2)[1:-1]
+        X = self.enframe(x, win, inc)
+        X = np.transpose(X)
+        fn = X.shape[1]
+        time = lpms_time
+        id = np.arange(wlen / 2, wlen / 2 + (fn - 1) * inc + 1, inc)
+        id = id - 1
+        frametime = time[id.astype(int)]
+        En = np.zeros(fn)
 
-        t = csv_df.iloc[:, 1].to_numpy(dtype=float)
+        for i in range(fn):
+            u = X[:, i]
+            u2 = u * u
+            En[i] = np.sum(u2)
+        locs, pks = find_peaks(En, height=max(En) / 20, distance=15)
+        pks = pks['peak_heights']
+        # initialize startend_locs
+        startend_locs = np.zeros((len(locs), 2), dtype=int)
+        for i in range(len(locs)):
+            si = locs[i] - 1
+            while si > 0:
+                if En[si] < thre:
+                    break
+                si -= 1
 
-        gap_threshold = getattr(self, "gap_threshold", 0.5)
-        ts_in_ms = getattr(self, "timestamp_in_ms", False)
-        min_len = int(getattr(self, "min_len", 1))
+            ei = locs[i] + 1
+            while ei < len(En):
+                if En[ei] < thre:
+                    break
+                ei += 1
 
-        if ts_in_ms:
-            t = t / 1000.0
+            startend_locs[i, 0] = si
+            startend_locs[i, 1] = ei
 
-        dt = np.diff(t)
-        dt[~np.isfinite(dt)] = 0.0
+        # delete repeat points
+        startend_locs = np.unique(startend_locs, axis=0)
 
-        cuts = np.where(dt > float(gap_threshold))[0]
+        # get id range
+        start_id = id[startend_locs[:, 0]]
+        end_id = id[startend_locs[:, 1] - 1]
+        return start_id, end_id
 
-        starts = np.r_[0, cuts + 1]
-        ends = np.r_[cuts, n - 1]
-
-        if min_len > 1:
-            keep = (ends - starts + 1) >= min_len
-            starts = starts[keep]
-            ends = ends[keep]
-
-        if starts.size == 0:
-            starts = np.array([0], dtype=int)
-            ends = np.array([n - 1], dtype=int)
-
-        return starts.astype(int).tolist(), ends.astype(int).tolist()
+    def enframe(self, x, win, inc):
+        nx = len(x)
+        nwin = len(win)
+        if nwin == 1:
+            length = win
+        else:
+            length = nwin
+        nf = int(np.fix((nx - length + inc) / inc))
+        f = np.zeros((nf, length))
+        indf = inc * np.arange(nf).reshape(-1, 1)
+        inds = np.arange(1, length + 1)
+        f[:] = x[indf + inds - 1]  # Frame the data
+        if nwin > 1:
+            w = win.ravel()
+            f = f * w[np.newaxis, :]
+        return f
 
 
 @app.post("/admin/add_source")
