@@ -3,7 +3,7 @@ import redis
 
 import util_ixpe
 
-from core.lib.common import LOGGER, EncodeOps, Context, SystemConstant
+from core.lib.common import LOGGER, EncodeOps, SystemConstant
 from core.lib.network import NodeInfo, PortInfo
 
 

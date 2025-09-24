@@ -6,7 +6,7 @@ pod-template:
     - name: PROCESSOR_NAME
       value: "universal_processor"
     - name: UNIVERSAL_PARAMETERS
-      value: "{'weights':'edge_eye_model.pt'}"
+      value: "{'weights':'edge_eye_model.pt', 'device':'cuda:0'}"
     - name: SCENARIOS_EXTRACTORS
       value: "[]"
     - name: PRO_QUEUE_NAME
