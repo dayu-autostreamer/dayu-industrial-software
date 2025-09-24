@@ -9,6 +9,8 @@ pod-template:
       value: "[]"
     - name: PRO_QUEUE_NAME
       value: "priority"
+    - name: RESAMPLING_RATE
+      value: "16000"
 port-open:
   pos: both
   port: 9000
