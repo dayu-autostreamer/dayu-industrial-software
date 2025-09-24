@@ -53,8 +53,6 @@ class IMUSource:
         self._segments = []  # [(start_idx, end_idx_inclusive), ...]
         self._segment_idx = 0  # next segment index in current csv
 
-        self._cur_id = 0
-
         self._lock = threading.Lock()
 
     def get_one_imu_file(self):
@@ -78,7 +76,6 @@ class IMUSource:
             assert self._cur_csv_df is not None
             data = self._extract_segment(start_idx, end_idx, self._cur_csv_df)
 
-            self._cur_id += 1
             np.save(self.file_name, data)
 
             self._segment_idx += 1
@@ -90,7 +87,7 @@ class IMUSource:
 
     def _scan_csvs(self) -> List[str]:
         files = sorted(glob.glob(os.path.join(self.data_dir, '*.csv')))
-        LOGGER.info(f"Found {len(files)} csv files in {self.data_dir}")
+        LOGGER.debug(f"Found {len(files)} csv files in {self.data_dir}")
         return files
 
     def _ensure_csv_ready(self) -> bool:

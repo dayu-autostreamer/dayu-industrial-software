@@ -1,7 +1,8 @@
+from typing import List
 import os
-import cv2
-import json
+import glob
 import uvicorn
+import wave
 import argparse
 import socket
 import requests
@@ -10,12 +11,12 @@ import time
 import asyncio
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Form, BackgroundTasks
-from fastapi.routing import  APIRouter
-from starlette.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi.routing import APIRouter
+from starlette.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from core.lib.common import FileOps, LOGGER, Context, NameMaintainer
+from core.lib.common import FileOps, LOGGER
 
 app = FastAPI()
 app.add_middleware(
@@ -32,99 +33,150 @@ class SourceRequest(BaseModel):
 
 
 class AudioSource:
-    def __init__(self, data_root, path, play_mode):
+    def __init__(self, data_root, play_mode):
         self.router = APIRouter()
-        self.router.add_api_route('/source', self.get_source_data, methods=['GET'])
         self.router.add_api_route('/file', self.get_source_file, methods=['GET'])
 
         self.data_root = data_root
         self.data_dir = os.path.join(self.data_root, 'frames')
 
         self.play_mode = play_mode
+        self.frames_per_task = 1
 
-        self.frame_count = 0
-        self.is_end = False
-        self.frame_max_count = len(os.listdir(self.data_dir))
+        self.file_name = 'temp_audio_data.wav'
 
-        self.file_name = None
+        self._wav_files = self._scan_wavs()
+        self._wav_idx = 0  # Next wav index to load
+        self._cur_wav_path = None  # Current wav path
+        self._cur_params = None  # wave params: (nchannels, sampwidth, framerate, nframes, comptype, compname)
+        self._single_len_frames = None
+        self._num_segments: int = 0  # Current number of segments that can be split from the wav file
+        self._segment_idx: int = 0  # Current wav's next segment index
 
-        self.source_id = None
-        self.task_id = None
-        self.meta_data = None
-        self.raw_meta_data = None
+        self._lock = threading.Lock()
 
-        self.frame_filter = None
-        self.frame_process = None
-        self.frame_compress = None
+    def get_one_audio_file(self):
+        """
+        Take the next segment of the audio, save it as an independent wav file, and return the file path.
+        """
+        with self._lock:
+            if not self._wav_files:
+                raise HTTPException(status_code=404, detail="No audio files found in data_dir")
 
-        self.file_suffix = 'mp4'
+            if not self._ensure_ready():
+                # Non-cycle and no more data
+                raise HTTPException(status_code=404, detail="No more data to play (non-cycle)")
 
-    def get_one_frame(self):
-        frame = cv2.imread(os.path.join(self.data_dir, f'{self.frame_count}.jpg'))
-        self.frame_count += 1
-        if self.frame_count >= self.frame_max_count:
-            if self.play_mode == 'non-cycle':
-                self.is_end = True
-                LOGGER.info('A video play cycle ends. Video play ends in non-cycle mode.')
-            else:
-                LOGGER.info('A video play cycle ends. Replay video in cycle mode.')
-        self.frame_count %= self.frame_max_count
-        return frame
+            # Calculate the starting position and length (frame number) of the current segment.
+            nchannels, sampwidth, framerate, nframes = self._cur_params[:4]
+            start_frame = self._segment_idx * self._single_len_frames
+            cur_nframes = min(self._single_len_frames, nframes - start_frame)
+            if cur_nframes <= 0:
+                # The file has been exhausted, move to the next file.
+                self._segment_idx = self._num_segments
+                if not self._ensure_ready():
+                    raise HTTPException(status_code=404, detail="No more data to play (non-cycle)")
+                # Once by recursion; protected by a lock and the next one will have a valid segment
+                return self.get_one_audio_file()
 
-    def get_source_data(self, data: str = Form(...)):
+            # Read the segment and write temporary wav
+            with wave.open(self._cur_wav_path, 'rb') as src:
+                src.setpos(start_frame)
+                audio_data = src.readframes(cur_nframes)
 
-        if self.is_end:
-            return []
+            with wave.open(self.file_name, 'wb') as dst:
+                dst.setparams(self._cur_params)   # 先拷贝原参数
+                dst.setnframes(cur_nframes)       # 再指定当前段的帧数
+                dst.writeframes(audio_data)
 
-        data = json.loads(data)
+            self._segment_idx += 1  # 下次请求取下一段
 
-        self.source_id = data['source_id']
-        self.task_id = data['task_id']
-        self.meta_data = data['meta_data']
-        self.raw_meta_data = data['raw_meta_data']
-
-        frame_filter_name = data['gen_filter_name']
-        frame_process_name = data['gen_process_name']
-        frame_compress_name = data['gen_compress_name']
-
-        buffer_size = self.meta_data['buffer_size']
-
-        self.frame_filter = Context.get_algorithm('GEN_FILTER', al_name=frame_filter_name) \
-            if self.frame_filter is None else self.frame_filter
-        self.frame_process = Context.get_algorithm('GEN_PROCESS', al_name=frame_process_name) \
-            if self.frame_process is None else self.frame_process
-        self.frame_compress = Context.get_algorithm('GEN_COMPRESS', al_name=frame_compress_name) \
-            if self.frame_compress is None else self.frame_compress
-
-        frames_index = []
-        frames_buffer = []
-        while len(frames_buffer) < buffer_size:
-            frame = self.get_one_frame()
-            if self.frame_filter(self, frame):
-                frames_buffer.append(frame)
-                frames_index.append(self.frame_count)
-
-        frames_buffer = [
-            self.frame_process(self, frame, self.raw_meta_data['resolution'], self.meta_data['resolution'])
-            for frame in frames_buffer
-        ]
-
-        self.file_name = NameMaintainer.get_task_data_file_name(self.source_id, self.task_id,
-                                                                file_suffix=self.file_suffix)
-        self.frame_compress(self, frames_buffer, self.file_name)
-
-        return JSONResponse(frames_index)
+            return self.file_name
 
     def get_source_file(self, backtask: BackgroundTasks):
-        return FileResponse(path=self.file_name, filename=self.file_name, media_type='text/plain',
-                            background=backtask.add_task(FileOps.remove_file, self.file_name))
+        file_name = self.get_one_audio_file()
+        return FileResponse(path=file_name, filename=file_name, media_type='text/plain',
+                            background=backtask.add_task(FileOps.remove_file, file_name))
+
+    def _scan_wavs(self) -> List[str]:
+        files = sorted(
+            [p for p in glob.glob(os.path.join(self.data_dir, '*'))
+             if p.lower().endswith(('.wav', '.wave'))]
+        )
+        LOGGER.debug(f"Found {len(files)} wav files in {self.data_dir}")
+        return files
+
+    def _ensure_ready(self) -> bool:
+        """
+        If the current wav is not loaded or the segments for the current wav are exhausted, the next wav is loaded.
+
+        When all wav are used up, press play_mode to process it.
+        """
+        if self._cur_wav_path is None or self._segment_idx >= self._num_segments:
+            return self._load_next_wav()
+        return True
+
+    def _load_next_wav(self) -> bool:
+        """
+        Load the next available wav file and prepare its segment information.
+        """
+        if not self._wav_files:
+            return False
+
+        max_attempts = len(self._wav_files)
+        attempts = 0
+
+        while attempts < max_attempts:
+            # When all wav files are exhausted, decide whether to loop based on play_mode.
+            if self._wav_idx >= len(self._wav_files):
+                if self.play_mode == 'cycle':
+                    self._wav_idx = 0
+                else:
+                    return False
+
+            path = self._wav_files[self._wav_idx]
+            try:
+                with wave.open(path, 'rb') as src:
+                    params = src.getparams()
+                    nchannels, sampwidth, framerate, nframes = params[:4]
+
+                if framerate <= 0 or nframes <= 0:
+                    raise ValueError(f"Invalid audio params: framerate={framerate}, nframes={nframes}")
+
+                # Calculate the frame count per segment and the number of segments (round up).
+                single_len_frames = int(max(1, round(self.frames_per_task * framerate)))
+                num_segments = (nframes + single_len_frames - 1) // single_len_frames
+
+                # Set the current wav's status
+                self._cur_wav_path = path
+                self._cur_params = params
+                self._single_len_frames = single_len_frames
+                self._num_segments = num_segments
+                self._segment_idx = 0
+
+                LOGGER.info(f"Loaded audio: {os.path.basename(path)} | "
+                            f"{nchannels}ch, {sampwidth * 8}bit, {framerate}Hz, {nframes}frames, "
+                            f"chunk={single_len_frames} frames (~{self.frames_per_task:.3f}s), "
+                            f"segments={num_segments}")
+
+                # Point to the next file (wait until the next time it needs to be loaded)
+                self._wav_idx += 1
+                return True
+
+            except Exception as e:
+                LOGGER.exception(f"Failed to load audio {path}: {e}")
+                # Skip bad files and try the next one
+                self._wav_idx += 1
+                attempts += 1
+
+        return False
 
 
 @app.post("/admin/add_source")
 async def add_source(request: SourceRequest):
     if request.path in sources:
         return {"status": "error", "message": "Path already exists"}
-    source = AudioSource(request.root, request.path, request.play_mode)
+    source = AudioSource(request.root, request.play_mode)
     app.include_router(source.router, prefix=f"/{request.path}")
     sources[request.path] = source
     return {"status": "success"}
