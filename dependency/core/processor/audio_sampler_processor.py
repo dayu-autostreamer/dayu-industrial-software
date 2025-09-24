@@ -31,6 +31,9 @@ class AudioSamplerProcessor(Processor):
         with wave.open(data_file_path, 'w') as f:
             f.setparams(audio_params)
             f.writeframes(result)
+
+        task.set_metadata(meta_data)
+
         return task
 
     def infer(self, data, metadata):
