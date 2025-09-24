@@ -2,7 +2,6 @@ import abc
 import os
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 from core.lib.common import ClassFactory, ClassType, EncodeOps, LOGGER
 from core.lib.content import Task
@@ -19,6 +18,8 @@ class IMUFrameVisualizer(ImageVisualizer, abc.ABC):
         self.imu_service = kwargs.get('imu_service', None)
 
     def draw_imu_trajectory(self, input_data):
+        import matplotlib.pyplot as plt
+
         process_data = np.array(input_data)
 
         fig = plt.figure()
