@@ -40,10 +40,10 @@ class SchedulerServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.SCHEDULER_GET_RESOURCE]
                      ),
-            APIRoute(NetworkAPIPath.SCHEDULER_SELECT_SOURCE_NODE,
+            APIRoute(NetworkAPIPath.SCHEDULER_SELECT_SOURCE_NODES,
                      self.generate_source_nodes_selection_plan,
                      response_class=JSONResponse,
-                     methods=[NetworkAPIMethod.SCHEDULER_SELECT_SOURCE_NODE]
+                     methods=[NetworkAPIMethod.SCHEDULER_SELECT_SOURCE_NODES]
                      ),
             APIRoute(NetworkAPIPath.SCHEDULER_INITIAL_DEPLOYMENT,
                      self.generate_initial_deployment_plan,
