@@ -5,7 +5,7 @@ import shutil
 
 from .base_getter import BaseDataGetter
 
-from core.lib.common import ClassFactory, ClassType, LOGGER, FileOps, Context, Counter, NameMaintainer
+from core.lib.common import ClassFactory, ClassType, LOGGER, FileOps, Counter, NameMaintainer
 from core.lib.network import http_request
 from core.lib.estimation import TimeEstimator
 
@@ -18,15 +18,17 @@ class HttpIMUGetter(BaseDataGetter, abc.ABC):
         self.file_name = None
         self.hash_codes = None
 
-        self.file_suffix = "csv"
+        self.file_suffix = "npy"
 
     @TimeEstimator.estimate_duration_time
     def request_source_data(self, system, task_id):
         response = None
         while not response:
-            response = http_request(url=system.imu_data_source, no_decode=True, stream=True)
-            self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
+            response = http_request(url=system.imu_data_source + '/file', no_decode=True, stream=True)
+            if not response:
+                continue
 
+            self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
             with open(self.file_name, 'wb') as f:
                 response.raw.decode_content = True
                 shutil.copyfileobj(response.raw, f)
