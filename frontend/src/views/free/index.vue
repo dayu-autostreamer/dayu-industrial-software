@@ -252,9 +252,9 @@ export default {
       return result
     },
     currentVisualizationConfig() {
-      const configs = this.visualizationConfig[this.selectedDataSource] || []
-      // 过滤掉类型为image的可视化配置
-      return configs.filter(viz => viz.type !== 'image')
+      const configs = this.visualizationConfig[this.selectedDataSource] || [];
+      // 过滤掉类型为 'image' 或 'topology' 的可视化配置
+      return configs.filter(viz => viz.type !== 'image' && viz.type !== 'topology');
     },
     currentActiveVisualizations() {
       console.log('activeVisualizations:', this.activeVisualizations[this.selectedDataSource])

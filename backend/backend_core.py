@@ -412,17 +412,14 @@ class BackendCore:
                 'data': visualization_data,
             }])
 
-            freetask_data = {}
-            for key, value in visualization_data.items():
-                # 过滤掉值中包含"image"键的条目
-                if isinstance(value, dict) and "image" not in value:
-                    freetask_data[key] = value
+            freetask_data = [item for item in visualization_data if not any(k in item.get('data', {}) for k in ['image', 'topology'])]
 
             self.freetask_results[source_id].put_all([{
                 'task_id': task_id,
                 'task_start_time': task_start_time,
                 'data': freetask_data,
             }])
+            LOGGER.debug(f"DEBUG freetask_results[{source_id}] added: {freetask_data}")
 
     def run_get_result(self):
         time_ticket = 0
