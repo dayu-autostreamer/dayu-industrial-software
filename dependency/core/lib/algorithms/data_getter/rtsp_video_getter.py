@@ -1,6 +1,7 @@
 import abc
 import threading
 import copy
+import os
 
 from .base_getter import BaseDataGetter
 
@@ -36,6 +37,7 @@ class RtspVideoGetter(BaseDataGetter, abc.ABC):
 
     def get_one_frame(self, system):
         import cv2
+        os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp|stimeout;5000000|rw_timeout;5000000'
         if not self.data_source_capture:
             self.data_source_capture = cv2.VideoCapture(system.video_data_source)
 
