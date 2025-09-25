@@ -1,13 +1,12 @@
 import copy
 import re
-from collections import deque
 from func_timeout import func_set_timeout as timeout
 import func_timeout.exceptions as timeout_exceptions
 
 import os
 import time
 from core.lib.content import Task
-from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig
+from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig, Queue
 from core.lib.network import http_request, NodeInfo, PortInfo, merge_address, NetworkAPIPath, NetworkAPIMethod
 
 from kube_helper import KubeHelper
@@ -45,6 +44,8 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
+        self.task_results_for_priority = Queue()
+        self.priority_task_buffer = []
 
         self.is_get_result = False
 
@@ -257,6 +258,8 @@ class BackendCore:
 
     @staticmethod
     def bfs_dag(dag_graph, dag_callback):
+        from collections import deque
+
         source_list = dag_graph['_start']
         queue = deque(source_list)
         visited = set(source_list)
@@ -414,6 +417,8 @@ class BackendCore:
                 'task_id': task_id,
                 'data': visualization_data,
             }])
+
+            self.task_results_for_priority.put_all([copy.deepcopy(task)])
 
     def run_get_result(self):
         time_ticket = 0
@@ -606,5 +611,56 @@ class BackendCore:
             'priority_num': self.priority['priority_levels']
         }
 
-    def get_priority_queue(self):
-        pass
+    def get_priority_queue(self, node):
+        """
+        node: node name
+        :return:
+        {
+            service1:
+            [
+                # priority queue 1
+                [{
+                source_id: 1,
+                task_id: 1,
+                importance: 1
+                urgency: 1
+                },{},{},{}],
+                [],
+                [],
+                [],
+                []
+            ],
+            service2:
+            [
+                [],
+                [],
+                [],
+                [],
+                []
+
+            ]
+        }
+        """
+        show_time = time.time() - 5
+        services = KubeConfig.get_node_services_dict()[node]
+        self.priority_task_buffer.extend(self.task_results_for_priority.get_all())
+        self.priority_task_buffer = [task.get_total_end_time() <= show_time for task in self.priority_task_buffer]
+        priority_queue = {}
+        for service in services:
+            priority_queue[service] = [[] for _ in range(self.priority['priority_levels'])]
+
+        for service in services:
+            for task in self.priority_task_buffer:
+                enter_time, quit_time = task.extract_priority_timestamp(service)
+                if task.get(service) and task.get(service).get_execute_device() == node and \
+                        enter_time <= show_time <= quit_time:
+                    priority_queue[service][task.get_service(service).get_priority()].append({
+                        'source_id': task.get_source_id(),
+                        'task_id': task.get_task_id(),
+                        'importance': task.get_source_importance(),
+                        'urgency': task.get_service(service).get_urgency(),
+                        'priority': task.get_service(service).get_priority()
+                    })
+                    break
+
+        return priority_queue

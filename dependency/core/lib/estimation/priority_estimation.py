@@ -11,7 +11,7 @@ class PriorityEstimator:
 
     def calculate_priority(self, task):
         importance = task.get_source_importance()  # Value range: 0~(priority_level_num-1)
-        urgency = self.calculate_urgency(task)     # Value range: 0~(priority_level_num-1)
+        urgency = self.calculate_urgency(task)  # Value range: 0~(priority_level_num-1)
 
         # Normalize to [0, 1]
         denominator = self.priority_level_num - 1 if self.priority_level_num > 1 else 1
@@ -25,7 +25,7 @@ class PriorityEstimator:
 
         # Ensure priority_levels integers
         priority = int(normalized_score * (self.priority_level_num - 1) + 0.5)
-        return priority
+        return priority, urgency
 
     def calculate_urgency(self, task):
         service_name = task.get_current_service_info()[0]

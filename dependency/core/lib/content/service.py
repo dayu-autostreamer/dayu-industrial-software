@@ -2,11 +2,12 @@ import json
 
 
 class Service:
-    def __init__(self, service_name, execute_device='', priority=None,
-                 transmit_time=0, execute_time=0, real_execute_time=0, content: object = None):
+    def __init__(self, service_name, execute_device='', urgency=None, priority=None,
+                 transmit_time=0, execute_time=0, real_execute_time=0, content: object = None, tmp=None):
         self.__service_name = service_name
         self.__execute_device = execute_device
 
+        self.__urgency = urgency
         self.__priority = priority
 
         self.__transmit_time = transmit_time
@@ -21,6 +22,8 @@ class Service:
         # result data of service
         self.__content = content
 
+        self.__tmp_data = tmp
+
     def get_service_name(self):
         return self.__service_name
 
@@ -32,6 +35,12 @@ class Service:
 
     def set_execute_device(self, execute_device):
         self.__execute_device = execute_device
+
+    def get_urgency(self):
+        return self.__urgency
+
+    def set_urgency(self, urgency):
+        self.__urgency = urgency
 
     def get_priority(self):
         return self.__priority
@@ -70,15 +79,23 @@ class Service:
     def set_content_data(self, content):
         self.__content = content
 
+    def get_tmp_data(self):
+        return self.__tmp_data
+
+    def set_tmp_data(self, tmp_data):
+        self.__tmp_data = tmp_data
+
     def to_dict(self):
         return {
             'service_name': self.get_service_name(),
             'execute_device': self.get_execute_device(),
+            'urgency': self.get_urgency(),
             'priority': self.get_priority(),
             'execute_data': {'transmit_time': self.get_transmit_time(),
                              'execute_time': self.get_execute_time(),
                              'real_execute_time': self.get_real_execute_time()},
-            'content': self.get_content_data()
+            'content': self.get_content_data(),
+            'tmp_data': self.get_tmp_data()
         }
 
     @classmethod
@@ -86,6 +103,7 @@ class Service:
         service = Service(service_name=dag_dict['service_name'])
 
         service.set_execute_device(dag_dict['execute_device']) if 'execute_device' in dag_dict else None
+        service.set_urgency(dag_dict['urgency']) if 'urgency' in dag_dict else None
         service.set_priority(dag_dict['priority']) if 'priority' in dag_dict else None
         service.set_transmit_time(dag_dict['execute_data']['transmit_time']) \
             if 'execute_data' in dag_dict and 'transmit_time' in dag_dict['execute_data'] else None
@@ -94,6 +112,7 @@ class Service:
         service.set_real_execute_time(dag_dict['execute_data']['real_execute_time']) \
             if 'execute_data' in dag_dict and 'real_execute_time' in dag_dict['execute_data'] else None
         service.set_content_data(dag_dict['content']) if 'content' in dag_dict else None
+        service.set_tmp_data(dag_dict['tmp_data'])
         return service
 
     def serialize(self):
