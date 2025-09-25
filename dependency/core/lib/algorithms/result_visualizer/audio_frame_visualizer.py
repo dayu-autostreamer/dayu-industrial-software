@@ -35,7 +35,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
 
         import librosa
         import matplotlib.pyplot as plt
-        plt.rcParams['font.family'] = 'Noto Sans CJK SC'
+        plt.rcParams['font.family'] = 'WenQuanYi Zen Hei'
 
         databuffer = np.frombuffer(data, dtype=np.short)
         if nchannels == 2:
