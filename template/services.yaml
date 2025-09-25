@@ -1,18 +1,18 @@
-- id: edge_eye_stage1
+- id: edge-eye-stage1
   service: edge-eye-stage1
   name: edge-eye stage1
   description: 参考点区域检测
   input: universal_structure
   output: universal_structure
   yaml: edge-eye-stage1.yaml
-- id: edge_eye_stage2
+- id: edge-eye-stage2
   service: edge-eye-stage2
   name: edge-eye stage2
   description: 区域超分辨率
   input: universal_structure
   output: universal_structure
   yaml: edge-eye-stage2.yaml
-- id: edge_eye_stage3
+- id: edge-eye-stage3
   service: edge-eye-stage3
   name: edge-eye stage3
   description: 材料边缘检测
