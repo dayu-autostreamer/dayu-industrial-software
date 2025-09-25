@@ -377,6 +377,7 @@ class BackendCore:
 
         return visualization_data
 
+    #TODO 在这里加入时间戳信息
     def parse_task_result(self, results):
         for result in results:
             if result is None or result == '':
@@ -386,6 +387,8 @@ class BackendCore:
 
             source_id = task.get_source_id()
             task_id = task.get_task_id()
+            task_start_time = task.get_total_start_time()   #add start time info
+            
             file_path = self.get_file_result(task.get_file_path())
             LOGGER.debug(task.get_delay_info())
 
@@ -404,6 +407,7 @@ class BackendCore:
 
             self.task_results[source_id].put_all([{
                 'task_id': task_id,
+                'task_start_time': task_start_time,     #add start time info
                 'data': visualization_data,
             }])
 
