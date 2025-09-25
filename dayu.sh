@@ -121,7 +121,7 @@ spec:
                   value: "8000"
                 - name: FILE_PREFIX
                   value: "$DATASOURCE_DATA_ROOT"
-              image: $REGISTRY/$REPOSITORY/datasource:$TAG
+              image: $REGISTRY/$REPOSITORY/datasource:is-hgz-v1.1
               imagePullPolicy: Always
               name: datasource
               ports:

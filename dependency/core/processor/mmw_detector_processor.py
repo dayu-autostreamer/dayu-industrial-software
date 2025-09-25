@@ -5,7 +5,7 @@ from .processor import Processor
 
 from core.lib.estimation import Timer
 from core.lib.content import Task
-from core.lib.common import Context
+from core.lib.common import Context,LOGGER
 from core.lib.common import ClassFactory, ClassType
 
 
@@ -50,8 +50,7 @@ class MmwaveConfig:
 
         self.rangeFFTWindow = np.hamming
         self.dopplerFFTWindow = np.ones
-
-        pass
+        return
 
     # calculate number of tx channels
     def calc_num_tx(self):
@@ -137,7 +136,8 @@ class MmwDetectorProcessor(Processor):
         super().__init__()
         # 读取配置文件
         self.Detector = Context.get_instance('MmwDetector')
-        self.configPath = Context.get_instance('MMW_CONFIG')
+        cfg = Context.get_parameter('MMW_CONFIG')
+        self.configPath = Context.get_file_path(cfg)
         with open(self.configPath, 'r') as fp:
             mmwaveConfigContent = fp.read()
         self.cfg = get_config(mmwaveConfigContent)
@@ -150,7 +150,7 @@ class MmwDetectorProcessor(Processor):
 
         # 存储结果到task中
 
-        task.set_content([result])
+        task.set_current_content(result)
         return task
 
     def infer(self, data):

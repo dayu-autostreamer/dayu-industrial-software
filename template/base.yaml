@@ -1,4 +1,4 @@
-namespace: dayu-is
+namespace: dayu-is-hgz
 log-level: DEBUG
 log-file-name:
 pod-permission:

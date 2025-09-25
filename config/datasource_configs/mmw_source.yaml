@@ -6,5 +6,5 @@ source_list:
     url: ""
     dir: "mmw_0/"
     metadata:
-      fps: 1
+      fps: 60
     importance: 7

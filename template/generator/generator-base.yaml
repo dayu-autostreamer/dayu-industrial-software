@@ -1,6 +1,6 @@
 position: edge
 pod-template:
-  image: generator
+  image: generator:is-hgz-v1.1
   imagePullPolicy: Always
   env:
     - name: GEN_FILTER_NAME

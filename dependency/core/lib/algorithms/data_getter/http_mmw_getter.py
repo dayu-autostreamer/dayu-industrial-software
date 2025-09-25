@@ -16,6 +16,7 @@ __all__ = ('HttpMmwGetter',)
 @ClassFactory.register(ClassType.GEN_GETTER, alias='http_mmw')
 class HttpMmwGetter(BaseDataGetter, abc.ABC):
     def __init__(self):
+        LOGGER.debug('find mmw getter!')
         self.file_name = None
         self.hash_codes = None
 
@@ -25,14 +26,17 @@ class HttpMmwGetter(BaseDataGetter, abc.ABC):
 
     @TimeEstimator.estimate_duration_time
     def request_source_data(self, system, task_id):
+        LOGGER.debug(f'url:{system.mmw_data_source}')
         response = None
         while not response:
-            response = http_request(url=system.mmw_data_source, no_decode=True, stream=True)
+            response = http_request(url=system.mmw_data_source + '/file', no_decode=True, stream=True)
+            LOGGER.debug(response)
             self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
-
-            with open(self.file_name, 'wb') as f:
-                response.raw.decode_content = True
-                shutil.copyfileobj(response.raw, f)
+            if response and response.status_code == 200:
+                with open(self.file_name, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:  # 避免写入 keep-alive 空块
+                            f.write(chunk)
 
     @staticmethod
     def compute_cost_time(system, cost):
@@ -55,7 +59,7 @@ class HttpMmwGetter(BaseDataGetter, abc.ABC):
         # metadata = copy.deepcopy(system.meta_data).update({'nchannels': nchannels, 'sampwidth': sampwidth,
         #                                                    'framerate': framerate})
 
-        new_task = system.generate_task(new_task_id, system.task_dag, system.metadata, self.file_name, self.hash_codes)
+        new_task = system.generate_task(new_task_id, system.task_dag, system.meta_data, self.file_name, self.hash_codes)
         system.submit_task_to_controller(new_task)
 
         FileOps.remove_file(self.file_name)

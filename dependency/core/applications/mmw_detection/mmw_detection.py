@@ -8,12 +8,12 @@ class MmwDetection:
     def __init__(self):
         # 初始化工作:读取配置
         # 在计算时,所使用的毫米波配置只有c.rangeFFTWindow 和 c.dopplerFFTWindow.所以可以不用在这里引入配置类
-        LOGGER.debug(f'initializing model')
+        LOGGER.debug(f'initializing MMW application model!!')
         self.rangeFFTWindow = np.hamming
         self.dopplerFFTWindow = np.ones
 
     def __call__(self, data):
-        LOGGER.debug('start infer ..')
+        # LOGGER.debug('start infer ..')
 
         return self.process(data)
 
