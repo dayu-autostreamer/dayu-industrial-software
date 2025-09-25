@@ -194,16 +194,12 @@ class BackendServer:
         ["face_detection", "..."]
         """
         service_list = [service['id'] for service in self.server.services]
-        print('****service_list: ', service_list)
-
         current_service_list = []
 
         if KubeHelper.check_pods_running(self.server.namespace):
-            print('****pods running..')
             for service_id in service_list:
                 if KubeHelper.check_pod_name(service_id, namespace=self.server.namespace):
                     current_service_list.append(service_id)
-            print('****current_service_list: ', current_service_list)
         return current_service_list
 
     async def get_dag_workflows(self):
