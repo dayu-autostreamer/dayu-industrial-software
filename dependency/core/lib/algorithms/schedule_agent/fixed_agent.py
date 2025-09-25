@@ -50,10 +50,6 @@ class FixedAgent(BaseAgent, abc.ABC):
             dag = info['dag']
 
             for service_name in dag:
-                print(f'****** service_name:{service_name}')
-                print(f'****** service info:{service_info}')
-                print(f'****** fixed offloading:{self.fixed_offloading}')
-                print(f'****** all devices:{all_devices}')
                 if service_name in service_info and service_name in self.fixed_offloading \
                         and self.fixed_offloading[service_name] in all_devices:
                     dag[service_name]['service']['execute_device'] = self.fixed_offloading[service_name]
