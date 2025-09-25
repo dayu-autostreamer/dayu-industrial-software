@@ -82,7 +82,6 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
                 nchannels, sampwidth, framerate, nframes = params[:4]
                 data = f.readframes(nframes)
 
-            LOGGER.debug(f'Audio classification result: {content}')
             image = self.draw_audio_spec(data, framerate, nchannels, self.sound_categories[content])
             base64_data = EncodeOps.encode_image(image)
         except Exception as e:
