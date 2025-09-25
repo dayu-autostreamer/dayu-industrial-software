@@ -501,6 +501,7 @@ class BackendServer:
             result, msg = self.server.parse_and_apply_templates(policy, source_deploy)
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '未知系统错误，请查看后端容器日志'
 

@@ -68,6 +68,7 @@ class BackendCore:
             self.system_visualization_configs = base_info['system-visualizations']
         except KeyError as e:
             LOGGER.warning(f'Parse base info failed: {str(e)}')
+            LOGGER.exception(e)
 
     def get_log_file_name(self):
         base_info = self.template_helper.load_base_info()
@@ -95,10 +96,12 @@ class BackendCore:
             result, msg = self.install_yaml_templates(first_docs_list)
         except timeout_exceptions.FunctionTimedOut as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '第一阶段下装超过预定时间（60秒）'
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '未知系统错误，请查看后端容器日志'
         finally:
@@ -114,10 +117,12 @@ class BackendCore:
             result, msg = self.install_yaml_templates(second_docs_list)
         except timeout_exceptions.FunctionTimedOut as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '第二阶段下装超过预定时间（60秒）'
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '未知系统错误，请查看后端容器日志'
         finally:
@@ -132,9 +137,10 @@ class BackendCore:
         try:
             result, msg = self.uninstall_yaml_templates(docs)
         except timeout_exceptions.FunctionTimedOut as e:
+            LOGGER.warning(f'Uninstall services failed: {str(e)}')
+            LOGGER.exception(e)
             msg = '超出预定时间（120秒）'
             result = False
-            LOGGER.warning(f'Uninstall services failed: {msg}')
         except Exception as e:
             LOGGER.warning(f'Uninstall services failed: {str(e)}')
             LOGGER.exception(e)
