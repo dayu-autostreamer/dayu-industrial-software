@@ -1,7 +1,7 @@
 import time
 import redis
 
-import util_ixpe
+from .util_ixpe import ESCPN
 
 from core.lib.common import LOGGER, EncodeOps, Context, SystemConstant
 from core.lib.network import NodeInfo, PortInfo
@@ -17,7 +17,7 @@ class EdgeEyeStage2:
         self.redis = redis.Redis(connection_pool=self.pool)
 
         model_path = Context.get_file_path(weights)
-        self.sr_generator = util_ixpe.ESCPN(model_path, device)
+        self.sr_generator = ESCPN(model_path, device)
 
     def __call__(self, input_ctx):
 

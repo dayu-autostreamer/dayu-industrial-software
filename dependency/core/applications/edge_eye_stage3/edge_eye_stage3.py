@@ -1,7 +1,7 @@
 import time
 import redis
 
-import util_ixpe
+from .util_ixpe import CalPosition, AbnormalDetector
 
 from core.lib.common import LOGGER, EncodeOps, SystemConstant
 from core.lib.network import NodeInfo, PortInfo
@@ -16,8 +16,8 @@ class EdgeEyeStage3:
 
         self.lps = 0
         self.rps = 0
-        self.pos_calculator = util_ixpe.CalPosition()
-        self.abnormal_detector = util_ixpe.AbnormalDetector(
+        self.pos_calculator = CalPosition()
+        self.abnormal_detector = AbnormalDetector(
             w1=5, w2=7, e=7, buffer_size=100)
         self.lastls = self.lps
         self.lastrs = self.rps

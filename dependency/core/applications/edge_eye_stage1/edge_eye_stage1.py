@@ -1,6 +1,7 @@
 import time
 
-import util_ixpe
+from .util_ixpe import MaterialDetection, BarSelection
+
 from core.lib.common import LOGGER,EncodeOps
 
 
@@ -8,9 +9,9 @@ class EdgeEyeStage1:
     def __init__(self):
         self.d_area = [[440, 370], [790, 500]]
         self.bar_area = [[80, 390], [1130, 440], [80, 440], [1130, 490]]
-        self.mat_detector = util_ixpe.MaterialDetection(
+        self.mat_detector = MaterialDetection(
             detection_area=self.d_area, buffer_size=20)
-        self.bar_selector = util_ixpe.BarSelection(bar_area=self.bar_area)
+        self.bar_selector = BarSelection(bar_area=self.bar_area)
         self.first_done_flag = False
 
     def __call__(self, input_ctx):
