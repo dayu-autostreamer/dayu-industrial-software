@@ -45,6 +45,7 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
+        self.freetask_results = {}
 
         self.is_get_result = False
 
@@ -409,6 +410,18 @@ class BackendCore:
                 'task_id': task_id,
                 'task_start_time': task_start_time,     #add start time info
                 'data': visualization_data,
+            }])
+
+            freetask_data = {}
+            for key, value in visualization_data.items():
+                # 过滤掉值中包含"image"键的条目
+                if isinstance(value, dict) and "image" not in value:
+                    freetask_data[key] = value
+
+            self.freetask_results[source_id].put_all([{
+                'task_id': task_id,
+                'task_start_time': task_start_time,
+                'data': freetask_data,
             }])
 
     def run_get_result(self):

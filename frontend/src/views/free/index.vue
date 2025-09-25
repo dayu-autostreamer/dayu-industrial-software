@@ -611,10 +611,10 @@ export default {
 
     async getLatestResultData() {
       try {
-        const response = await fetch('/api/task_result')
+        const response = await fetch('/api/freetask_result')
         const data = await response.json()
 
-        const newCache = {...this.bufferedTaskCache}
+        const newCache = {}
         const configUpdates = {}
 
         Object.entries(data).forEach(([sourceIdStr, tasks]) => {
@@ -622,28 +622,27 @@ export default {
           if (!Array.isArray(tasks)) return
 
           const validTasks = tasks
-              .filter(task => task?.task_id && Array.isArray(task.data))
-              .map(task => ({
-                task_id: task.task_id,
-                task_start_time: task.task_start_time || 'unknown',
-                data: task.data.map(item => ({
-                  id: String(item.id) || 'unknown',
-                  data: item.data || {}
-                }))
+            .filter(task => task?.task_id && Array.isArray(task.data))
+            .map(task => ({
+              task_id: task.task_id,
+              task_start_time: task.task_start_time || 'unknown',
+              data: task.data.map(item => ({
+                id: String(item.id) || 'unknown',
+                data: item.data || {}
               }))
+            }))
 
-          newCache[sourceId] = [
-            ...(newCache[sourceId] || []),
-            ...validTasks
-          ].slice(-this.maxBufferedTaskCacheSize)
+          // 🔄 直接替换，不再拼接 slice
+          newCache[sourceId] = validTasks
 
+          // 检查可视化配置是否需要更新
           tasks.forEach(task => {
             task.data?.forEach(item => {
               const vizId = String(item.id)
               const newVariables = Object.keys(item.data || {})
 
               const vizConfig = (this.visualizationConfig[sourceId] || [])
-                  .find(v => v.id === vizId)
+                .find(v => v.id === vizId)
 
               if (vizConfig && !this.arraysEqual(vizConfig.variables, newVariables)) {
                 configUpdates[sourceId] = configUpdates[sourceId] || []
@@ -656,38 +655,16 @@ export default {
           })
         })
 
-        Object.entries(configUpdates).forEach(([sourceId, updates]) => {
-          const newConfig = [...(this.visualizationConfig[sourceId] || [])]
-          updates.forEach(({vizId, newVariables}) => {
-            const index = newConfig.findIndex(v => v.id === vizId)
-            if (index !== -1) {
-              const updatedViz = {
-                ...newConfig[index],
-                variables: [...newVariables],
-                variablesHash: this.calculateVariablesHash(newVariables)
-              }
-              newConfig.splice(index, 1, updatedViz)
-            }
-          })
-          this.visualizationConfig[sourceId] = newConfig
-        })
+        this.bufferedTaskCache = newCache
 
-        this.bufferedTaskCache = reactive({...newCache})
-
-        if (this.selectedDataSource) {
-          const sourceId = this.selectedDataSource
-          if (this.visualizationConfig[sourceId]) {
-            this.visualizationConfig [sourceId] = this.visualizationConfig[sourceId].map(cfg => ({...cfg}))
-          }
+        if (Object.keys(configUpdates).length > 0) {
+          this.handleConfigUpdates(configUpdates)
         }
-
-        this.$nextTick(() => {
-          emitter.emit('force-update-charts')
-        })
       } catch (error) {
-        console.error('Data fetch failed:', error)
+        console.error('Error fetching task results:', error)
       }
     },
+
 
     setupDataPolling() {
       this.getLatestResultData()

@@ -112,6 +112,11 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_TASK_RESULT]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_FREETASK_RESULT,
+                     self.get_freetask_result,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_FREETASK_RESULT]
+                     ),
             APIRoute(NetworkAPIPath.BACKEND_SYSTEM_PARAMETERS,
                      self.get_system_parameters,
                      response_class=JSONResponse,
@@ -558,6 +563,7 @@ class BackendServer:
         source_ids = self.server.get_source_ids()
         for source_id in source_ids:
             self.server.task_results[source_id] = Queue(20)
+            self.server.freetask_results[source_id] = Queue(20000)
 
         time.sleep((len(source_ids) - 1) * 4)
 
@@ -577,6 +583,7 @@ class BackendServer:
         self.server.source_label = ''
         self.server.is_get_result = False
         self.server.task_results.clear()
+        self.server.freetask_results.clear()
         self.server.customized_source_result_visualization_configs.clear()
         time.sleep(1)
 
@@ -640,6 +647,29 @@ class BackendServer:
         for source in source_config['source_list']:
             source_id = source['id']
             ans[source_id] = self.server.task_results[source_id].get_all()
+
+        return ans
+
+    async def get_freetask_result(self):
+        """
+        all results without image
+        {
+        'datasource1':[
+            task_id: 12,
+            data: {0:{"delay":"0.5"}...}
+
+        ],
+        'datasource2':[]
+        }
+        :return:
+        """
+        if not self.server.source_open:
+            return {}
+        ans = {}
+        source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
+        for source in source_config['source_list']:
+            source_id = source['id']
+            ans[source_id] = self.server.freetask_results[source_id].get_all_without_drop()
 
         return ans
 
