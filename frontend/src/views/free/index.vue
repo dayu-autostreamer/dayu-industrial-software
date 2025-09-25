@@ -252,7 +252,9 @@ export default {
       return result
     },
     currentVisualizationConfig() {
-      return this.visualizationConfig[this.selectedDataSource] || []
+      const configs = this.visualizationConfig[this.selectedDataSource] || []
+      // 过滤掉类型为image的可视化配置
+      return configs.filter(viz => viz.type !== 'image')
     },
     currentActiveVisualizations() {
       console.log('activeVisualizations:', this.activeVisualizations[this.selectedDataSource])
