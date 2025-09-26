@@ -22,7 +22,7 @@ class Service:
         # result data of service
         self.__content = content
 
-        self.__tmp_data = tmp
+        self.__tmp_data = tmp if tmp else {}
 
     def get_service_name(self):
         return self.__service_name
