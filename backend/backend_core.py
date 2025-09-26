@@ -648,9 +648,11 @@ class BackendCore:
         self.priority_task_buffer = [task for task in self.priority_task_buffer if task.get_total_end_time() <= show_time]
         priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
 
+        print('***show_time: ', show_time)
         for service in services:
             for task in self.priority_task_buffer:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
+                print(f'---task_id: {task.get_task_id()}, service: {service}, enter_time: {enter_time}, quit_time: {quit_time}')
                 if task.get_service(service) and task.get_service(service).get_execute_device() == node and \
                         enter_time <= show_time <= quit_time:
                     priority_queue[service][task.get_service(service).get_priority()].append({
