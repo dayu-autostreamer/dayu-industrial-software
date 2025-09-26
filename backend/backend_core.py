@@ -644,10 +644,9 @@ class BackendCore:
         show_time = time.time() - 5
         services = KubeConfig.get_node_services_dict()[node]
         self.priority_task_buffer.extend(self.task_results_for_priority.get_all())
-        self.priority_task_buffer = [task.get_total_end_time() <= show_time for task in self.priority_task_buffer]
-        priority_queue = {}
-        for service in services:
-            priority_queue[service] = [[] for _ in range(self.priority['priority_levels'])]
+        # Filter tasks satisfied time requirements
+        self.priority_task_buffer = [task for task in self.priority_task_buffer if task.get_total_end_time() <= show_time]
+        priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
 
         for service in services:
             for task in self.priority_task_buffer:
