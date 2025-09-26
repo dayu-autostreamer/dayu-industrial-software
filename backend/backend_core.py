@@ -647,12 +647,15 @@ class BackendCore:
         total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])
         show_time = time.time() - total_time_list[len(total_time_list) // 2] if total_time_list else 0
         self.priority_task_buffer.extend(tasks)
+        print('*** show_time: ', show_time)
+        for task in self.priority_task_buffer:
+            print(f'---task_id: {task.get_task_id()}, total_end_time: {task.get_total_end_time()}')
         # Filter tasks satisfied time requirements
         self.priority_task_buffer = [task for task in self.priority_task_buffer if
                                      task.get_total_end_time() >= show_time]
         priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
 
-        print('*** show_time: ', show_time)
+
         for service in services:
             for task in self.priority_task_buffer:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
