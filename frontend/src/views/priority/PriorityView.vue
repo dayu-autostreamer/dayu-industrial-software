@@ -281,7 +281,7 @@ export default {
   border-radius: 10px;
   padding: 10px 14px;
   box-shadow: 0 2px 10px var(--next-color-dark-hover);
-  padding-bottom: 18px;
+  margin-bottom: 28px;
 
   .legend-left {
     display: flex;
