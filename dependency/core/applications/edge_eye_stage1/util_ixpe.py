@@ -1,3 +1,4 @@
+from pathlib import Path
 from scipy import stats
 import numpy as np
 import cv2 as cv
@@ -24,16 +25,16 @@ class MaterialDetection:
         self.p1, self.p2 = detection_area
         self.buffer_size = buffer_size
         shape = (720, 1280, 3)
-        raw_background = cv.imread('Empty_background.png')
+        bg_image_path = str(Path(__file__).with_name('Empty_background.png'))
+        raw_background = cv.imread(bg_image_path)
         self.background = raw_background[self.p1[1]:self.p2[1], self.p1[0]:self.p2[0]]
-        # 记得初始化这个玩意
         self.counter = 0
         self.threshold_update = 0.05
         self.threshold_material = 1.0
         self.isMaterial = False
 
     def detect(self, frame):
-        """奇妙的counter状态机xxx，节省资源，false时每一帧都比对，true时跳帧比对，以及background动态更新"""
+        """counter状态机，节省资源，false时每一帧都比对，true时跳帧比对，以及background动态更新"""
         if self.isMaterial:
             self.counter += 1
             if self.counter <= 10:
@@ -61,7 +62,7 @@ class MaterialDetection:
 
 class BarSelection:
     def __init__(self, bar_area, buffer_size=10) -> None:
-        self.p1, self.p2, self.p3, self.p4 = bar_area  # p1,p2,p3,p4 的实际位置以及数据有点怪，仔细看看xx
+        self.p1, self.p2, self.p3, self.p4 = bar_area
         self.abs_point = (0, 0)
         self.buffer_size = buffer_size
         self.top_value = []
@@ -71,10 +72,9 @@ class BarSelection:
         height, width = frame.shape[:2]
         step = 5
         myList = [[0, 0, 0]] * (width // step)
-        # 为什么这里滑动窗口只扫描了前面的一部分（0~(width // step - 1) + step * 10）？width可是有1050呢。
         for i in range(0, width // step):
             sw = frame[:, i:i + step * 10]  # sw: sliding window
-            line = np.max(sw, axis=1)  # 这里是假设滑动窗口里只会出现竖直边缘那一条线吗？应该是
+            line = np.max(sw, axis=1)
             myList[i] = [i, np.mean(line), np.std(line)]
         myList = np.array(myList)
         index1 = myList[:, 1].argmax()

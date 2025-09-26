@@ -4,7 +4,7 @@ source_mode: "rtsp_video"
 source_list:
   - name: "ixpe_camera_0"
     url: ""
-    dir: "ixpe_0/"
+    dir: "edge_eye_0/"
     metadata:
       resolution: "540p"
       fps: 30
@@ -13,7 +13,7 @@ source_list:
     importance: 5
 #  - name: "ixpe_camera_1"
 #    url: ""
-#    dir: "ixpe_1/"
+#    dir: "edge_eye_1/"
 #    metadata:
 #      resolution: "540p"
 #      fps: 30

@@ -1,3 +1,4 @@
+from typing import Tuple
 import copy
 import json
 import uuid
@@ -307,6 +308,10 @@ class Task:
         service = self.__dag_flow.get_node(self.__cur_flow_index).service
         return service
 
+    def get_service(self, service_name):
+        assert self.__dag_flow, 'Task DAG is empty!'
+        return self.__dag_flow.get_node(service_name).service if service_name in self.__dag_flow.nodes else None
+
     def save_transmit_time(self, transmit_time):
         assert self.__dag_flow, 'Task DAG is empty!'
         service = self.__dag_flow.get_node(self.__cur_flow_index).service
@@ -350,7 +355,7 @@ class Task:
         assert self.__cur_flow_index == 'end', f'DAG is not completed, current service: {self.__cur_flow_index}'
 
         total_time, _ = PathSolver(self.__dag_flow).get_weighted_longest_path('start', 'end',
-                                                                               lambda x: x.get_service_total_time())
+                                                                              lambda x: x.get_service_total_time())
         return total_time
 
     def calculate_cloud_edge_transmit_time(self):
@@ -453,6 +458,23 @@ class Task:
 
         self.set_dag(merged_dag)
 
+    def record_priority_timestamp(self, is_enter=True):
+        from core.lib.estimation import TimeEstimator
+
+        cur_service = self.get_current_service()
+        TimeEstimator.record_ts(cur_service.get_tmp_data(),
+                                'ENTER_PRIORITY_QUEUE' if is_enter else 'QUIT_PRIORITY_QUEUE',
+                                is_end=False)
+
+    def extract_priority_timestamp(self, service_name) -> Tuple[float, float]:
+        service = self.__dag_flow.get_node(service_name).service
+        enter_time = service.get_tmp_data().get('ENTER_PRIORITY_QUEUE', None)
+        quit_time = service.get_tmp_data().get('QUIT_PRIORITY_QUEUE', None)
+
+        assert enter_time and quit_time, 'Priority timestamps are incomplete!'
+
+        return enter_time, quit_time
+
     def to_dict(self):
         return {
             'source_id': self.get_source_id(),
@@ -507,13 +529,14 @@ class Task:
     @property
     def priority(self):
         cur_service = self.get_current_service()
-        if cur_service.get_priority() == 0:
-            priority = PriorityEstimator(
+        if cur_service.get_priority() is None:
+            priority, urgency = PriorityEstimator(
                 importance_weight=self.__priority_coefficients['importance_weight'],
                 urgency_weight=self.__priority_coefficients['urgency_weight'],
                 priority_levels=self.__priority_coefficients['priority_levels'],
                 deadline=self.__priority_coefficients['deadline']
             ).calculate_priority(task=self)
+            cur_service.set_urgency(urgency)
             cur_service.set_priority(priority)
             return priority
         else:

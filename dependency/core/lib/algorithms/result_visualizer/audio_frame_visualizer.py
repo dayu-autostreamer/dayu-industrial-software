@@ -19,12 +19,12 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
         self.audio_service = kwargs.get('audio_service', None)
 
         self.sound_categories = [
-            "Other (其他声音)"
-            "Car Horn (喇叭声)",
-            "Drilling (钻孔声)",
-            "Engine Idling (引擎声)",
-            "Jackhammer (重型机械声)",
-            "Siren (警报声)",
+            "其他声音",
+            "喇叭声",
+            "钻孔声",
+            "引擎声",
+            "重型机械声",
+            "警报声",
         ]
 
     def draw_audio_spec(self, data, framerate, nchannels, result):
@@ -35,6 +35,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
 
         import librosa
         import matplotlib.pyplot as plt
+        plt.rcParams['font.family'] = 'WenQuanYi Zen Hei'
 
         databuffer = np.frombuffer(data, dtype=np.short)
         if nchannels == 2:
