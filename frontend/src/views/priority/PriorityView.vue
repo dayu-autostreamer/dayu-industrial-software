@@ -1,96 +1,120 @@
 <template>
   <div class="priority-view">
-
-    <!-- 服务列表 -->
-    <div v-if="serviceNames.length" class="services">
-      <div
-        v-for="svc in serviceNames"
-        :key="svc"
-        class="service-card"
-      >
-        <div class="service-header">
-          <div class="service-title">
-            <span class="dot"></span>
-            <span class="name">{{ svc }}</span>
-          </div>
-          <div class="service-stats">
-            <template v-if="hasDataFor(svc)">
-              <span class="stat">队列数：{{ queueCount }}</span>
-              <span class="divider">|</span>
-              <span class="stat">总任务：{{ summary(svc).total }}</span>
-              <span class="divider">|</span>
-              <span class="stat">非空队列：{{ summary(svc).nonEmpty }}/{{ queueCount }}</span>
-            </template>
-            <template v-else>
-              <span class="stat muted">暂无数据</span>
-            </template>
-          </div>
-        </div>
-
-        <!-- 每个 service 的优先级队列：P0..P(n-1) -->
-        <div
-          class="queues-grid"
-          :style="{'grid-template-columns': 'repeat(' + Math.max(queueCount, 1) + ', minmax(260px, 1fr))'}"
-        >
-          <div
-            v-for="idx in Math.max(queueCount, 1)"
-            :key="idx"
-            class="queue-lane"
-            :class="{'is-empty': getQueue(svc, idx-1).length === 0}"
-          >
-            <div class="lane-header">
-              <span class="lane-title">P{{ idx - 1 >= 0 ? idx - 1 : 0 }}</span>
-              <span v-if="getQueue(svc, idx-1).length === 0" class="lane-badge">空</span>
-              <span v-else class="lane-count">{{ getQueue(svc, idx-1).length }} 项</span>
-            </div>
-
-            <!-- 轨道：左“队首” → 右“队尾” -->
-            <div class="lane-track">
-              <div class="arrow-head">队首</div>
-              <div class="tasks-scroller">
-                <div
-                  v-for="(task, tIndex) in getQueue(svc, idx-1)"
-                  :key="tIndex"
-                  class="task-chip"
-                  :title="taskTooltip(task)"
-                >
-                  <div class="chip-top">
-                    <span class="chip-id">#{{ safe(task.task_id) }}</span>
-                    <div class="chip-badges">
-                      <span
-                        class="tag imp"
-                        :style="badgeStyle('imp', task.importance)"
-                      >
-                        I: {{ displayLevel(task.importance) }}
-                      </span>
-                      <span
-                        class="tag urg"
-                        :style="badgeStyle('urg', task.urgency)"
-                      >
-                        U: {{ displayLevel(task.urgency) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="chip-bottom">
-                    <span class="meta">src: {{ safe(task.source_id) }}</span>
-                  </div>
-                </div>
-
-                <!-- 空队列占位（保证可视形状） -->
-                <div v-if="getQueue(svc, idx-1).length === 0" class="empty-placeholder">
-                  <span>（空队列）</span>
-                </div>
-              </div>
-              <div class="arrow-tail">队尾</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- 未选择 node：不显示队列，仅展示提示 -->
+    <div v-if="!isNodeSelected" class="empty-wrap">
+      <el-empty description="请选择节点以查看队列" />
     </div>
 
-    <!-- 若没有任何 service 名称 -->
-    <div v-else class="empty-services">
-      <el-empty description="暂无服务可展示" />
+    <!-- 已选择 node -->
+    <div v-else>
+      <!-- 顶部说明与图例 -->
+      <div class="legend">
+        <div class="legend-left">
+          <span class="legend-title">队列视图</span>
+          <span class="hint">（队首 → 队尾；数值越大越优先）</span>
+        </div>
+        <div class="legend-right">
+          <span class="range">优先级数量：0 ~ {{ Math.max(queueCount - 1, 0) }}</span>
+        </div>
+      </div>
+
+      <!-- 服务横向滚动：service 之间横排，屏幕放不下可横向滑动 -->
+      <div class="services-strip">
+        <div
+          v-for="svc in serviceNames"
+          :key="svc"
+          class="service-card"
+        >
+          <!-- service 标题与统计 -->
+          <div class="service-header">
+            <div class="service-title">
+              <span class="dot"></span>
+              <span class="name">{{ svc }}</span>
+            </div>
+            <div class="service-stats">
+              <template v-if="hasDataFor(svc)">
+                <span class="stat">队列数：{{ queueCount }}</span>
+                <span class="divider">|</span>
+                <span class="stat">总任务：{{ summary(svc).total }}</span>
+                <span class="divider">|</span>
+                <span class="stat">非空队列：{{ summary(svc).nonEmpty }}/{{ queueCount }}</span>
+              </template>
+              <template v-else>
+                <span class="stat muted">暂无数据</span>
+              </template>
+            </div>
+          </div>
+
+          <!-- 队列纵向排列；优先显示 priority_num 条（P0..P(n-1)） -->
+          <template v-if="queueCount > 0">
+            <div class="queues-list">
+              <div
+                v-for="idx in queueCount"
+                :key="idx"
+                class="queue-lane"
+                :class="{'is-empty': getQueue(svc, idx-1).length === 0}"
+              >
+                <div class="lane-header">
+                  <span class="lane-title">P{{ idx - 1 }}</span>
+                  <span v-if="getQueue(svc, idx-1).length === 0" class="lane-badge">空</span>
+                  <span v-else class="lane-count">{{ getQueue(svc, idx-1).length }} 项</span>
+                </div>
+
+                <!-- 单条优先级队列：队首 → 队尾 -->
+                <div class="lane-track">
+                  <div class="arrow-head">队首</div>
+
+                  <div class="tasks-scroller">
+                    <div
+                      v-for="(task, tIndex) in getQueue(svc, idx-1)"
+                      :key="tIndex"
+                      class="task-chip"
+                      :title="taskTooltip(task)"
+                    >
+                      <div class="chip-top">
+                        <span class="chip-id">#{{ safe(task.task_id) }}</span>
+                        <div class="chip-badges">
+                          <span
+                            class="tag imp"
+                            :style="badgeStyle('imp', task.importance)"
+                          >
+                            I: {{ displayLevel(task.importance) }}
+                          </span>
+                          <span
+                            class="tag urg"
+                            :style="badgeStyle('urg', task.urgency)"
+                          >
+                            U: {{ displayLevel(task.urgency) }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="chip-bottom">
+                        <span class="meta">src: {{ safe(task.source_id) }}</span>
+                      </div>
+                    </div>
+
+                    <!-- 空队列占位，保持“形状” -->
+                    <div v-if="getQueue(svc, idx-1).length === 0" class="empty-placeholder">
+                      <span>（空队列）</span>
+                    </div>
+                  </div>
+
+                  <div class="arrow-tail">队尾</div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- 未拿到 priority_num 的兜底提示（一般不会发生） -->
+          <template v-else>
+            <div class="no-priority">
+              <el-empty description="未获取到队列级别（priority_num）" />
+            </div>
+          </template>
+        </div>
+        <!-- /service-card -->
+      </div>
+      <!-- /services-strip -->
     </div>
   </div>
 </template>
@@ -104,7 +128,7 @@ export default {
       type: [Number, null],
       default: null
     },
-    // 可能是数组（当前节点的服务名列表），也可能是对象（node -> [services]）
+    // 可能是数组（服务名列表），也可能是对象（node -> [services]）
     service: {
       type: [Array, Object],
       default: () => []
@@ -113,28 +137,40 @@ export default {
     queue_result: {
       type: Object,
       default: () => null
+    },
+    // 当前选中的 node 名（来自父组件）
+    selectedNode: {
+      type: [String, null],
+      default: null
     }
   },
   computed: {
-    // 需要展示的 service 名列表：优先使用 queue_result 的 key；否则回退到 props.service
+    // 是否已选择 node
+    isNodeSelected() {
+      if (this.selectedNode && String(this.selectedNode).trim() !== '') return true;
+      if (this.queue_result && Object.keys(this.queue_result).length > 0) return true;
+      return false;
+    },
+    // service 名列表：在“已选择 node”才展示
     serviceNames() {
+      if (!this.isNodeSelected) return [];
+      // 若有队列数据，用其 key（更准确）
       if (this.queue_result && Object.keys(this.queue_result).length) {
         return Object.keys(this.queue_result);
       }
+      // 其次：根据 selectedNode 在 service 映射中取
+      if (this.selectedNode && this.service && typeof this.service === 'object' && !Array.isArray(this.service)) {
+        const arr = this.service[this.selectedNode] || [];
+        return Array.isArray(arr) ? arr : [];
+      }
+      // 兜底：service 为数组时直接返回
       if (Array.isArray(this.service)) {
         return this.service;
-      }
-      if (this.service && typeof this.service === 'object') {
-        const merged = new Set();
-        Object.values(this.service).forEach(arr => {
-          if (Array.isArray(arr)) arr.forEach(s => merged.add(s));
-        });
-        return Array.from(merged);
       }
       return [];
     },
     // 队列数量：优先用 priority_num；否则尝试从 queue_result 推断
-    // 注意：level 取值为 0..(queueCount-1)，共 queueCount 个级别
+    // 取值范围 0..(queueCount-1) 共 queueCount 个
     queueCount() {
       if (typeof this.priority_num === 'number' && this.priority_num > 0) return this.priority_num;
       if (this.queue_result && Object.keys(this.queue_result).length) {
@@ -178,11 +214,11 @@ export default {
       });
       return { total, nonEmpty };
     },
-    // 安全显示
+    // 安全显示（允许 0）
     safe(v) {
       return (v === 0 || v) ? v : '-';
     },
-    // 展示等级数字（若无值用破折号）
+    // 展示等级数字（无值→破折号）
     displayLevel(v) {
       return (v === 0 || v) ? v : '—';
     },
@@ -196,8 +232,7 @@ export default {
     },
     // 颜色映射：t ∈ [0,1] 越大越深
     hslColor(h, s, t) {
-      // 亮度从 85%（低）到 42%（高），保留一定可读性
-      const light = 85 - (85 - 42) * t;
+      const light = 85 - (85 - 42) * t; // 亮度 85% → 42%
       return `hsl(${h}, ${s}%, ${light}%)`;
     },
     // 将 level（0..maxLevel）转换为 t ∈ [0,1]
@@ -209,22 +244,15 @@ export default {
       }
       return null;
     },
-    // 根据重要性/紧急度生成徽章样式
+    // 根据重要性/紧急度生成徽章样式（红系/蓝系）
     badgeStyle(kind, level) {
       const t = this.to01(level);
       if (t === null) {
-        return {
-          background: '#dcdfe6',
-          color: '#606266'
-        };
+        return { background: '#dcdfe6', color: '#606266' };
       }
-      // importance 用红系（h≈0），urgency 用蓝系（h≈210）
       const h = kind === 'imp' ? 0 : 210;
       const s = kind === 'imp' ? 78 : 72;
-      return {
-        background: this.hslColor(h, s, t),
-        color: '#fff'
-      };
+      return { background: this.hslColor(h, s, t), color: '#fff' };
     }
   }
 };
@@ -236,9 +264,14 @@ export default {
   flex-direction: column;
   gap: 16px;
   padding: 8px 4px 24px;
+  height: 100%;
 }
 
-/* 图例条 */
+.empty-wrap {
+  padding-top: 10vh;
+}
+
+/* 顶部图例条 */
 .legend {
   display: flex;
   align-items: center;
@@ -274,25 +307,39 @@ export default {
   }
 }
 
-/* 服务卡片 */
-.services {
+/* 服务横向滚动条：service 之间横排，超出可横向滚动 */
+.services-strip {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
+  flex-direction: row;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 6px;
+  scroll-behavior: smooth;
+  min-height: 260px;
 }
+
+/* service 卡片（固定最小宽度，便于横向滑动） */
 .service-card {
+  flex: 0 0 auto;
+  min-width: 420px;
+  max-width: 520px;
   background: var(--el-color-white);
   border: 1px solid var(--next-border-color-light);
   border-radius: 14px;
   padding: 14px;
   transition: box-shadow .2s ease;
+  display: flex;
+  flex-direction: column;
+  max-height: 78vh; /* 控制卡片高度，内部纵向滚动 */
   &:hover { box-shadow: 0 4px 16px var(--next-color-dark-hover); }
 }
+
 .service-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 
   .service-title {
     display: inline-flex; align-items: center; gap: 8px;
@@ -313,14 +360,16 @@ export default {
   }
 }
 
-/* 队列网格：每列一个优先级 */
-.queues-grid {
-  display: grid;
+/* 队列纵向列表：service 卡片内部可纵向滚动 */
+.queues-list {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  width: 100%;
+  overflow-y: auto;
+  padding-right: 6px; /* 为滚动条留白 */
 }
 
-/* 单条优先级队列（一条“轨道”） */
+/* 单条优先级队列（轨道） */
 .queue-lane {
   border: 1px solid var(--next-border-color-light);
   border-radius: 10px;
@@ -353,7 +402,7 @@ export default {
   }
 }
 
-/* 轨道：左“队首” → 右“队尾” */
+/* 轨道：左“队首” → 右“队尾”；任务横向滚动 */
 .lane-track {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -391,7 +440,7 @@ export default {
   }
 }
 
-/* 单个任务芯片（队列中的一个元素） */
+/* 单个任务芯片（队列元素） */
 .task-chip {
   flex: 0 0 auto;
   min-width: 170px;
@@ -436,8 +485,8 @@ export default {
   background: #fafafa;
 }
 
-/* 没有 service 可展示 */
-.empty-services {
-  margin-top: 16px;
+/* 没拿到 priority_num 的兜底 */
+.no-priority {
+  padding: 8px 0;
 }
 </style>

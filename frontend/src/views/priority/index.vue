@@ -23,8 +23,10 @@
           <div style="height: 100%">
             <div class="flex-margin flex w100">
               <div class="flex-auto">
-                <PriorityView :priority_num="priority_num" :service="services"
-                              :queue_result="queue_result"/>
+                <PriorityView :priority_num="priority_num"
+                              :service="services"
+                              :queue_result="queue_result"
+                              :selectedNode="selectedNode"/>
               </div>
             </div>
           </div>
