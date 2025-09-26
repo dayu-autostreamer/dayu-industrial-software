@@ -104,7 +104,7 @@
           <el-button
               @click="resetTimeRange"
           >
-            重置为当天
+            重置为当前
           </el-button>
           <el-button
               type="info"
@@ -286,7 +286,8 @@ export default {
     await this.autoRegisterComponents()
     this.componentsLoaded = true
     await this.fetchDataSourceList()
-    this.setupDataPolling()
+    // 移除自动轮询，改为手动触发
+    // this.setupDataPolling()
 
     emitter.on('force-update-charts', () => {
       this.$nextTick(() => {
@@ -347,9 +348,12 @@ export default {
       
       ElMessage.success(`时间区间已应用: ${this.formatTimeRangeDisplay()}`);
       
-      // 强制更新图表
-      this.$nextTick(() => {
-        emitter.emit('force-update-charts');
+      // 应用时间区间后获取最新数据
+      this.getLatestResultData().then(() => {
+        // 数据更新后强制更新图表
+        this.$nextTick(() => {
+          emitter.emit('force-update-charts');
+        });
       });
     },
     
@@ -449,6 +453,10 @@ export default {
 
       try {
         await this.fetchVisualizationConfig(sourceId)
+        // 切换数据源后，如果已经应用了时间区间，获取数据
+        if (this.isTimeRangeApplied) {
+          await this.getLatestResultData()
+        }
       } catch (e) {
         console.error('Source change failed:', e)
       } finally {
@@ -667,10 +675,12 @@ export default {
 
 
     setupDataPolling() {
+      // 仅在初始化时获取一次数据，不设置定时器
       this.getLatestResultData()
-      this.pollingInterval = setInterval(() => {
-        this.getLatestResultData()
-      }, 2000)
+      // 移除自动轮询
+      // this.pollingInterval = setInterval(() => {
+      //   this.getLatestResultData()
+      // }, 2000)
     },
 
     exportTaskLog() {
