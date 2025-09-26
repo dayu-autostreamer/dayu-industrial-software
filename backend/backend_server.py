@@ -645,7 +645,7 @@ class BackendServer:
         source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
         for source in source_config['source_list']:
             source_id = source['id']
-            ans[source_id] = self.server.task_results[source_id].get_all()
+            ans[source_id] = self.server.fetch_visualization_data(source_id, max_size=20)
 
         return ans
 
@@ -728,8 +728,6 @@ class BackendServer:
         }
         """
         return self.server.get_priority_info()
-
-
 
     async def get_priority_queue(self, node):
         """

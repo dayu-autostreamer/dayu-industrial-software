@@ -394,11 +394,21 @@ class BackendCore:
                 continue
 
             task = Task.deserialize(result)
-
             source_id = task.get_source_id()
-            task_id = task.get_task_id()
-            file_path = self.get_file_result(task.get_file_path())
             LOGGER.debug(task.get_delay_info())
+
+            if not self.source_open:
+                break
+
+            self.task_results[source_id].put_all([copy.deepcopy(task)])
+            self.task_results_for_priority.put_all([copy.deepcopy(task)])
+
+    def fetch_visualization_data(self, source_id, max_size):
+        assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
+        tasks = self.task_results[source_id].get_all()[-max_size:]
+        vis_results = []
+        for task in tasks:
+            file_path = self.get_file_result(task.get_file_path())
 
             try:
                 visualization_data = self.prepare_result_visualization_data(task)
@@ -410,15 +420,12 @@ class BackendCore:
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-            if not self.source_open:
-                break
-
-            self.task_results[source_id].put_all([{
-                'task_id': task_id,
+            vis_results.append({
+                'task_id': task.get_task_id(),
                 'data': visualization_data,
-            }])
+            })
 
-            self.task_results_for_priority.put_all([copy.deepcopy(task)])
+        return vis_results
 
     def run_get_result(self):
         time_ticket = 0
