@@ -8,7 +8,7 @@
               <div class="flex-auto">
                 选择节点: &nbsp; &nbsp; &nbsp;
                 <el-select v-model="selectedNode" placeholder="请选择...">
-                  <el-option v-for="item in node" :key="item" :label="item" :value="item">
+                  <el-option v-for="item in nodes" :key="item" :label="item" :value="item">
                   </el-option>
                 </el-select>
               </div>
@@ -23,7 +23,7 @@
           <div style="height: 100%">
             <div class="flex-margin flex w100">
               <div class="flex-auto">
-                <PriorityView :priority_num="priority_num" :service="service"
+                <PriorityView :priority_num="priority_num" :service="services"
                               :queue_result="queue_result"/>
               </div>
             </div>
@@ -51,8 +51,8 @@ export default {
   data() {
     return {
       priority_num: null,
-      service: [],
-      node: [],
+      services: [],
+      nodes: [],
       queue_result: null,
       selectedNode: null,
     }
@@ -65,8 +65,8 @@ export default {
           .then(data => {
             console.log(data);
             this.priority_num = data.priority_num;
-            this.service = data.service;
-            this.node = data.node;
+            this.services = data.services;
+            this.nodes = data.nodes;
           });
     },
 
