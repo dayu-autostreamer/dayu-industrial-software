@@ -408,7 +408,6 @@ class BackendCore:
 
             self.task_results[source_id].put_all([{
                 'task_id': task_id,
-                'task_start_time': task_start_time,     #add start time info
                 'data': visualization_data,
             }])
 
@@ -419,7 +418,6 @@ class BackendCore:
                 'task_start_time': task_start_time,
                 'data': freetask_data,
             }])
-            LOGGER.debug(f"DEBUG freetask_results[{source_id}] added: {freetask_data}")
 
     def run_get_result(self):
         time_ticket = 0
