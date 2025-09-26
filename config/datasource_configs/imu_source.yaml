@@ -1,4 +1,4 @@
-source_name: "工厂机器惯性传感器"
+source_name: "工厂惯性传感器"
 source_type: "imu"
 source_mode: "http_imu"
 source_list:
@@ -8,9 +8,9 @@ source_list:
     metadata:
       fps: 1
     importance: 3
-  - name: "imu_source_1"
-    url: ""
-    dir: "imu_1/"
-    metadata:
-      fps: 1
-    importance: 6
+#  - name: "imu_source_1"
+#    url: ""
+#    dir: "imu_1/"
+#    metadata:
+#      fps: 1
+#    importance: 6

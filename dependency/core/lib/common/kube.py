@@ -1,5 +1,7 @@
+from typing import List, Dict
 from kubernetes import client, config
 from collections import defaultdict
+import re
 
 from core.lib.common import Context
 
@@ -7,17 +9,17 @@ from core.lib.common import Context
 class KubeConfig:
     _api = None
     NAMESPACE = Context.get_parameter('NAMESPACE')
-    SERVICE_PREFIX = 'processor-'
+    SERVICE_PATTERN = pattern = re.compile(r"^processor-(.+?)-(?:cloudworker|edgeworker)-")
 
     @classmethod
-    def _get_api(cls):
+    def _get_api(cls) -> client.CoreV1Api:
         if not cls._api:
             config.load_incluster_config()
             cls._api = client.CoreV1Api()
         return cls._api
 
     @classmethod
-    def get_service_nodes_dict(cls):
+    def get_service_nodes_dict(cls) -> Dict[str, List[str]]:
         """
         Get nodes for each service based on pod name pattern
         Returns:
@@ -36,20 +38,17 @@ class KubeConfig:
             pod_name = pod.metadata.name
             node_name = pod.spec.node_name
 
-            if not node_name or not pod_name.startswith(cls.SERVICE_PREFIX):
+            match = cls.SERVICE_PATTERN.match(pod_name)
+            if not node_name or not match:
                 continue
 
-            parts = pod_name.split('-')
-            if len(parts) < 1:
-                continue
-            service_name = '-'.join(parts[1:3])
-
+            service_name = match.group(1)
             service_nodes[service_name].add(node_name)
 
         return {svc: list(nodes) for svc, nodes in service_nodes.items()}
 
     @classmethod
-    def get_node_services_dict(cls):
+    def get_node_services_dict(cls) -> Dict[str, List[str]]:
         """
         Get services on each node by reversing service-node mapping
         Returns:
@@ -69,7 +68,7 @@ class KubeConfig:
         return {node: list(svcs) for node, svcs in node_services.items()}
 
     @classmethod
-    def get_services_on_node(cls, node_name):
+    def get_services_on_node(cls, node_name: str) -> List[str]:
         """
         Get services on specified node
         Args:
@@ -80,7 +79,7 @@ class KubeConfig:
         return cls.get_node_services_dict().get(node_name, [])
 
     @classmethod
-    def get_nodes_for_service(cls, service_name):
+    def get_nodes_for_service(cls, service_name: str) -> List[str]:
         """
         Get nodes running specified service
         Args:

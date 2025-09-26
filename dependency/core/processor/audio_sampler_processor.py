@@ -14,7 +14,7 @@ class AudioSamplerProcessor(Processor):
     def __init__(self):
         super().__init__()
 
-        self.sampler = Context.get_instance('AudioSampler')
+        self.sampler = Context.get_instance('Audio_Sampler')
         self.resample_rate = Context.get_parameter('RESAMPLE_RATE', direct=False)
 
     def __call__(self, task: Task):
@@ -31,6 +31,9 @@ class AudioSamplerProcessor(Processor):
         with wave.open(data_file_path, 'w') as f:
             f.setparams(audio_params)
             f.writeframes(result)
+
+        task.set_metadata(meta_data)
+
         return task
 
     def infer(self, data, metadata):

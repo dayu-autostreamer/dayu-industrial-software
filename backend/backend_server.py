@@ -152,6 +152,17 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_RESET_DATASOURCE]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_PRIORITY_INFO,
+                     self.get_priority_info,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_PRIORITY_INFO]
+                     ),
+            APIRoute(NetworkAPIPath.BACKEND_PRIORITY_QUEUE,
+                     self.get_priority_queue,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_PRIORITY_QUEUE]
+                     ),
+
         ], log_level='trace', timeout=6000)
 
         self.app.add_middleware(
@@ -490,6 +501,7 @@ class BackendServer:
             result, msg = self.server.parse_and_apply_templates(policy, source_deploy)
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '未知系统错误，请查看后端容器日志'
 
@@ -705,3 +717,48 @@ class BackendServer:
             filename=f'{file_name}.json',
             background=backtask.add_task(FileOps.remove_file, self.server.log_file_path)
         )
+
+    async def get_priority_info(self):
+        """
+        :return:
+        {
+            "nodes": [node1,node2,...],
+            "services": {node1:[service1,...], node2:[service2,...]},
+            "priority_num":10
+        }
+        """
+        return self.server.get_priority_info()
+
+
+
+    async def get_priority_queue(self, node):
+        """
+        node: node name
+        :return:
+        {
+            service1:
+            [
+                # priority queue 1
+                [{
+                source_id: 1,
+                task_id: 1,
+                importance: 1
+                urgency: 1
+                },{},{},{}],
+                [],
+                [],
+                [],
+                []
+            ],
+            service2:
+            [
+                [],
+                [],
+                [],
+                [],
+                []
+
+            ]
+        }
+        """
+        return self.server.get_priority_queue(node)

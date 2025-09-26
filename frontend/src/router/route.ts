@@ -120,6 +120,51 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
                 },
             },
             {
+                path: '/free',
+                name: 'free',
+                component: () => import('/@/views/free/index.vue'),
+                meta: {
+                    title: 'message.router.free',
+                    isLink: '',
+                    isHide: false,
+                    isKeepAlive: true,
+                    isAffix: false,
+                    isIframe: false,
+                    roles: ['dayu', 'common'],
+                    icon: 'iconfont icon-zhongduancanshuchaxun',
+                }
+            },
+            {
+                path: '/event',
+                name: 'event',
+                component: () => import('/@/views/event/index.vue'),
+                meta: {
+                    title: 'message.router.event',
+                    isLink: '',
+                    isHide: false,
+                    isKeepAlive: true,
+                    isAffix: false,
+                    isIframe: false,
+                    roles: ['dayu', 'common'],
+                    icon: 'iconfont icon-jinridaiban',
+                }
+            },
+            {
+                path: '/priority',
+                name: 'priority',
+                component: () => import('/@/views/priority/index.vue'),
+                meta: {
+                    title: 'message.router.priority',
+                    isLink: '',
+                    isHide: false,
+                    isKeepAlive: true,
+                    isAffix: false,
+                    isIframe: false,
+                    roles: ['dayu', 'common'],
+                    icon: 'iconfont icon--chaifenhang',
+                }
+            },
+            {
                 path: '/system',
                 name: 'system',
                 component: () => import('/@/views/system/index.vue'),

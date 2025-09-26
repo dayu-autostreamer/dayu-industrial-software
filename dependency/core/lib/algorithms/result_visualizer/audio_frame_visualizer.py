@@ -3,7 +3,6 @@ import os
 import cv2
 import numpy as np
 import wave
-import matplotlib.pyplot as plt
 
 from core.lib.common import ClassFactory, ClassType, EncodeOps, LOGGER
 from core.lib.content import Task
@@ -20,12 +19,12 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
         self.audio_service = kwargs.get('audio_service', None)
 
         self.sound_categories = [
-            "Other (其他声音)"
-            "Car Horn (喇叭声)",
-            "Drilling (钻孔声)",
-            "Engine Idling (引擎声)",
-            "Jackhammer (重型机械声)",
-            "Siren (警报声)",
+            "其他声音",
+            "喇叭声",
+            "钻孔声",
+            "引擎声",
+            "重型机械声",
+            "警报声",
         ]
 
     def draw_audio_spec(self, data, framerate, nchannels, result):
@@ -35,6 +34,8 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
             return 2 * (nparray - np.min(nparray)) / (np.max(nparray) - np.min(nparray)) - 1
 
         import librosa
+        import matplotlib.pyplot as plt
+        plt.rcParams['font.family'] = 'WenQuanYi Zen Hei'
 
         databuffer = np.frombuffer(data, dtype=np.short)
         if nchannels == 2:

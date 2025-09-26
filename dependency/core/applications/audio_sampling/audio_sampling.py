@@ -3,8 +3,8 @@ import librosa
 
 
 class AudioSampling:
-    def __init__(self):
-        pass
+    def __init__(self, warmup_iters=3, warmup_seconds=4):
+        self.warmup(warmup_iters, warmup_seconds)
 
     def __call__(self, data, metadata):
 
@@ -32,3 +32,16 @@ class AudioSampling:
             return data.astype(np.short).tobytes()
         elif sampwidth == 3:
             pass
+
+    def warmup(self, iters=3, seconds=4):
+        """
+        Preheating consists of two parts:
+
+        1)librosa path: Building buffers such as Mel filters and FFT frameworks
+
+        2)Data conversion and resampling: Let numpy and librosa cache audio data
+        """
+        dummy_pcm = np.zeros(int(16000 * seconds), dtype=np.int16).tobytes()
+        for _ in range(iters):
+            _ = self.resample(dummy_pcm, 16000, 16000)
+            _ = self.remove_noise(dummy_pcm, 16000, 2, 1)

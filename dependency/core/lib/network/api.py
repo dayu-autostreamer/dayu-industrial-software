@@ -18,7 +18,7 @@ class NetworkAPIPath:
     SCHEDULER_SCENARIO = '/scenario'
     SCHEDULER_POST_RESOURCE = '/resource'
     SCHEDULER_GET_RESOURCE = '/resource'
-    SCHEDULER_SELECT_SOURCE_NODE = '/source_node_selection'
+    SCHEDULER_SELECT_SOURCE_NODES = '/source_node_selection'
     SCHEDULER_INITIAL_DEPLOYMENT = '/initial_deployment'
 
     BACKEND_GET_POLICY = '/policy'
@@ -47,6 +47,8 @@ class NetworkAPIPath:
     BACKEND_EDGE_NODE = '/edge_node'
     BACKEND_DATASOURCE_STATE = '/datasource_state'
     BACKEND_RESET_DATASOURCE = '/reset_datasource'
+    BACKEND_PRIORITY_INFO = '/priority_info'
+    BACKEND_PRIORITY_QUEUE = '/priority_queue/{node}'
 
 
 class NetworkAPIMethod:
@@ -69,7 +71,7 @@ class NetworkAPIMethod:
     SCHEDULER_SCENARIO = 'POST'
     SCHEDULER_POST_RESOURCE = 'POST'
     SCHEDULER_GET_RESOURCE = 'GET'
-    SCHEDULER_SELECT_SOURCE_NODE = 'GET'
+    SCHEDULER_SELECT_SOURCE_NODES = 'GET'
     SCHEDULER_INITIAL_DEPLOYMENT = 'GET'
 
     BACKEND_GET_POLICY = 'GET'
@@ -98,5 +100,5 @@ class NetworkAPIMethod:
     BACKEND_EDGE_NODE = 'GET'
     BACKEND_DATASOURCE_STATE = 'GET'
     BACKEND_RESET_DATASOURCE = 'POST'
-
-
+    BACKEND_PRIORITY_INFO = 'GET'
+    BACKEND_PRIORITY_QUEUE = 'GET'

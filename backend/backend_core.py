@@ -1,13 +1,12 @@
 import copy
 import re
-from collections import deque
 from func_timeout import func_set_timeout as timeout
 import func_timeout.exceptions as timeout_exceptions
 
 import os
 import time
 from core.lib.content import Task
-from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant
+from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig, Queue
 from core.lib.network import http_request, NodeInfo, PortInfo, merge_address, NetworkAPIPath, NetworkAPIMethod
 
 from kube_helper import KubeHelper
@@ -45,6 +44,8 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
+        self.task_results_for_priority = Queue()
+        self.priority_task_buffer = []
 
         self.is_get_result = False
 
@@ -68,6 +69,7 @@ class BackendCore:
             self.system_visualization_configs = base_info['system-visualizations']
         except KeyError as e:
             LOGGER.warning(f'Parse base info failed: {str(e)}')
+            LOGGER.exception(e)
 
     def get_log_file_name(self):
         base_info = self.template_helper.load_base_info()
@@ -88,16 +90,19 @@ class BackendCore:
         second_stage_components = ['generator', 'processor']
 
         LOGGER.info(f'[First Deployment Stage] deploy components:{first_stage_components}')
-        first_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy, priority = self.priority,
+        first_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,
+                                                                        priority=self.priority,
                                                                         scopes=first_stage_components)
         try:
             result, msg = self.install_yaml_templates(first_docs_list)
         except timeout_exceptions.FunctionTimedOut as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '第一阶段下装超过预定时间（60秒）'
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '未知系统错误，请查看后端容器日志'
         finally:
@@ -106,16 +111,19 @@ class BackendCore:
             return False, msg
 
         LOGGER.info(f'[Second Deployment Stage] deploy components:{second_stage_components}')
-        second_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,priority = self.priority,
+        second_docs_list = self.template_helper.finetune_yaml_parameters(yaml_dict, source_deploy,
+                                                                         priority=self.priority,
                                                                          scopes=second_stage_components)
         try:
             result, msg = self.install_yaml_templates(second_docs_list)
         except timeout_exceptions.FunctionTimedOut as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '第二阶段下装超过预定时间（60秒）'
         except Exception as e:
             LOGGER.warning(f'Parse and apply templates failed: {str(e)}')
+            LOGGER.exception(e)
             result = False
             msg = '未知系统错误，请查看后端容器日志'
         finally:
@@ -130,9 +138,10 @@ class BackendCore:
         try:
             result, msg = self.uninstall_yaml_templates(docs)
         except timeout_exceptions.FunctionTimedOut as e:
+            LOGGER.warning(f'Uninstall services failed: {str(e)}')
+            LOGGER.exception(e)
             msg = '超出预定时间（120秒）'
             result = False
-            LOGGER.warning(f'Uninstall services failed: {msg}')
         except Exception as e:
             LOGGER.warning(f'Uninstall services failed: {str(e)}')
             LOGGER.exception(e)
@@ -249,6 +258,8 @@ class BackendCore:
 
     @staticmethod
     def bfs_dag(dag_graph, dag_callback):
+        from collections import deque
+
         source_list = dag_graph['_start']
         queue = deque(source_list)
         visited = set(source_list)
@@ -406,6 +417,8 @@ class BackendCore:
                 'task_id': task_id,
                 'data': visualization_data,
             }])
+
+            self.task_results_for_priority.put_all([copy.deepcopy(task)])
 
     def run_get_result(self):
         time_ticket = 0
@@ -579,3 +592,74 @@ class BackendCore:
     def get_system_visualization_config(self):
         self.parse_base_info()
         return [{'id': idx, **vf} for idx, vf in enumerate(self.system_visualization_configs)]
+
+    def get_priority_info(self):
+        """
+        :return:
+        {
+            "nodes": [node1,node2,...],
+            "services": {node1:[service1,...], node2:[service2,...]},
+            "priority_num":10
+        }
+        """
+        self.parse_base_info()
+        node_services = KubeConfig.get_node_services_dict()
+
+        return {
+            'nodes': list(node_services.keys()),
+            'services': node_services,
+            'priority_num': self.priority['priority_levels']
+        }
+
+    def get_priority_queue(self, node):
+        """
+        node: node name
+        :return:
+        {
+            service1:
+            [
+                # priority queue 1
+                [{
+                source_id: 1,
+                task_id: 1,
+                importance: 1
+                urgency: 1
+                },{},{},{}],
+                [],
+                [],
+                [],
+                []
+            ],
+            service2:
+            [
+                [],
+                [],
+                [],
+                [],
+                []
+
+            ]
+        }
+        """
+        show_time = time.time() - 5
+        services = KubeConfig.get_node_services_dict()[node]
+        self.priority_task_buffer.extend(self.task_results_for_priority.get_all())
+        # Filter tasks satisfied time requirements
+        self.priority_task_buffer = [task for task in self.priority_task_buffer if task.get_total_end_time() <= show_time]
+        priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
+
+        for service in services:
+            for task in self.priority_task_buffer:
+                enter_time, quit_time = task.extract_priority_timestamp(service)
+                if task.get(service) and task.get(service).get_execute_device() == node and \
+                        enter_time <= show_time <= quit_time:
+                    priority_queue[service][task.get_service(service).get_priority()].append({
+                        'source_id': task.get_source_id(),
+                        'task_id': task.get_task_id(),
+                        'importance': task.get_source_importance(),
+                        'urgency': task.get_service(service).get_urgency(),
+                        'priority': task.get_service(service).get_priority()
+                    })
+                    break
+
+        return priority_queue
