@@ -14,7 +14,7 @@ class AudioClassifierProcessor(Processor):
     def __init__(self):
         super().__init__()
 
-        self.classifier = Context.get_instance('AudioClassifier')
+        self.classifier = Context.get_instance('Audio_Classifier')
 
     def __call__(self, task: Task):
         data_file_path = task.get_file_path()

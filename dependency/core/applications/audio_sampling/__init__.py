@@ -1,3 +1,3 @@
-from .audio_sampling import AudioSampling as AudioSampler
+from .audio_sampling import AudioSampling as Audio_Sampler
 
-__all__ = ["AudioSampler"]
+__all__ = ["Audio_Sampler"]

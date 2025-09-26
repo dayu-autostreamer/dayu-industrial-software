@@ -1,5 +1,5 @@
 <template>
-  <el-form size="large" class="login-content-form">
+  <el-form size="large" class="login-content-form" label-width="0">
     <el-form-item class="login-animation1">
       <div class="platform-description">
         <h3>欢迎来到大禹系统</h3>
@@ -16,7 +16,7 @@
     </el-form-item>
   </el-form>
 </template>
-∂
+
 <script setup lang="ts" name="loginAccount">
 import {reactive, computed} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
@@ -137,6 +137,7 @@ const signInSuccess = (isNoPower: boolean | undefined) => {
 }
 
 .platform-description {
+  width: 100%;
   text-align: center;
 
   h3 {

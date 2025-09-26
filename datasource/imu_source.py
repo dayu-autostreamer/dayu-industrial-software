@@ -11,6 +11,7 @@ import threading
 import time
 import asyncio
 from pydantic import BaseModel
+from scipy.signal import find_peaks
 
 from fastapi import FastAPI
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -52,8 +53,6 @@ class IMUSource:
         self._segments = []  # [(start_idx, end_idx_inclusive), ...]
         self._segment_idx = 0  # next segment index in current csv
 
-        self._cur_id = 0
-
         self._lock = threading.Lock()
 
     def get_one_imu_file(self):
@@ -77,7 +76,6 @@ class IMUSource:
             assert self._cur_csv_df is not None
             data = self._extract_segment(start_idx, end_idx, self._cur_csv_df)
 
-            self._cur_id += 1
             np.save(self.file_name, data)
 
             self._segment_idx += 1
@@ -89,7 +87,7 @@ class IMUSource:
 
     def _scan_csvs(self) -> List[str]:
         files = sorted(glob.glob(os.path.join(self.data_dir, '*.csv')))
-        LOGGER.info(f"Found {len(files)} csv files in {self.data_dir}")
+        LOGGER.debug(f"Found {len(files)} csv files in {self.data_dir}")
         return files
 
     def _ensure_csv_ready(self) -> bool:
@@ -115,7 +113,7 @@ class IMUSource:
                 try:
                     df = pd.read_csv(self._cur_csv_path)
                     self._cur_csv_df = df
-                    start_ids, end_ids = [0], [len(df) - 1]
+                    start_ids, end_ids = self.end_point_detection(df)
                     # Normalized to int and closed interval
                     self._segments = [(int(s), int(e)) for s, e in zip(start_ids, end_ids)]
                     self._segment_idx = 0
@@ -155,7 +153,7 @@ class IMUSource:
             raise HTTPException(status_code=400, detail=f"Invalid segment range: {s}..{e}")
 
         # Column Range Check (If your CSV column layout is different, please adjust it accordingly)
-        need_max_col = max(21, 8)  # We used column index 21 (starting from 0).
+        need_max_col = 21  # We used column index 21 (starting from 0).
         if df.shape[1] <= need_max_col:
             raise HTTPException(
                 status_code=400,
@@ -178,6 +176,83 @@ class IMUSource:
 
         data = np.column_stack((data_time, data_gyro, data_acc))
         return np.ascontiguousarray(data)
+
+    def end_point_detection(self, csv_data):
+        linear_acceleration = csv_data.iloc[:, 19:22].values
+        angular_velocity = csv_data.iloc[:, 6:9].values
+        timestamp = csv_data.iloc[:, 1:2].values
+        # transform unit
+        # gyro : from deg to rad
+        angular_velocity = angular_velocity / 180 * np.pi
+        # linearacc: from g to m/s/s
+        linear_acceleration = linear_acceleration * 9.81
+        start_id, end_id = self.extractMotionLPMS3(timestamp, angular_velocity, linear_acceleration, 2)
+        return start_id, end_id
+
+    def extractMotionLPMS3(self, lpms_time, lpms_gyro, lpms_linearacc, thre):
+        x1 = np.sqrt(np.sum(lpms_linearacc ** 2, axis=1))
+        x2 = np.sqrt(np.sum(lpms_gyro ** 2, axis=1))
+        x = x1 + 5 * x2
+        wlen = 10
+        inc = 5
+        win = np.hanning(wlen + 2)[1:-1]
+        X = self.enframe(x, win, inc)
+        X = np.transpose(X)
+        fn = X.shape[1]
+        time = lpms_time
+        id = np.arange(wlen / 2, wlen / 2 + (fn - 1) * inc + 1, inc)
+        id = id - 1
+        frametime = time[id.astype(int)]
+        En = np.zeros(fn)
+
+        for i in range(fn):
+            u = X[:, i]
+            u2 = u * u
+            En[i] = np.sum(u2)
+        locs, pks = find_peaks(En, height=max(En) / 20, distance=15)
+        pks = pks['peak_heights']
+        # initialize startend_locs
+        startend_locs = np.zeros((len(locs), 2), dtype=int)
+        for i in range(len(locs)):
+            si = locs[i] - 1
+            while si > 0:
+                if En[si] < thre:
+                    break
+                si -= 1
+
+            ei = locs[i] + 1
+            while ei < len(En):
+                if En[ei] < thre:
+                    break
+                ei += 1
+
+            startend_locs[i, 0] = si
+            startend_locs[i, 1] = ei
+
+        # delete repeat points
+        startend_locs = np.unique(startend_locs, axis=0)
+
+        # get id range
+        start_id = id[startend_locs[:, 0]]
+        end_id = id[startend_locs[:, 1] - 1]
+        return start_id, end_id
+
+    def enframe(self, x, win, inc):
+        nx = len(x)
+        nwin = len(win)
+        if nwin == 1:
+            length = win
+        else:
+            length = nwin
+        nf = int(np.fix((nx - length + inc) / inc))
+        f = np.zeros((nf, length))
+        indf = inc * np.arange(nf).reshape(-1, 1)
+        inds = np.arange(1, length + 1)
+        f[:] = x[indf + inds - 1]  # Frame the data
+        if nwin > 1:
+            w = win.ravel()
+            f = f * w[np.newaxis, :]
+        return f
 
 
 @app.post("/admin/add_source")

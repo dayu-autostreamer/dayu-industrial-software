@@ -12,6 +12,3 @@ pod-template:
 port-open:
   pos: both
   port: 9000
-file-mount:
-  - pos: both
-    path: "processor/imu-trajectory-sensing/"

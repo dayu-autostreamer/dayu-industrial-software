@@ -1,4 +1,4 @@
-source_name: "工厂机器惯性传感器"
+source_name: "工厂惯性传感器"
 source_type: "imu"
 source_mode: "http_imu"
 source_list:

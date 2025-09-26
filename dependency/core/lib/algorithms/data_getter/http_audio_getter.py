@@ -25,7 +25,7 @@ class HttpAudioGetter(BaseDataGetter, abc.ABC):
     def request_source_data(self, system, task_id):
         response = None
         while not response:
-            response = http_request(url=system.audio_data_source, no_decode=True, stream=True)
+            response = http_request(url=system.audio_data_source + '/file', no_decode=True, stream=True)
             if not response:
                 continue
 
@@ -49,8 +49,8 @@ class HttpAudioGetter(BaseDataGetter, abc.ABC):
         data_source = wave.open(self.file_name, 'r')
         nchannels, sampwidth, framerate, nframes = data_source.getparams()[:4]
 
-        metadata = copy.deepcopy(system.meta_data).update({'nchannels': nchannels, 'sampwidth': sampwidth,
-                                                           'framerate': framerate})
+        metadata = copy.deepcopy(system.meta_data)
+        metadata.update({'nchannels': nchannels, 'sampwidth': sampwidth, 'framerate': framerate})
 
         new_task = system.generate_task(new_task_id, system.task_dag, metadata, self.file_name, self.hash_codes)
         system.submit_task_to_controller(new_task)
