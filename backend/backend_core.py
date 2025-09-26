@@ -643,18 +643,23 @@ class BackendCore:
         """
         show_time = time.time() - 2
         services = KubeConfig.get_node_services_dict()[node]
-        self.priority_task_buffer.extend(self.task_results_for_priority.get_all())
+        tasks: list[Task] = self.task_results_for_priority.get_all()
+        total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])
+        show_time = time.time() - total_time_list[len(total_time_list) // 2] if total_time_list else 0
+        self.priority_task_buffer.extend(tasks)
         # Filter tasks satisfied time requirements
-        self.priority_task_buffer = [task for task in self.priority_task_buffer if task.get_total_end_time() >= show_time]
+        self.priority_task_buffer = [task for task in self.priority_task_buffer if
+                                     task.get_total_end_time() >= show_time]
         priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
 
         print('*** show_time: ', show_time)
         for service in services:
             for task in self.priority_task_buffer:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
-                print(f'---task_id: {task.get_task_id()}, service: {service}, enter_time: {enter_time}, quit_time: {quit_time}')
+                print(
+                    f'---task_id: {task.get_task_id()}, service: {service}, enter_time: {enter_time}, quit_time: {quit_time}')
                 if task.get_service(service) and task.get_service(service).get_execute_device() == node and \
-                        quit_time>= show_time:
+                        quit_time >= show_time:
                     priority_queue[service][task.get_service(service).get_priority()].append({
                         'source_id': task.get_source_id(),
                         'task_id': task.get_task_id(),
