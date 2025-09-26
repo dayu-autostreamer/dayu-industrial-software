@@ -2,7 +2,7 @@
   <div class="priority-view">
     <!-- 未选择 node：不显示队列，仅展示提示 -->
     <div v-if="!isNodeSelected" class="empty-wrap">
-      <el-empty description="请选择节点以查看队列" />
+      <el-empty description="请选择节点以查看队列"/>
     </div>
 
     <!-- 已选择 node -->
@@ -10,7 +10,7 @@
       <!-- 顶部说明与图例 -->
       <div class="legend">
         <div class="legend-left">
-          <span class="legend-title">队列视图</span>
+          <span class="legend-title">优先级队列视图</span>
           <span class="hint">（队首 → 队尾；数值越大越优先）</span>
         </div>
         <div class="legend-right">
@@ -21,12 +21,12 @@
       <!-- 服务横向滚动：service 之间横排，屏幕放不下可横向滑动 -->
       <div class="services-strip">
         <div
-          v-for="svc in serviceNames"
-          :key="svc"
-          class="service-card"
+            v-for="svc in serviceNames"
+            :key="svc"
+            class="service-card"
         >
           <!-- service 标题与统计 -->
-          <div class="service-header">
+          <div class="service-header" style="flex-direction: column; align-items: flex-start; gap: 2px;">
             <div class="service-title">
               <span class="dot"></span>
               <span class="name">{{ svc }}</span>
@@ -49,15 +49,15 @@
           <template v-if="queueCount > 0">
             <div class="queues-list">
               <div
-                v-for="idx in queueCount"
-                :key="idx"
-                class="queue-lane"
-                :class="{'is-empty': getQueue(svc, idx-1).length === 0}"
+                  v-for="idx in queueCount"
+                  :key="idx"
+                  class="queue-lane"
+                  :class="{'is-empty': getQueue(svc, idx-1).length === 0}"
               >
                 <div class="lane-header">
                   <span class="lane-title">P{{ idx - 1 }}</span>
                   <span v-if="getQueue(svc, idx-1).length === 0" class="lane-badge">空</span>
-                  <span v-else class="lane-count">{{ getQueue(svc, idx-1).length }} 项</span>
+                  <span v-else class="lane-count">{{ getQueue(svc, idx - 1).length }} 项</span>
                 </div>
 
                 <!-- 单条优先级队列：队首 → 队尾 -->
@@ -66,23 +66,23 @@
 
                   <div class="tasks-scroller">
                     <div
-                      v-for="(task, tIndex) in getQueue(svc, idx-1)"
-                      :key="tIndex"
-                      class="task-chip"
-                      :title="taskTooltip(task)"
+                        v-for="(task, tIndex) in getQueue(svc, idx-1)"
+                        :key="tIndex"
+                        class="task-chip"
+                        :title="taskTooltip(task)"
                     >
                       <div class="chip-top">
                         <span class="chip-id">#{{ safe(task.task_id) }}</span>
                         <div class="chip-badges">
                           <span
-                            class="tag imp"
-                            :style="badgeStyle('imp', task.importance)"
+                              class="tag imp"
+                              :style="badgeStyle('imp', task.importance)"
                           >
                             I: {{ displayLevel(task.importance) }}
                           </span>
                           <span
-                            class="tag urg"
-                            :style="badgeStyle('urg', task.urgency)"
+                              class="tag urg"
+                              :style="badgeStyle('urg', task.urgency)"
                           >
                             U: {{ displayLevel(task.urgency) }}
                           </span>
@@ -108,7 +108,7 @@
           <!-- 未拿到 priority_num 的兜底提示（一般不会发生） -->
           <template v-else>
             <div class="no-priority">
-              <el-empty description="未获取到队列级别（priority_num）" />
+              <el-empty description="未获取到队列级别（priority_num）"/>
             </div>
           </template>
         </div>
@@ -202,7 +202,7 @@ export default {
     // 汇总统计
     summary(svc) {
       if (!this.hasDataFor(svc)) {
-        return { total: 0, nonEmpty: 0 };
+        return {total: 0, nonEmpty: 0};
       }
       const lanes = this.queue_result[svc] || [];
       let total = 0;
@@ -212,7 +212,7 @@ export default {
         total += len;
         if (len > 0) nonEmpty += 1;
       });
-      return { total, nonEmpty };
+      return {total, nonEmpty};
     },
     // 安全显示（允许 0）
     safe(v) {
@@ -248,11 +248,11 @@ export default {
     badgeStyle(kind, level) {
       const t = this.to01(level);
       if (t === null) {
-        return { background: '#dcdfe6', color: '#606266' };
+        return {background: '#dcdfe6', color: '#606266'};
       }
       const h = kind === 'imp' ? 0 : 210;
       const s = kind === 'imp' ? 78 : 72;
-      return { background: this.hslColor(h, s, t), color: '#fff' };
+      return {background: this.hslColor(h, s, t), color: '#fff'};
     }
   }
 };
@@ -281,28 +281,37 @@ export default {
   border-radius: 10px;
   padding: 10px 14px;
   box-shadow: 0 2px 10px var(--next-color-dark-hover);
+  padding-bottom: 18px;
 
   .legend-left {
     display: flex;
     align-items: baseline;
     gap: 8px;
+
     .legend-title {
       font-weight: 700;
       font-size: 16px;
       color: var(--el-text-color-primary);
     }
+
     .hint {
       font-size: 12px;
       color: var(--el-text-color-secondary);
     }
   }
+
   .legend-right {
     display: flex;
     align-items: center;
     gap: 10px;
+
     .range {
-      font-size: 12px; color: var(--el-text-color-regular);
-      background: #f5f7fa; border: 1px dashed #e4e7ed; padding: 2px 8px; border-radius: 999px;
+      font-size: 12px;
+      color: var(--el-text-color-regular);
+      background: #f5f7fa;
+      border: 1px dashed #e4e7ed;
+      padding: 2px 8px;
+      border-radius: 999px;
     }
   }
 }
@@ -332,7 +341,9 @@ export default {
   display: flex;
   flex-direction: column;
   max-height: 78vh; /* 控制卡片高度，内部纵向滚动 */
-  &:hover { box-shadow: 0 4px 16px var(--next-color-dark-hover); }
+  &:hover {
+    box-shadow: 0 4px 16px var(--next-color-dark-hover);
+  }
 }
 
 .service-header {
@@ -342,21 +353,42 @@ export default {
   margin-bottom: 10px;
 
   .service-title {
-    display: inline-flex; align-items: center; gap: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
     .dot {
-      width: 10px; height: 10px; border-radius: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
       background: linear-gradient(135deg, #409eff, #53d1ff);
-      box-shadow: 0 0 6px rgba(83,209,255,.6);
+      box-shadow: 0 0 6px rgba(83, 209, 255, .6);
     }
+
     .name {
-      font-weight: 700; font-size: 16px; color: var(--el-text-color-primary);
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--el-text-color-primary);
     }
   }
+
   .service-stats {
-    display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
-    .stat { color: var(--el-text-color-regular); }
-    .muted { color: var(--el-text-color-secondary); }
-    .divider { color: var(--el-text-color-disabled); }
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+
+    .stat {
+      color: var(--el-text-color-regular);
+    }
+
+    .muted {
+      color: var(--el-text-color-secondary);
+    }
+
+    .divider {
+      color: var(--el-text-color-disabled);
+    }
   }
 }
 
@@ -380,25 +412,38 @@ export default {
 
   &.is-empty {
     border-style: dashed;
-    .lane-track { background-image: repeating-linear-gradient(45deg, transparent 0 10px, rgba(0,0,0,0.03) 10px 20px); }
+
+    .lane-track {
+      background-image: repeating-linear-gradient(45deg, transparent 0 10px, rgba(0, 0, 0, 0.03) 10px 20px);
+    }
   }
 }
 
 .lane-header {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 10px;
-  background: rgba(64,158,255,.08);
+  background: rgba(64, 158, 255, .08);
   border-bottom: 1px solid var(--next-border-color-light);
 
   .lane-title {
-    font-weight: 700; color: var(--el-text-color-primary);
+    font-weight: 700;
+    color: var(--el-text-color-primary);
   }
+
   .lane-count {
-    font-size: 12px; color: var(--el-text-color-secondary);
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
   }
+
   .lane-badge {
-    font-size: 12px; color: #909399; background: #f2f6fc;
-    padding: 2px 8px; border-radius: 999px; border: 1px dashed #dcdfe6;
+    font-size: 12px;
+    color: #909399;
+    background: #f2f6fc;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px dashed #dcdfe6;
   }
 }
 
@@ -411,8 +456,11 @@ export default {
   padding: 10px;
 
   .arrow-head, .arrow-tail {
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; color: var(--el-text-color-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
     min-width: 36px;
   }
 }
@@ -449,26 +497,50 @@ export default {
   background: #fff;
   border-radius: 10px;
   padding: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
   transition: transform .15s ease, box-shadow .15s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0,0,0,.08);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
   }
 
   .chip-top {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
-    .chip-id { font-weight: 700; color: var(--el-text-color-primary); }
-    .chip-badges { display: inline-flex; gap: 6px; }
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+
+    .chip-id {
+      font-weight: 700;
+      color: var(--el-text-color-primary);
+    }
+
+    .chip-badges {
+      display: inline-flex;
+      gap: 6px;
+    }
   }
+
   .chip-bottom {
-    display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--el-text-color-secondary);
-    .meta { white-space: nowrap; }
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+
+    .meta {
+      white-space: nowrap;
+    }
   }
 
   .tag {
-    font-size: 11px; line-height: 1; padding: 4px 6px; border-radius: 999px; color: #fff; font-weight: 600;
+    font-size: 11px;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 999px;
+    color: #fff;
+    font-weight: 600;
   }
 }
 
@@ -476,7 +548,9 @@ export default {
 .empty-placeholder {
   flex: 1 0 auto;
   min-width: 140px;
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 12px 8px;
   color: var(--el-text-color-disabled);
   font-size: 12px;
