@@ -112,7 +112,7 @@ class Service:
         service.set_real_execute_time(dag_dict['execute_data']['real_execute_time']) \
             if 'execute_data' in dag_dict and 'real_execute_time' in dag_dict['execute_data'] else None
         service.set_content_data(dag_dict['content']) if 'content' in dag_dict else None
-        service.set_tmp_data(dag_dict['tmp_data'])
+        service.set_tmp_data(dag_dict['tmp_data']) if 'tmp_data' in dag_dict else None
         return service
 
     def serialize(self):
