@@ -25,6 +25,7 @@ class BackendCore:
         self.priority = None
         self.result_visualization_configs = None
         self.system_visualization_configs = None
+        self.event_trigger_config = None
         self.customized_source_result_visualization_configs = {}
 
         self.source_configs = []
@@ -44,6 +45,7 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
+        self.event_results = {}
         self.task_results_for_priority = Queue()
         self.priority_task_buffer = []
 
@@ -67,6 +69,8 @@ class BackendCore:
             self.priority = base_info['priority']
             self.result_visualization_configs = base_info['result-visualizations']
             self.system_visualization_configs = base_info['system-visualizations']
+            self.event_trigger_config = base_info['event-trigger']
+            # LOGGER.info(self.event_trigger_config)
         except KeyError as e:
             LOGGER.warning(f'Parse base info failed: {str(e)}')
             LOGGER.exception(e)
@@ -389,6 +393,7 @@ class BackendCore:
         return visualization_data
 
     def parse_task_result(self, results):
+        LOGGER.info('!!!')
         for result in results:
             if result is None or result == '':
                 continue
@@ -398,7 +403,7 @@ class BackendCore:
             source_id = task.get_source_id()
             task_id = task.get_task_id()
             file_path = self.get_file_result(task.get_file_path())
-            LOGGER.debug(task.get_delay_info())
+            # LOGGER.debug(task.get_delay_info())
 
             try:
                 visualization_data = self.prepare_result_visualization_data(task)
@@ -420,6 +425,45 @@ class BackendCore:
 
             self.task_results_for_priority.put_all([copy.deepcopy(task)])
 
+    def parse_event_result(self, results):
+        # 每次只处理一批新的数据.
+        maxid,minid = 0,10000
+        for result in results:
+            if result is None or result == '':
+                continue
+
+            task = Task.deserialize(result)
+            source_id = task.get_source_id()
+            task_id = task.get_task_id()
+
+            # DEBUG
+            maxid = max(maxid,task_id)
+            minid = min(minid,task_id)
+            # 如何找到回调函数
+
+            cfg = self.event_trigger_config[task.get_source_type()] if (self.event_trigger_config['allow-flexible-switch'] and task.get_source_type() in self.event_trigger_config) else self.event_trigger_config['base']
+            for idx, vf in enumerate(cfg):
+                try:
+                    if 'warning_interval' in vf and idx in self.event_results: # check一下最晚告警距离现在是否太近,如果是则不告警(注意过滤相同数据源的)
+                        if task_id-max([res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]) < vf['warning_interval']:
+                            continue
+                    al_name = vf['hook_name']
+                    al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
+                    vf_func = Context.get_algorithm('EVENT_TRIGGER', al_name=al_name, **al_params)
+                    LOGGER.info(vf_func)
+                    is_warn = vf_func(task)
+                    if is_warn:
+                        self.event_results.setdefault(idx,[]).append({
+                            'task_id': task_id,
+                            "source_id": source_id,
+                            'message': vf['warning'],
+                            'is_read':False
+                        })
+                        LOGGER.info(self.event_results[idx][-1])
+                except Exception as e:
+                    LOGGER.warning(f'Failed to load event data: {e}')
+                    LOGGER.exception(e)
+        LOGGER.info(f'处理了{minid}-{maxid}')
     def run_get_result(self):
         time_ticket = 0
         while self.is_get_result:
@@ -443,6 +487,7 @@ class BackendCore:
                 LOGGER.debug(f'time ticket: {time_ticket}')
                 results = response['result']
                 self.parse_task_result(results)
+                self.parse_event_result(results)
 
             except Exception as e:
                 LOGGER.warning(f'Error occurred in getting task result: {str(e)}')

@@ -30,5 +30,7 @@ result-visualizations:
   !include result-visualizations.yaml
 system-visualizations:
   !include system-visualizations.yaml
+event-trigger:
+  !include event-trigger.yaml
 
 

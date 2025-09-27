@@ -163,7 +163,7 @@ spec:
           - env:
             - name: GUNICORN_PORT
               value: "8000"
-            image: $REGISTRY/$REPOSITORY/backend:$TAG
+            image: $REGISTRY/$REPOSITORY/backend:is-hgz-v1.1
             imagePullPolicy: Always
             name: backend
             ports:

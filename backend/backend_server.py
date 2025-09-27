@@ -112,6 +112,11 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_TASK_RESULT]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_EVENT_RESULT,
+                     self.get_event_result,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_EVENT_RESULT]
+                     ),
             APIRoute(NetworkAPIPath.BACKEND_SYSTEM_PARAMETERS,
                      self.get_system_parameters,
                      response_class=JSONResponse,
@@ -648,7 +653,36 @@ class BackendServer:
             ans[source_id] = self.server.task_results[source_id].get_all()
 
         return ans
+    async def get_event_result(self):
+        # 查询告警接口...
+        '''
+        {
+        'datasource1': [
+            'task_id':
+            'massage':
+        ]
+        'datasource2':[
+        ]
+        }
+        :return:
+        '''
+        LOGGER.debug('hello!!!')
+        LOGGER.debug(self.server.event_results)
+        if not self.server.source_open:
+            return {}
+        ans = {}
+        # 读取未读信息并进行整合.
+        for idx,event_res in self.server.event_results:
+            for info in event_res:
+                if info['is_read']:
+                    continue
+                info['is_read'] = True
 
+                ans.setdefault(info['source_id'],[]).append({
+                    'task_id': info['task_id'],
+                    'message': info['message']
+                })
+        return ans
     async def get_system_parameters(self):
         return self.server.get_system_parameters()
 

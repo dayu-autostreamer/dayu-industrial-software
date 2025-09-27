@@ -100,17 +100,11 @@ imu:
     hook_name: dag_offloading
     size: 2
 mmw:
-#  - name: 毫米波波形图
-#    type: image
-#    x_axis: 任务序号
-#    y_axis: 相对相位
-#    variables: [ "相对相位" ]
-#    hook_name: mmw_detection
-#  - name: 任务端到端时延曲线
-#    type: cdf
-#    x_axis: 时延
-#    y_axis: CDF
-#    variables: [ "端到端时延" ]
-#    hook_name: e2e_delay
-#    size: 1
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 1
 

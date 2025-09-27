@@ -39,6 +39,7 @@ class ClassType:
 
     RESULT_VISUALIZER = 'result_visualizer'
     SYSTEM_VISUALIZER = 'system_visualizer'
+    EVENT_TRIGGER = 'event_trigger'
 
 
 class ClassFactory(object):
