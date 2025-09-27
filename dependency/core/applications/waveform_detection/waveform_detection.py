@@ -1,6 +1,8 @@
 from typing import List
 
 import numpy as np
+import cv2
+import os
 from core.lib.common import LOGGER
 
 DEBUG_PRINT = False
@@ -10,7 +12,7 @@ class WaveformDetection:
     def __init__(self):
         pass
 
-    def is_multi_row_straight_line(self,defect_rows, pixel_threshold=8, low_pixel_ratio_threshold=0.5):
+    def is_multi_row_straight_line(self, defect_rows, pixel_threshold=8, low_pixel_ratio_threshold=0.5):
         """
         检测多行缺陷是否形成斜线（基于像素数量阈值）
         
@@ -99,99 +101,78 @@ class WaveformDetection:
 
     def analyze_defect_pattern_by_rows(self, image, red_lines_by_region, duration=4):
         """
-        通过逐行扫描分析缺陷模式
-        
-        参数:
-        - image: 原始图像
-        - red_lines_by_region: 按区域分组的红色线条
-        - duration: 最小持续行数
+        使用向量化逐行扫描分析缺陷模式（加速版）
         """
         height, width = image.shape[:2]
         lower_half = image[height//2:, :]
         lower_height = height // 2
-        
+
         if DEBUG_PRINT:
-            print(f"\n=== 逐行缺陷分析日志 ===")
+            print(f"\n=== 逐行缺陷分析日志（向量化） ===")
             print(f"下半部分尺寸: {width}x{lower_height}")
             print(f"最小持续行数: {duration}")
-        
+
         total_defect_segments = []
-        
+
         for region_idx in range(4):
             if DEBUG_PRINT:
                 print(f"\n--- 区域 {region_idx} 逐行分析 ---")
-            
-            # 获取该区域的红色线条坐标
-            red_lines = red_lines_by_region[region_idx]
-            red_left = red_lines[0]
-            red_right = red_lines[1]
-        
-            if DEBUG_PRINT:
-                print(f"  红色线条范围: {red_left:.1f} - {red_right:.1f}")
-            
-            # 计算区域边界（取中心60%）
+
+            # 红色线条
+            red_left, red_right = red_lines_by_region[region_idx]
+
+            # 区域边界
             region_width = width // 4
             region_start_x = region_idx * region_width
             region_end_x = (region_idx + 1) * region_width
-            
-            # 取中心60%作为有效区域
             effective_width = region_width * 0.6
-            effective_start_x = region_start_x + (region_width - effective_width) // 2
-            effective_end_x = effective_start_x + effective_width
-            
-            if DEBUG_PRINT:
-                print(f"  区域边界: {region_start_x} - {region_end_x}")
-                print(f"  有效区域: {effective_start_x:.1f} - {effective_end_x:.1f} (宽度: {effective_width:.1f})")
-            
-            # 计算纵向有效区域（取中心60%）
-            effective_height = lower_height * 0.6
+            effective_start_x = int(region_start_x + (region_width - effective_width) // 2)
+            effective_end_x = int(effective_start_x + effective_width)
+
+            # 纵向有效区域
+            effective_height = int(lower_height * 0.6)
             effective_start_row = int((lower_height - effective_height) // 2)
-            effective_end_row = effective_start_row + int(effective_height)
-            
-            if DEBUG_PRINT:
-                print(f"  纵向有效区域: y={effective_start_row + height//2}-{effective_end_row + height//2} (高度: {effective_height:.1f})")
-            
-            # 逐行扫描（只在有效区域内）
+            effective_end_row = effective_start_row + effective_height
+
+            # 提取有效区域
+            region_area = lower_half[effective_start_row:effective_end_row, effective_start_x:effective_end_x]
+
+            # 向量化黑色像素检测
+            black_mask = np.all(region_area < 50, axis=2)  # True表示黑色像素
+
+            # 列索引向量化
+            col_indices = np.arange(effective_start_x, effective_end_x)
+            # 构建列越界掩码
+            left_mask = col_indices < red_left
+            right_mask = col_indices > red_right
+            col_out_of_red_mask = left_mask | right_mask  # 超出红线范围的列
+            col_out_of_red_mask = np.tile(col_out_of_red_mask, (effective_height, 1))  # 扩展到行
+
+            # 最终缺陷掩码
+            defect_mask = black_mask & col_out_of_red_mask
+
+            # 每行缺陷像素位置
             defect_rows = []
             current_defect_start = None
             current_defect_end = None
-            
-            # 存储所有缺陷行的信息，用于后续的斜线检测
             all_defect_rows = []
-            
-            for row in range(effective_start_row, effective_end_row):
-                # 检查当前行是否有超出红色线条的像素
-                row_has_defect = False
-                defect_pixels = []  # 记录超出红线的像素位置
-                
-                # 扫描有效区域内的每一列
-                for col in range(int(effective_start_x), int(effective_end_x)):
-                    # 检查像素是否为黑色（波形）
-                    pixel = lower_half[row, col]
-                    # 检查是否为黑色像素（BGR格式）
-                    if pixel[0] < 50 and pixel[1] < 50 and pixel[2] < 50:
-                        # 检查是否超出红色线条
-                        if col < red_left or col > red_right:
-                            row_has_defect = True
-                            defect_pixels.append(col)
-                
-                if row_has_defect:
+
+            for row_idx, row_defects in enumerate(defect_mask):
+                defect_pixels = np.where(row_defects)[0] + effective_start_x  # 列位置映射回原图
+                if defect_pixels.size > 0:
                     all_defect_rows.append({
-                        'row': row,
-                        'defect_pixels': defect_pixels,
-                        'min_col': min(defect_pixels) if defect_pixels else 0,
-                        'max_col': max(defect_pixels) if defect_pixels else 0
+                        'row': row_idx,
+                        'defect_pixels': defect_pixels.tolist(),
+                        'min_col': defect_pixels.min(),
+                        'max_col': defect_pixels.max()
                     })
-                    
                     if current_defect_start is None:
-                        current_defect_start = row
-                    current_defect_end = row
+                        current_defect_start = row_idx
+                    current_defect_end = row_idx
                 else:
-                    # 当前行没有缺陷，结束当前连续段
                     if current_defect_start is not None:
                         defect_duration = current_defect_end - current_defect_start + 1
                         if defect_duration > duration:
-                            # 检查这个连续段是否形成斜线
                             segment_defect_rows = [d for d in all_defect_rows if current_defect_start <= d['row'] <= current_defect_end]
                             if not self.is_multi_row_straight_line(segment_defect_rows):
                                 defect_rows.append({
@@ -200,63 +181,19 @@ class WaveformDetection:
                                     'duration': defect_duration,
                                     'region_idx': region_idx
                                 })
-                                if DEBUG_PRINT:
-                                    print(f"    检测到缺陷行段: y={current_defect_start + height//2}-{current_defect_end + height//2}, 持续{defect_duration}行")
-                            else:
-                                if DEBUG_PRINT:
-                                    print(f"    排除斜线: y={current_defect_start + height//2}-{current_defect_end + height//2}, 持续{defect_duration}行")
-                        else:
-                            pass
-                            # print(f"    持续时间不足: y={current_defect_start + height//2}-{current_defect_end + height//2}, 持续{defect_duration}行 < {duration}")
                         current_defect_start = None
                         current_defect_end = None
-            
-            # 检查最后一个连续段
-            # if current_defect_start is not None:
-            #     defect_duration = current_defect_end - current_defect_start + 1
-            #     if defect_duration > duration:
-            #         # 检查这个连续段是否形成斜线
-            #         segment_defect_rows = [d for d in all_defect_rows if current_defect_start <= d['row'] <= current_defect_end]
-            #         if not is_multi_row_straight_line(segment_defect_rows):
-            #             defect_rows.append({
-            #                 'start_row': current_defect_start,
-            #                 'end_row': current_defect_end,
-            #                 'duration': defect_duration,
-            #                 'region_idx': region_idx
-            #             })
-            #             print(f"    检测到缺陷行段: y={current_defect_start + height//2}-{current_defect_end + height//2}, 持续{defect_duration}行")
-            #         else:
-            #             print(f"    排除斜线: y={current_defect_start + height//2}-{current_defect_end + height//2}, 持续{defect_duration}行")
-            #     else:
-            #         print(f"    持续时间不足: y={current_defect_start + height//2}-{current_defect_end + height//2}, 持续{defect_duration}行 < {duration}")
-            
-            if DEBUG_PRINT:
-                print(f"  区域{region_idx}缺陷行段数: {len(defect_rows)}")
+
             total_defect_segments.extend(defect_rows)
-        
-        if DEBUG_PRINT:
-            print(f"\n=== 逐行缺陷分析完成 ===")
-            print(f"总缺陷行段数: {len(total_defect_segments)}")
-        
-        # 判断是否存在缺陷
+
         if total_defect_segments:
             return True, f"检测到{len(total_defect_segments)}个缺陷行段", total_defect_segments
         else:
             return False, "未检测到缺陷", []
-
+        
+        
     def get_defect_detections(self, image, defect_segments):
-        """
-        根据缺陷行段生成检测框信息（仿 YOLO 格式）
-        
-        参数:
-        - image: 原始图像
-        - defect_segments: 缺陷行段列表，每个元素包含 region_idx, start_row, end_row
-        
-        返回:
-        - result_boxes: list of [x1, y1, x2, y2]
-        - result_scores: list of float，全部设为1.0（可根据需求调整）
-        - result_class_id: list of str，全部设为 'defect'
-        """
+        """生成缺陷检测框信息（仿YOLO格式）"""
         height, width = image.shape[:2]
         lower_half_start = height // 2
 
@@ -274,40 +211,42 @@ class WaveformDetection:
             region_start_x = region_idx * region_width
             region_end_x = (region_idx + 1) * region_width
 
-            # 取中心60%作为有效区域
+            # 有效区域计算
             effective_width = region_width * 0.6
-            effective_start_x = region_start_x + (region_width - effective_width) // 2
-            effective_end_x = effective_start_x + effective_width
+            effective_start_x = int(region_start_x + (region_width - effective_width) // 2)
+            effective_end_x = int(effective_start_x + effective_width)
 
-            # 纵向坐标
-            start_y = lower_half_start + start_row
-            end_y = lower_half_start + end_row
+            # 纵向有效区域偏移
+            effective_height = int((height // 2) * 0.6)
+            effective_start_row = int(((height // 2) - effective_height) // 2)
 
-            # 添加到结果列表
-            result_boxes.append([int(effective_start_x), int(start_y), int(effective_end_x), int(end_y)])
-            result_scores.append(1.0)  # 缺陷置信度可以固定为1
-            result_class_id.append(0)  # id可以固定为0
+            # 修正Y坐标（加上下半部分和纵向有效区域偏移）
+            start_y = lower_half_start + effective_start_row + start_row
+            end_y = lower_half_start + effective_start_row + end_row
+
+            # 添加检测结果
+            result_boxes.append([effective_start_x, start_y, effective_end_x, end_y])
+            result_scores.append(1.0)
+            result_class_id.append(0)
 
         return result_boxes, result_scores, result_class_id
 
 
     def infer(self, image):
+        """单图推理接口"""
         duration = 4
-        
         red_lines_by_region = self.detect_red_lines(image)
+        has_defect, message, defect_segments = self.analyze_defect_pattern_by_rows(
+            image, red_lines_by_region, duration
+        )
         
-        has_defect, message, defect_segments = self.analyze_defect_pattern_by_rows(image, red_lines_by_region, duration)
-        
-        result_boxes, result_scores, result_class_id = self.get_defect_detections(image, defect_segments)
+        # 生成检测框
+        result_boxes, result_scores, result_class_id = self.get_defect_detections(
+            image, defect_segments
+        )
         
         return result_boxes, result_scores, result_class_id
-        
 
     def __call__(self, images: List[np.ndarray]):
-        output = []
-
-        for image in images:
-            output.append(self.infer(image))
-
-        return output
-    
+        """批量推理接口"""
+        return [self.infer(image) for image in images]
