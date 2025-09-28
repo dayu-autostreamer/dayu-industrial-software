@@ -407,6 +407,8 @@ class BackendCore:
         assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
         tasks = self.task_results[source_id].get_all()[-max_size:]
         vis_results = []
+        _start = time.time()
+
         for task in tasks:
             file_path = self.get_file_result(task.get_file_path())
 
@@ -424,7 +426,10 @@ class BackendCore:
                 'task_id': task.get_task_id(),
                 'data': visualization_data,
             })
-
+        _end = time.time()
+        print('-----visualization data time: ', _end - _start)
+        print('-----visualization data size: ', len(vis_results))
+        return vis_results
         return vis_results
 
     def run_get_result(self):
