@@ -53,6 +53,7 @@ export default {
     const container = ref(null)
     const resizeObserver = ref(null)
     const isMounted = ref(true)
+    const forceUpdate = ref(0)
 
     const cleanChart = () => {
       if (chart.value) {
@@ -98,7 +99,8 @@ export default {
 
     const showEmptyState = computed(() => {
       const hasData = Object.values(safeData.value).some(arr => arr?.length > 0)
-      return !(hasData && activeVariables.value.length > 0)
+      const hasValidData = hasData && activeVariables
+      return !hasValidData
     })
 
     const emptyMessage = computed(() => {
@@ -140,7 +142,6 @@ export default {
           renderer: 'canvas',
           useDirtyRect: true
         })
-        chart.value.resize()
         container.value.dataset.chartReady = 'true'
         return true
       } catch (e) {
@@ -155,30 +156,23 @@ export default {
           const success = await initChart()
           if (!success) return
         }
-        const option = getChartOption()
-        chart.value.setOption(option, true)
-        chart.value.resize()
-        const hasSeries = Array.isArray(option.series) && option.series.length > 0
-        if (hasSeries) {
-          chart.value.dispatchAction({type: 'downplay', seriesIndex: 'all'})
-          chart.value.dispatchAction({type: 'highlight', seriesIndex: 0})
-        }
+        chart.value.setOption(getChartOption())
+        chart.value.dispatchAction({
+          type: 'downplay',
+          seriesIndex: 'all'
+        })
+        chart.value.dispatchAction({
+          type: 'highlight',
+          seriesIndex: 0
+        })
       } catch (e) {
         console.error('Render failed:', e)
       }
     }
 
-    // Listen for container size changes
-    const setupResizeObserver = () => {
-      if (!window.ResizeObserver) return
-      if (resizeObserver.value) resizeObserver.value.disconnect()
-      resizeObserver.value = new ResizeObserver(() => {
-        if (chart.value) {
-          chart.value.resize()
-        }
-      })
-      if (container.value) resizeObserver.value.observe(container.value)
-    }
+    const observer = new MutationObserver(() => {
+      forceUpdate.value++
+    })
 
     const getChartOption = () => {
       const hasData = Object.values(safeData.value).some(arr => arr?.length > 0)
@@ -196,7 +190,6 @@ export default {
         })
       })
       return {
-        grid: {left: 50, right: 20, top: 30, bottom: 45},
         tooltip: {
           trigger: 'item',
           formatter: params => {
@@ -227,9 +220,14 @@ export default {
 
     // Lifecycle Hooks
     onMounted(() => {
-      setupResizeObserver()
       if (!showEmptyState.value) {
         renderChart()
+      }
+      if (container.value) {
+        observer.observe(container.value, {
+          attributes: true,
+          attributeFilter: ['style', 'class']
+        })
       }
       setTimeout(renderChart, 300)
     })
@@ -260,13 +258,11 @@ export default {
       }
     }, {deep: true, flush: 'post'})
 
-    watch(() => props.variableStates, () => {
-      if (isMounted.value && !showEmptyState.value) {
-        renderChart()
-      }
-    }, {deep: true})
-
-    return {container, showEmptyState, emptyMessage}
+    return {
+      container,
+      showEmptyState,
+      emptyMessage
+    }
   }
 }
 </script>
@@ -291,7 +287,7 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: #909399; /* fallback of var(--el-text-color-secondary) */
+  color: var(--el-text-color-secondary);
   z-index: 10;
 }
 
