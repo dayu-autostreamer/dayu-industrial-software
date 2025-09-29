@@ -18,17 +18,17 @@ class Queue:
             pass
 
     def get(self) -> object:
-        return self.__queue.get()
+        return self.__queue.get_nowait()
 
     def put_all(self, items: List[object]) -> None:
         for item in items:
-            self.__queue.put(item)
+            self.put(item)
 
     def get_all(self) -> List[object]:
         out_items = []
         while True:
             try:
-                out_items.append(self.__queue.get_nowait())
+                out_items.append(self.get())
             except queue.Empty:
                 break
         return out_items

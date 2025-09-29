@@ -414,9 +414,9 @@ class BackendCore:
             if not self.source_open:
                 break
 
-            self.task_results[source_id].put_all([copy.deepcopy(task)])
+            self.task_results[source_id].put(copy.deepcopy(task))
             LOGGER.debug(f'[GET RESULT] Put task result in result queue done.')
-            self.task_results_for_priority.put_all([copy.deepcopy(task)])
+            self.task_results_for_priority.put(copy.deepcopy(task))
             LOGGER.debug(f'[GET RESULT] Put task result in priority queue done.')
 
         __end = time.time()
