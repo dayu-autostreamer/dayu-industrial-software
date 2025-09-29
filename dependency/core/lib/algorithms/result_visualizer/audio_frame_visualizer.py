@@ -42,7 +42,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
 
         # Persistent Matplotlib objects
         self._plt = plt
-        self.fig = plt.figure(figsize=(4,2),dpi=200)
+        self.fig = plt.figure(figsize=(4,4),dpi=200)
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
 
@@ -56,8 +56,6 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Frequency (Hz)")
         self.ax.set_title("")  # will set per-call
-        self.fig.tight_layout(pad=1.0)
-        self.fig.subplots_adjust(top=1.0)
         self.ax.set_xticks([])
         self.ax.set_yticks([])
 
