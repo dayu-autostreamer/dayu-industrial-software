@@ -47,8 +47,8 @@ class HttpAudioGetter(BaseDataGetter, abc.ABC):
         LOGGER.info(f'[Audio Simulation] source {system.source_id}: sleep {sleep_time}s')
         time.sleep(sleep_time)
 
-        data_source = wave.open(self.file_name, 'r')
-        nchannels, sampwidth, framerate, nframes = data_source.getparams()[:4]
+        with wave.open(self.file_name, 'r') as data_source:
+            nchannels, sampwidth, framerate, nframes = data_source.getparams()[:4]
 
         metadata = copy.deepcopy(system.meta_data)
         metadata.update({'nchannels': nchannels, 'sampwidth': sampwidth, 'framerate': framerate})

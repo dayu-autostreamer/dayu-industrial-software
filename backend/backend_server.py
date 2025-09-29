@@ -573,7 +573,7 @@ class BackendServer:
         self.server.source_label = source_label
         source_ids = self.server.get_source_ids()
         for source_id in source_ids:
-            self.server.task_results[source_id] = Queue(20)
+            self.server.task_results[source_id] = Queue(self.server.buffered_result_size)
 
         time.sleep((len(source_ids) - 1) * 4)
 
@@ -655,7 +655,7 @@ class BackendServer:
         source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
         for source in source_config['source_list']:
             source_id = source['id']
-            ans[source_id] = self.server.fetch_visualization_data(source_id, max_size=20)
+            ans[source_id] = self.server.fetch_visualization_data(source_id)
 
         return ans
     async def get_event_result(self):

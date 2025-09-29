@@ -68,8 +68,8 @@ export default {
         return
       }
 
-      // 取最新数据项
-      const latestItem = validItems[validItems.length - 1]
+      // Fetch the latest no-empty data item
+      const latestItem = validItems.slice().reverse().find(item => item.image)
 
       try {
         isLoading.value = true
