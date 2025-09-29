@@ -57,26 +57,27 @@ export default {
       return `data:image/png;base64,${input}`
     }
 
-    // Retrieve the first non-empty (non-null/non-empty string) value of the object
-    const getFirstNonEmptyValue = (obj) => {
-      console.log('Checking obj:', obj)
-      if (!obj || typeof obj !== 'object') return null
-      console.log('Checking obj 2:', obj)
-      for (const key of Object.keys(obj)) {
+    // Retrieve the first non-null (non-null/non-null string) value of the object
+    // based on the list of variable names
+    const getFirstNonEmptyValue = (obj, variables) => {
+      if (!obj || typeof obj !== 'object' || !Array.isArray(variables)) return null
+      for (const key of variables) {
         const val = obj[key]
-        console.log('Checking obj[key]:', obj[key])
         if (val !== null && val !== undefined && val !== '') {
-          console.log('Return val:', val)
           return val
         }
       }
       return null
     }
 
-    watch(() => props.data, (newData) => {
+    watch(() => [props.data, props.config && props.config.variables], ([newData, variables]) => {
       loadError.value = false
+      if (!Array.isArray(variables)) {
+        currentImage.value = null
+        return
+      }
       const validItems = (newData || []).filter(item =>
-          getFirstNonEmptyValue(item) !== null
+          getFirstNonEmptyValue(item, variables) !== null
       )
 
       if (validItems.length === 0) {
@@ -85,11 +86,11 @@ export default {
       }
 
       // Fetch the latest no-empty data item
-      const latestItem = validItems.slice().reverse().find(item => getFirstNonEmptyValue(item) !== null)
+      const latestItem = validItems.slice().reverse().find(item => getFirstNonEmptyValue(item, variables) !== null)
 
       try {
         isLoading.value = true
-        currentImage.value = processBase64(getFirstNonEmptyValue(latestItem))
+        currentImage.value = processBase64(getFirstNonEmptyValue(latestItem, variables))
       } catch (e) {
         console.error('Image process error:', e)
         loadError.value = true
