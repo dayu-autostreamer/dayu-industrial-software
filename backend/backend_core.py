@@ -399,6 +399,7 @@ class BackendCore:
         return visualization_data
 
     def parse_task_result(self, results):
+        __start = time.time()
         for result in results:
             if result is None or result == '':
                 continue
@@ -415,6 +416,9 @@ class BackendCore:
 
             self.task_results[source_id].put_all([copy.deepcopy(task)])
             self.task_results_for_priority.put_all([copy.deepcopy(task)])
+
+        __end = time.time()
+        LOGGER.debug(f'Parse {len(results)} task for {__end-__start} s')
 
     def fetch_visualization_data(self, source_id, max_size):
         assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
@@ -453,9 +457,12 @@ class BackendCore:
                 if not self.result_url:
                     LOGGER.debug('[NO RESULT] Fetch result url failed.')
                     continue
+                _start = time.time()
                 response = http_request(self.result_url,
                                         method=NetworkAPIMethod.DISTRIBUTOR_RESULT,
                                         json={'time_ticket': time_ticket, 'size': 0})
+                _end = time.time()
+                LOGGER.debug(f'Http request for results cost {_end - _start} s')
 
                 if not response:
                     self.result_url = None
