@@ -182,7 +182,7 @@ export default {
 
     const getChartOption = () => {
       const hasData = Object.values(safeData.value).some(arr => arr?.length > 0)
-      if (!hasData || activeVariables.value.length === 0) {
+      if (!hasData || activeVariables.value.length === 0|| safeData.value.length === 0) {
         return {xAxis: {show: false}, yAxis: {show: false}, series: []}
       }
       const series = []
@@ -230,6 +230,12 @@ export default {
       setupResizeObserver()
       if (!showEmptyState.value) {
         renderChart()
+      }
+      if (container.value) {
+        observer.observe(container.value, {
+          attributes: true,
+          attributeFilter: ['style', 'class']
+        })
       }
       setTimeout(renderChart, 300)
     })
