@@ -4,6 +4,7 @@ base:
     type: image
     variables: [ "Frame with Regions of Interest" ]
     hook_name: roi_frame
+    save_expanse: true
     size: 1
   - name: 任务端到端时延曲线
     type: cdf

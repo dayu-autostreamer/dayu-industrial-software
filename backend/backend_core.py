@@ -359,7 +359,7 @@ class BackendCore:
 
         return source_ids
 
-    def prepare_result_visualization_data(self, task):
+    def prepare_result_visualization_data(self, task, is_last=False):
         source_id = task.get_source_id()
         if source_id in self.customized_source_result_visualization_configs:
             viz_configs = self.customized_source_result_visualization_configs[source_id]
@@ -369,11 +369,14 @@ class BackendCore:
                     task.get_source_type() in self.result_visualization_configs) \
                 else self.result_visualization_configs['base']
 
-        vf_functions = self.visualization_cache.sync_and_get(viz_configs)
+        viz_functions = self.visualization_cache.sync_and_get(viz_configs)
         visualization_data = []
-        for idx, vf_func in enumerate(vf_functions):
+        for idx, viz_config, viz_func in enumerate(viz_configs, viz_functions):
             try:
-                visualization_data.append({"id": idx, "data": vf_func(task)})
+                if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
+                    visualization_data.append({"id": idx, "data": viz_func(task)})
+                else:
+                    visualization_data.append({"id": idx, "data": viz_func(task)})
             except Exception as e:
                 LOGGER.warning(f'Failed to load result visualization data: {e}')
                 LOGGER.exception(e)
@@ -416,11 +419,11 @@ class BackendCore:
         vis_results = []
         _start = time.time()
 
-        for task in tasks:
+        for idx, task in enumerate(tasks):
             file_path = self.get_file_result(task.get_file_path())
 
             try:
-                visualization_data = self.prepare_result_visualization_data(task)
+                visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
             except Exception as e:
                 LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
                 LOGGER.exception(e)
@@ -458,8 +461,8 @@ class BackendCore:
                     continue
 
                 time_ticket = response["time_ticket"]
-                LOGGER.debug(f'time ticket: {time_ticket}')
                 results = response['result']
+                LOGGER.debug(f'Fetch {len(results)} tasks from time ticket: {time_ticket}')
                 self.parse_task_result(results)
 
             except Exception as e:

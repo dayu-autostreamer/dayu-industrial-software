@@ -25,7 +25,7 @@ class IMUFrameVisualizer(ImageVisualizer, abc.ABC):
         self.ax = self.fig.add_subplot(111, projection='3d')
         self.fig.tight_layout(pad=0)
 
-        (self.line,) = self.ax.plot([], [], [], linewidth=0.8, antialiased=False)
+        (self.line,) = self.ax.plot([], [], [], linewidth=2, antialiased=False)
         self.canvas.draw()
         w, h = self.canvas.get_width_height()
         self._img = np.empty((h, w, 3), dtype=np.uint8)
