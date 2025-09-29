@@ -56,7 +56,8 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Frequency (Hz)")
         self.ax.set_title("")  # will set per-call
-        self.fig.tight_layout(pad=1.0)
+        self.ax.set_xticks([])
+        self.ax.set_yticks([])
 
         # Draw once to initialize canvas size, then preallocate output buffer
         self.canvas.draw()
