@@ -59,6 +59,10 @@ export default {
         chart.value.dispose()
         chart.value = null
       }
+      // 确保容器清空，避免残留 canvas
+      if (container.value) {
+        container.value.innerHTML = ''
+      }
     }
 
     // Computed Properties
@@ -99,14 +103,14 @@ export default {
 
     const showEmptyState = computed(() => {
       const hasData = Object.values(safeData.value).some(arr => arr?.length > 0)
-      const hasValidData = hasData && activeVariables
-      return !hasValidData
+      const anyActive = activeVariables.value.length > 0
+      return !(hasData && anyActive)
     })
 
     const emptyMessage = computed(() => {
       if (props.data.length === 0) return 'No data available'
       if (activeVariables.value.length === 0) return 'No active variables selected'
-      const hasInvalidData = Object.values(safeData.value).every(arr => arr.length === 0)
+      const hasInvalidData = Object.values(safeData.value).every(arr => (arr?.length || 0) === 0)
       return hasInvalidData ? 'No valid numeric data available' : ''
     })
 
@@ -153,10 +157,9 @@ export default {
     const getChartOption = () => {
       const hasData = Object.values(safeData.value).some(arr => arr?.length > 0)
       if (!hasData || activeVariables.value.length === 0 || Object.keys(safeData.value).length === 0) {
-        // 返回空 series，但不强制隐藏坐标轴，避免后续合并造成 show 维持为 false
         return {
-          xAxis: { type: 'value', min: 0, max: 1, show: true },
-          yAxis: { type: 'value', min: 0, max: 1, show: true },
+          xAxis: { type: 'value', show: false, splitLine: { show: false } },
+          yAxis: { type: 'value', show: false, splitLine: { show: false } },
           series: [],
           grid: { containLabel: true }
         }
@@ -205,6 +208,11 @@ export default {
 
     const renderChart = async () => {
       try {
+        // 空状态不渲染图表，并确保已清理
+        if (showEmptyState.value) {
+          cleanChart()
+          return
+        }
         if (!chart.value) {
           const success = await initChart()
           if (!success) return
@@ -264,7 +272,12 @@ export default {
       if (container.value) {
         setupResizeHandling()
       }
-      setTimeout(renderChart, 300)
+      // 仅在非空状态下尝试延迟渲染
+      setTimeout(() => {
+        if (!showEmptyState.value) {
+          renderChart()
+        }
+      }, 300)
     })
 
     onBeforeUnmount(() => {
@@ -292,13 +305,17 @@ export default {
     watch(() => props.data, () => {
       if (isMounted.value && !showEmptyState.value) {
         renderChart()
+      } else if (isMounted.value && showEmptyState.value) {
+        cleanChart()
       }
     }, {deep: true, flush: 'post'})
 
     // 当变量选择状态变化时也需要重绘
     watch(() => props.variableStates, () => {
-      if (isMounted.value) {
+      if (isMounted.value && !showEmptyState.value) {
         renderChart()
+      } else if (isMounted.value && showEmptyState.value) {
+        cleanChart()
       }
     }, {deep: true})
 
@@ -331,8 +348,8 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
+  color: var(--el-text-color-secondary, #909399);
   color: var(--el-text-color-secondary);
-  z-index: 10;
 }
 
 .empty-state p {
