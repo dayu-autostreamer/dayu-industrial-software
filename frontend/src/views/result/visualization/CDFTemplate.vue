@@ -160,15 +160,15 @@ export default {
         chart.value.resize()
         const hasSeries = Array.isArray(option.series) && option.series.length > 0
         if (hasSeries) {
-          chart.value.dispatchAction({ type: 'downplay', seriesIndex: 'all' })
-          chart.value.dispatchAction({ type: 'highlight', seriesIndex: 0 })
+          chart.value.dispatchAction({type: 'downplay', seriesIndex: 'all'})
+          chart.value.dispatchAction({type: 'highlight', seriesIndex: 0})
         }
       } catch (e) {
         console.error('Render failed:', e)
       }
     }
 
-    // 监听容器尺寸变化
+    // Listen for container size changes
     const setupResizeObserver = () => {
       if (!window.ResizeObserver) return
       if (resizeObserver.value) resizeObserver.value.disconnect()
@@ -183,7 +183,7 @@ export default {
     const getChartOption = () => {
       const hasData = Object.values(safeData.value).some(arr => arr?.length > 0)
       if (!hasData || activeVariables.value.length === 0) {
-        return { xAxis: { show: false }, yAxis: { show: false }, series: [] }
+        return {xAxis: {show: false}, yAxis: {show: false}, series: []}
       }
       const series = []
       Object.entries(safeData.value).forEach(([varName, points]) => {
@@ -192,21 +192,36 @@ export default {
           type: 'line',
           data: points.map(p => [p.value, p.probability]),
           smooth: true,
-          showSymbol: 'auto',
-          symbol: 'circle',
-          symbolSize: 6,
-          areaStyle: { opacity: 0.1 }
+          areaStyle: {opacity: 0.1}
         })
       })
       return {
-        grid: { left: 50, right: 20, top: 30, bottom: 45 },
+        grid: {left: 50, right: 20, top: 30, bottom: 45},
         tooltip: {
-          trigger: 'item'
+          trigger: 'item',
+          formatter: params => {
+            return `${params.seriesName}<br/>
+            Value: ${params.value[0].toFixed(2)}<br/>
+            Probability: ${(params.value[1] * 100).toFixed(1)}%`
+          }
         },
-        xAxis: { name: props.config.x_axis, nameLocation: 'center', nameGap: 25, type: 'value', min: 'dataMin', max: 'dataMax' },
-        yAxis: { name: props.config.y_axis, type: 'value', min: 0, max: 1, axisLabel: { formatter: value => `${(value * 100).toFixed(0)}%` } },
+        xAxis: {
+          name: props.config.x_axis,
+          nameLocation: 'center',
+          nameGap: 25,
+          type: 'value',
+          min: 'dataMin',
+          max: 'dataMax'
+        },
+        yAxis: {
+          name: props.config.y_axis,
+          type: 'value',
+          min: 0,
+          max: 1,
+          axisLabel: {formatter: value => `${(value * 100).toFixed(0)}%`}
+        },
         series,
-        legend: { data: Object.keys(safeData.value) }
+        legend: {data: Object.keys(safeData.value)}
       }
     }
 
@@ -251,7 +266,7 @@ export default {
       }
     }, {deep: true})
 
-    return { container, showEmptyState, emptyMessage }
+    return {container, showEmptyState, emptyMessage}
   }
 }
 </script>
