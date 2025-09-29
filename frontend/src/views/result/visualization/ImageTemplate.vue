@@ -57,10 +57,22 @@ export default {
       return `data:image/png;base64,${input}`
     }
 
+    // 辅助函数：获取对象第一个非空（非null/非空字符串）值
+    const getFirstNonEmptyValue = (obj) => {
+      if (!obj || typeof obj !== 'object') return null
+      for (const key of Object.keys(obj)) {
+        const val = obj[key]
+        if (val !== null && val !== undefined && val !== '') {
+          return val
+        }
+      }
+      return null
+    }
+
     watch(() => props.data, (newData) => {
       loadError.value = false
       const validItems = (newData || []).filter(item =>
-          item?.image !== undefined && item.image !== null
+          getFirstNonEmptyValue(item) !== null
       )
 
       if (validItems.length === 0) {
@@ -69,11 +81,11 @@ export default {
       }
 
       // Fetch the latest no-empty data item
-      const latestItem = validItems.slice().reverse().find(item => item.image)
+      const latestItem = validItems.slice().reverse().find(item => getFirstNonEmptyValue(item) !== null)
 
       try {
         isLoading.value = true
-        currentImage.value = processBase64(latestItem.image)
+        currentImage.value = processBase64(getFirstNonEmptyValue(latestItem))
       } catch (e) {
         console.error('Image process error:', e)
         loadError.value = true

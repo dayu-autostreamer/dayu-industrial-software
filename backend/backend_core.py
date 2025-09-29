@@ -376,7 +376,7 @@ class BackendCore:
             try:
                 if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
                     LOGGER.debug('**** Save expense for visualization, skip this time.')
-                    visualization_data.append({"id": idx, "data": None})
+                    visualization_data.append({"id": idx, "data": {v:None for v in viz_config['variables']}})
                 else:
                     visualization_data.append({"id": idx, "data": viz_func(task)})
             except Exception as e:
