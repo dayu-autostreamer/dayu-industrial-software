@@ -192,14 +192,16 @@ export default {
           type: 'line',
           data: points.map(p => [p.value, p.probability]),
           smooth: true,
+          showSymbol: 'auto',
+          symbol: 'circle',
+          symbolSize: 6,
           areaStyle: { opacity: 0.1 }
         })
       })
       return {
         grid: { left: 50, right: 20, top: 30, bottom: 45 },
         tooltip: {
-          trigger: 'item',
-          formatter: params => `${params.seriesName}<br/>\n            Value: ${params.value[0].toFixed(2)}<br/>\n            Probability: ${(params.value[1] * 100).toFixed(1)}%`
+          trigger: 'item'
         },
         xAxis: { name: props.config.x_axis, nameLocation: 'center', nameGap: 25, type: 'value', min: 'dataMin', max: 'dataMax' },
         yAxis: { name: props.config.y_axis, type: 'value', min: 0, max: 1, axisLabel: { formatter: value => `${(value * 100).toFixed(0)}%` } },
