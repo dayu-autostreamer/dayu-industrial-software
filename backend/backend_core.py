@@ -46,6 +46,7 @@ class BackendCore:
 
         self.task_results = {}
         self.event_results = {}
+        self.full_event_results = []
         self.task_results_for_priority = Queue()
         self.priority_task_buffer = []
 
@@ -393,17 +394,26 @@ class BackendCore:
         return visualization_data
 
     def parse_task_result(self, results):
-        LOGGER.info('!!!')
         for result in results:
             if result is None or result == '':
                 continue
 
             task = Task.deserialize(result)
-
             source_id = task.get_source_id()
-            task_id = task.get_task_id()
+            LOGGER.debug(task.get_delay_info())
+
+            if not self.source_open:
+                break
+
+            self.task_results[source_id].put_all([copy.deepcopy(task)])
+            self.task_results_for_priority.put_all([copy.deepcopy(task)])
+
+    def fetch_visualization_data(self, source_id, max_size):
+        assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
+        tasks = self.task_results[source_id].get_all()[-max_size:]
+        vis_results = []
+        for task in tasks:
             file_path = self.get_file_result(task.get_file_path())
-            # LOGGER.debug(task.get_delay_info())
 
             try:
                 visualization_data = self.prepare_result_visualization_data(task)
@@ -415,15 +425,12 @@ class BackendCore:
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-            if not self.source_open:
-                break
-
-            self.task_results[source_id].put_all([{
-                'task_id': task_id,
+            vis_results.append({
+                'task_id': task.get_task_id(),
                 'data': visualization_data,
-            }])
+            })
 
-            self.task_results_for_priority.put_all([copy.deepcopy(task)])
+        return vis_results
 
     def parse_event_result(self, results):
         # 每次只处理一批新的数据.
@@ -451,7 +458,7 @@ class BackendCore:
                     al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
                     vf_func = Context.get_algorithm('EVENT_TRIGGER', al_name=al_name, **al_params)
                     LOGGER.info(vf_func)
-                    is_warn = vf_func(task)
+                    is_warn, detail = vf_func(task)
                     if is_warn:
                         self.event_results.setdefault(idx,[]).append({
                             'task_id': task_id,
@@ -459,7 +466,21 @@ class BackendCore:
                             'message': vf['warning'],
                             'is_read':False
                         })
-                        LOGGER.info(self.event_results[idx][-1])
+                        timestamp = time.time()
+                        task_tmp_data = task.get_tmp_data()
+                        if task_tmp_data:
+                            for name,time_tick in task_tmp_data.items():
+                                if name.endswith('total_start_time'):
+                                    LOGGER.info('hi!')
+                                    timestamp = time_tick
+                                    break
+                        self.full_event_results.append({
+                            'task_id': task_id,
+                            "source_id": source_id,
+                            'message': vf['warning'],
+                            'tms': timestamp,
+                            'detail': detail
+                        })
                 except Exception as e:
                     LOGGER.warning(f'Failed to load event data: {e}')
                     LOGGER.exception(e)
@@ -486,8 +507,9 @@ class BackendCore:
                 time_ticket = response["time_ticket"]
                 LOGGER.debug(f'time ticket: {time_ticket}')
                 results = response['result']
-                self.parse_task_result(results)
                 self.parse_event_result(results)
+                self.parse_task_result(results)
+
 
             except Exception as e:
                 LOGGER.warning(f'Error occurred in getting task result: {str(e)}')
@@ -686,18 +708,30 @@ class BackendCore:
             ]
         }
         """
-        show_time = time.time() - 5
+        show_time = time.time() - 2
         services = KubeConfig.get_node_services_dict()[node]
-        self.priority_task_buffer.extend(self.task_results_for_priority.get_all())
+        tasks: list[Task] = self.task_results_for_priority.get_all()
+        total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])
+        show_time = time.time() - total_time_list[len(total_time_list) // 2] if total_time_list else 0
+        print('*** current time: ', time.time())
+        print('*** show_time: ', show_time)
+        print('*** control interval: ', total_time_list[len(total_time_list) // 2] if total_time_list else 0)
+        self.priority_task_buffer.extend(tasks)
+
+        for task in self.priority_task_buffer:
+            print(f'---task_id: {task.get_task_id()}, total_end_time: {task.get_total_end_time()}')
         # Filter tasks satisfied time requirements
-        self.priority_task_buffer = [task for task in self.priority_task_buffer if task.get_total_end_time() <= show_time]
+        self.priority_task_buffer = [task for task in self.priority_task_buffer if
+                                     task.get_total_end_time() >= show_time]
         priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
 
         for service in services:
             for task in self.priority_task_buffer:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
-                if task.get(service) and task.get(service).get_execute_device() == node and \
-                        enter_time <= show_time <= quit_time:
+                print(
+                    f'---task_id: {task.get_task_id()}, service: {service}, enter_time: {enter_time}, quit_time: {quit_time}')
+                if task.get_service(service) and task.get_service(service).get_execute_device() == node and \
+                        quit_time >= show_time:
                     priority_queue[service][task.get_service(service).get_priority()].append({
                         'source_id': task.get_source_id(),
                         'task_id': task.get_task_id(),

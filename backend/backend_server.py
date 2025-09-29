@@ -117,6 +117,11 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_EVENT_RESULT]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_EVENT_DETAIL,
+                     self.get_event_detail,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_EVENT_DETAIL]
+                     ),
             APIRoute(NetworkAPIPath.BACKEND_SYSTEM_PARAMETERS,
                      self.get_system_parameters,
                      response_class=JSONResponse,
@@ -650,7 +655,7 @@ class BackendServer:
         source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
         for source in source_config['source_list']:
             source_id = source['id']
-            ans[source_id] = self.server.task_results[source_id].get_all()
+            ans[source_id] = self.server.fetch_visualization_data(source_id, max_size=20)
 
         return ans
     async def get_event_result(self):
@@ -666,22 +671,28 @@ class BackendServer:
         }
         :return:
         '''
-        LOGGER.debug('hello!!!')
-        LOGGER.debug(self.server.event_results)
         if not self.server.source_open:
             return {}
-        ans = {}
+        # ans = {}
+        ans = []
         # 读取未读信息并进行整合.
-        for idx,event_res in self.server.event_results:
+        for idx,event_res in self.server.event_results.items():
             for info in event_res:
                 if info['is_read']:
                     continue
                 info['is_read'] = True
+                ans.append(info)
+                # ans.setdefault(info['source_id'],[]).append({
+                #     'task_id': info['task_id'],
+                #     'message': info['message']
+                # })
+        return ans
 
-                ans.setdefault(info['source_id'],[]).append({
-                    'task_id': info['task_id'],
-                    'message': info['message']
-                })
+    async def get_event_detail(self):
+        if not self.server.source_open:
+            return []
+        ans = copy.deepcopy(self.server.full_event_results)
+        self.server.full_event_results = []
         return ans
     async def get_system_parameters(self):
         return self.server.get_system_parameters()
@@ -762,8 +773,6 @@ class BackendServer:
         }
         """
         return self.server.get_priority_info()
-
-
 
     async def get_priority_queue(self, node):
         """

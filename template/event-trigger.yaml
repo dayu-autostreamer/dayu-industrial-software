@@ -2,10 +2,14 @@ allow-flexible-switch: true
 base:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
-    hook_name: time
+    hook_name: total_time
     hook_params: '{"threshold":10}'
 mmw:
   - name: 材料表面缺陷感知
     warning: "检测到明显表面缺陷!"
     hook_name: mmw
-    warning_interval: 10
+    warning_interval: 50
+  - name: 任务时长告警
+    warning: "任务出现严重超时!"
+    hook_name: total_time
+    hook_params: '{"threshold":1}'

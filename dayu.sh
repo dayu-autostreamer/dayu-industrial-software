@@ -209,7 +209,7 @@ spec:
               value: 'false'
             - name: VITE_PUBLIC_PATH
               value: /vue-next-admin-preview/
-            image: $REGISTRY/$REPOSITORY/frontend:$TAG
+            image: $REGISTRY/$REPOSITORY/frontend:is-hgz-v1.1
             imagePullPolicy: Always
             name: frontend
             ports:
