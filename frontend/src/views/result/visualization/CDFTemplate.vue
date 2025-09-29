@@ -179,8 +179,8 @@ export default {
           trigger: 'item',
           formatter: params => {
             return `${params.seriesName}<br/>
-            Value: ${params.value[0].toFixed(2)}<br/>
-            Probability: ${(params.value[1] * 100).toFixed(1)}%`
+            数值: ${params.value[0].toFixed(2)}<br/>
+            概率: ${(params.value[1] * 100).toFixed(1)}%`
           }
         },
         xAxis: {
