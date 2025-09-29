@@ -181,10 +181,12 @@ class Distributor:
                     SELECT source_id, task_id, ctime, json
                     FROM records
                     WHERE ctime > ?
-                    ORDER BY ctime ASC LIMIT ?
+                    ORDER BY ctime DESC LIMIT ?
                     """,
                     (time_ticket, size)
                 )
+                rows = c.fetchall()
+                rows = rows[::-1]
             else:
                 c.execute(
                     """
@@ -195,8 +197,7 @@ class Distributor:
                     """,
                     (time_ticket,)
                 )
-
-            rows = c.fetchall()
+                rows = c.fetchall()
 
         if not rows:
             LOGGER.debug(f'No new records, last file time unchanged: {time_ticket}')
