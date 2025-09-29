@@ -8,8 +8,14 @@ class Queue:
 
     def put(self, item: object) -> None:
         if self.__queue.full():
-            self.__queue.get()
-        self.__queue.put(item)
+            try:
+                self.__queue.get_nowait()
+            except queue.Empty:
+                pass
+        try:
+            self.__queue.put_nowait(item)
+        except queue.Full:
+            pass
 
     def get(self) -> object:
         return self.__queue.get()
