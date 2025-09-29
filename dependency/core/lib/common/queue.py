@@ -19,10 +19,13 @@ class Queue:
             self.__queue.put(item)
 
     def get_all(self) -> List[object]:
-        items = []
-        while not self.__queue.empty():
-            items.append(self.__queue.get())
-        return items
+        out_items = []
+        while True:
+            try:
+                out_items.append(self.__queue.get_nowait())
+            except queue.Empty:
+                break
+        return out_items
 
     def get_all_without_drop(self) -> List[object]:
         # This does not affect the queue state because it doesn't consume the items
