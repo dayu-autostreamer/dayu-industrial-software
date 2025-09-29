@@ -403,8 +403,11 @@ class BackendCore:
             if result is None or result == '':
                 continue
 
+            _start = time.time()
             task = Task.deserialize(result)
+            _end = time.time()
             source_id = task.get_source_id()
+            LOGGER.debug(f'Parse one task for {_end-_start} s')
             LOGGER.debug(task.get_delay_info())
 
             if not self.source_open:
