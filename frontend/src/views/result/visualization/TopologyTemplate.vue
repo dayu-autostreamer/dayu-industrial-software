@@ -75,7 +75,7 @@ export default {
     // 处理拓扑数据
     const topologyData = computed(() => {
       try {
-        const latestData = props.data[props.data.length - 1]?.topology
+        const latestData = [...props.data].reverse().find(item => item?.topology)?.topology
         if (!latestData) return null
 
         colorMap.value.clear()

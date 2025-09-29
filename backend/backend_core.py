@@ -53,7 +53,7 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
-        self.task_results_for_priority = Queue()
+        self.task_results_for_priority = Queue(20)
         self.priority_task_buffer = []
 
         self.is_get_result = False
@@ -374,7 +374,7 @@ class BackendCore:
         for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
             try:
                 if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
-                    visualization_data.append({"id": idx, "data": viz_func(task)})
+                    visualization_data.append({"id": idx, "data": None})
                 else:
                     visualization_data.append({"id": idx, "data": viz_func(task)})
             except Exception as e:
@@ -422,9 +422,9 @@ class BackendCore:
         __end = time.time()
         LOGGER.debug(f'Parse {len(results)} task for {__end-__start} s')
 
-    def fetch_visualization_data(self, source_id, max_size):
+    def fetch_visualization_data(self, source_id):
         assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
-        tasks = self.task_results[source_id].get_all()[-max_size:]
+        tasks = self.task_results[source_id].get_all()
         vis_results = []
         _start = time.time()
 
