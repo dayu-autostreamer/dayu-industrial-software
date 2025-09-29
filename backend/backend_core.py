@@ -41,6 +41,7 @@ class BackendCore:
         self.dags = []
 
         self.time_ticket = 0
+        self.buffered_result_size = 20
 
         self.result_url = None
         self.result_file_url = None
@@ -53,7 +54,7 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
-        self.task_results_for_priority = Queue(20)
+        self.task_results_for_priority = Queue(self.buffered_result_size)
         self.priority_task_buffer = []
 
         self.is_get_result = False
@@ -465,7 +466,7 @@ class BackendCore:
                 _start = time.time()
                 response = http_request(self.result_url,
                                         method=NetworkAPIMethod.DISTRIBUTOR_RESULT,
-                                        json={'time_ticket': time_ticket, 'size': 0})
+                                        json={'time_ticket': time_ticket, 'size': self.buffered_result_size})
                 LOGGER.debug('[GET RESULT] Fetch results with http done.')
                 _end = time.time()
                 LOGGER.debug(f'Http request for results cost {_end - _start} s')

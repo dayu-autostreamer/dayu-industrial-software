@@ -563,7 +563,7 @@ class BackendServer:
         self.server.source_label = source_label
         source_ids = self.server.get_source_ids()
         for source_id in source_ids:
-            self.server.task_results[source_id] = Queue(20)
+            self.server.task_results[source_id] = Queue(self.server.buffered_result_size)
 
         time.sleep((len(source_ids) - 1) * 4)
 
