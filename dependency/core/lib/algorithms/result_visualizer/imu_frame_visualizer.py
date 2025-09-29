@@ -19,20 +19,27 @@ class IMUFrameVisualizer(ImageVisualizer, abc.ABC):
 
     def draw_imu_trajectory(self, input_data):
         import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
         process_data = np.array(input_data)
 
         fig = plt.figure()
+        canvas = FigureCanvas(fig)
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot3D(process_data[:, 0],
-                  process_data[:, 1],
-                  process_data[:, 2])
 
-        plt.savefig('imu.png', bbox_inches='tight', pad_inches=0.0)
+        ax.plot(process_data[:, 0], process_data[:, 1], process_data[:, 2],
+                linewidth=0.8, antialiased=False)
+
+        ax.set_axis_off()
+        ax.grid(False)
+        fig.tight_layout(pad=0)
+
+        canvas.draw()
+        w, h = fig.canvas.get_width_height()
+        buf = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
+        image = buf.reshape(h, w, 3)
+
         plt.close(fig)
-
-        image = cv2.imread('imu.png')
-        os.remove(os.path.abspath('imu.png'))
 
         return image
 

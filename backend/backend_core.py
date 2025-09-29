@@ -430,7 +430,6 @@ class BackendCore:
         print('-----visualization data time: ', _end - _start)
         print('-----visualization data size: ', len(vis_results))
         return vis_results
-        return vis_results
 
     def run_get_result(self):
         time_ticket = 0
