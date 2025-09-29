@@ -1,5 +1,5 @@
 import abc
-import os
+from typing import Tuple
 import cv2
 import numpy as np
 import wave
@@ -86,7 +86,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
             return np.zeros_like(arr, dtype=np.float32)
         return (2.0 * (arr - a_min) / rng - 1.0).astype(np.float32)
 
-    def _compute_stft(self, mono: np.ndarray, framerate: int) -> tuple[np.ndarray, float, float]:
+    def _compute_stft(self, mono: np.ndarray, framerate: int) -> Tuple[np.ndarray, float, float]:
         """
         Compute linear-frequency STFT magnitude (in dB, then normalized to [-1,1]).
         Returns (norm_spec, time_extent, freq_extent_max).
