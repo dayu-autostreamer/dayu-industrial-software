@@ -27,6 +27,7 @@ class HttpAudioGetter(BaseDataGetter, abc.ABC):
         while not response:
             response = http_request(url=system.audio_data_source + '/file', no_decode=True, stream=True)
             if not response:
+                time.sleep(1)
                 continue
 
             self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
