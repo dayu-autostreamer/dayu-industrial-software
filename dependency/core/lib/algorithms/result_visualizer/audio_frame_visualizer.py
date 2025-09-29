@@ -53,9 +53,9 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
             interpolation='nearest',
             vmin=-1.0, vmax=1.0  # normalized range we map to
         )
-        self._cbar = self.fig.colorbar(self._im, ax=self.ax, format='%+2.0f', ticks=[-1, 1])
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Frequency (Hz)")
+        self.ax.set_axis_off()
         self.ax.set_title("")  # will set per-call
         self.fig.tight_layout(pad=0.)
 
