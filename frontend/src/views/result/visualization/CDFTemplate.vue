@@ -231,12 +231,6 @@ export default {
       if (!showEmptyState.value) {
         renderChart()
       }
-      if (container.value) {
-        observer.observe(container.value, {
-          attributes: true,
-          attributeFilter: ['style', 'class']
-        })
-      }
       setTimeout(renderChart, 300)
     })
 
