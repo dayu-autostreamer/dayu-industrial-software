@@ -371,7 +371,7 @@ class BackendCore:
 
         viz_functions = self.visualization_cache.sync_and_get(viz_configs)
         visualization_data = []
-        for idx, viz_config, viz_func in enumerate(viz_configs, viz_functions):
+        for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
             try:
                 if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
                     visualization_data.append({"id": idx, "data": viz_func(task)})
