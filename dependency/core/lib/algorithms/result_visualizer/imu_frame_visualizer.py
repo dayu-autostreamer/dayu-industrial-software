@@ -29,9 +29,6 @@ class IMUFrameVisualizer(ImageVisualizer, abc.ABC):
 
         ax.plot(process_data[:, 0], process_data[:, 1], process_data[:, 2],
                 linewidth=0.8, antialiased=False)
-
-        ax.set_axis_off()
-        ax.grid(False)
         fig.tight_layout(pad=0)
 
         canvas.draw()
