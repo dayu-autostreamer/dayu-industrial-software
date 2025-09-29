@@ -415,7 +415,9 @@ class BackendCore:
                 break
 
             self.task_results[source_id].put_all([copy.deepcopy(task)])
+            LOGGER.debug(f'[GET RESULT] Put task result in result queue done.')
             self.task_results_for_priority.put_all([copy.deepcopy(task)])
+            LOGGER.debug(f'[GET RESULT] Put task result in priority queue done.')
 
         __end = time.time()
         LOGGER.debug(f'Parse {len(results)} task for {__end-__start} s')
@@ -453,7 +455,9 @@ class BackendCore:
         while self.is_get_result:
             try:
                 time.sleep(1)
+                LOGGER.debug('[GET RESULT] Start to fetch task result...')
                 self.get_result_url()
+                LOGGER.debug('[GET RESULT] Fetch result url done.')
                 if not self.result_url:
                     LOGGER.debug('[NO RESULT] Fetch result url failed.')
                     continue
@@ -461,6 +465,7 @@ class BackendCore:
                 response = http_request(self.result_url,
                                         method=NetworkAPIMethod.DISTRIBUTOR_RESULT,
                                         json={'time_ticket': time_ticket, 'size': 0})
+                LOGGER.debug('[GET RESULT] Fetch results with http done.')
                 _end = time.time()
                 LOGGER.debug(f'Http request for results cost {_end - _start} s')
 
