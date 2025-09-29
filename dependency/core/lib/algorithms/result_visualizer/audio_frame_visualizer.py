@@ -42,7 +42,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
 
         # Persistent Matplotlib objects
         self._plt = plt
-        self.fig = plt.figure(figsize=(6, 4), dpi=100)
+        self.fig = plt.figure()
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
 
@@ -57,7 +57,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
         self.ax.set_xlabel("Time (s)")
         self.ax.set_ylabel("Frequency (Hz)")
         self.ax.set_title("")  # will set per-call
-        self.fig.tight_layout(pad=0.5)
+        self.fig.tight_layout(pad=0.)
 
         # Draw once to initialize canvas size, then preallocate output buffer
         self.canvas.draw()
