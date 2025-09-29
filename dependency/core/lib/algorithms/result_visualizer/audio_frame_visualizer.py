@@ -42,7 +42,7 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
 
         # Persistent Matplotlib objects
         self._plt = plt
-        self.fig = plt.figure()
+        self.fig = plt.figure(figsize=(4, 4), dpi=100)
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111)
 
