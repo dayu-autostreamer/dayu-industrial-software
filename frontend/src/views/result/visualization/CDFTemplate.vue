@@ -53,7 +53,6 @@ export default {
     const container = ref(null)
     const resizeObserver = ref(null)
     const isMounted = ref(true)
-    const forceUpdate = ref(0)
 
     const cleanChart = () => {
       if (chart.value) {
@@ -72,6 +71,7 @@ export default {
       }
 
       props.config.variables?.forEach(varName => {
+        // 仅对显式启用的变量计算
         if (currentVariableStates[varName] !== true) return
         const allValues = props.data
             .map(d => d[varName])
@@ -93,7 +93,7 @@ export default {
 
     const activeVariables = computed(() => {
       return props.config.variables?.filter(varName =>
-          props.variableStates[varName] !== false
+          props.variableStates[varName] === true
       ) || []
     })
 
@@ -150,34 +150,16 @@ export default {
       }
     }
 
-    const renderChart = async () => {
-      try {
-        if (!chart.value) {
-          const success = await initChart()
-          if (!success) return
-        }
-        chart.value.setOption(getChartOption())
-        chart.value.dispatchAction({
-          type: 'downplay',
-          seriesIndex: 'all'
-        })
-        chart.value.dispatchAction({
-          type: 'highlight',
-          seriesIndex: 0
-        })
-      } catch (e) {
-        console.error('Render failed:', e)
-      }
-    }
-
-    const observer = new MutationObserver(() => {
-      forceUpdate.value++
-    })
-
     const getChartOption = () => {
       const hasData = Object.values(safeData.value).some(arr => arr?.length > 0)
-      if (!hasData || activeVariables.value.length === 0|| safeData.value.length === 0) {
-        return {xAxis: {show: false}, yAxis: {show: false}, series: []}
+      if (!hasData || activeVariables.value.length === 0 || Object.keys(safeData.value).length === 0) {
+        // 返回空 series，但不强制隐藏坐标轴，避免后续合并造成 show 维持为 false
+        return {
+          xAxis: { type: 'value', min: 0, max: 1, show: true },
+          yAxis: { type: 'value', min: 0, max: 1, show: true },
+          series: [],
+          grid: { containLabel: true }
+        }
       }
       const series = []
       Object.entries(safeData.value).forEach(([varName, points]) => {
@@ -204,18 +186,74 @@ export default {
           nameGap: 25,
           type: 'value',
           min: 'dataMin',
-          max: 'dataMax'
+          max: 'dataMax',
+          show: true
         },
         yAxis: {
           name: props.config.y_axis,
           type: 'value',
           min: 0,
           max: 1,
-          axisLabel: {formatter: value => `${(value * 100).toFixed(0)}%`}
+          axisLabel: {formatter: value => `${(value * 100).toFixed(0)}%`},
+          show: true
         },
+        grid: { containLabel: true },
         series,
         legend: {data: Object.keys(safeData.value)}
       }
+    }
+
+    const renderChart = async () => {
+      try {
+        if (!chart.value) {
+          const success = await initChart()
+          if (!success) return
+        }
+        // 使用 notMerge 强制覆盖，避免首次空图隐藏坐标轴导致后续保持隐藏
+        chart.value.setOption(getChartOption(), true)
+        chart.value.dispatchAction({
+          type: 'downplay',
+          seriesIndex: 'all'
+        })
+        chart.value.dispatchAction({
+          type: 'highlight',
+          seriesIndex: 0
+        })
+      } catch (e) {
+        console.error('Render failed:', e)
+      }
+    }
+
+    // 在样式变化/尺寸变化时触发 resize
+    const mutationObserver = new MutationObserver(() => {
+      if (chart.value) {
+        chart.value.resize()
+      }
+    })
+
+    const setupResizeHandling = () => {
+      if (!container.value) return
+      // ResizeObserver 监听容器尺寸
+      try {
+        resizeObserver.value = new ResizeObserver(() => {
+          if (chart.value) {
+            chart.value.resize()
+          }
+        })
+        resizeObserver.value.observe(container.value)
+      } catch (e) {
+        // 某些环境可能没有 ResizeObserver
+        window.addEventListener('resize', resizeChart)
+      }
+      // 监听样式/类变化
+      mutationObserver.observe(container.value, {
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      })
+    }
+
+    const resizeChart = () => {
+      if (chart.value) chart.value.resize()
     }
 
     // Lifecycle Hooks
@@ -224,10 +262,7 @@ export default {
         renderChart()
       }
       if (container.value) {
-        observer.observe(container.value, {
-          attributes: true,
-          attributeFilter: ['style', 'class']
-        })
+        setupResizeHandling()
       }
       setTimeout(renderChart, 300)
     })
@@ -239,8 +274,10 @@ export default {
         chart.value = null
       }
       if (resizeObserver.value) {
-        resizeObserver.value.disconnect()
+        try { resizeObserver.value.disconnect() } catch {}
       }
+      try { mutationObserver.disconnect() } catch {}
+      window.removeEventListener('resize', resizeChart)
     })
 
     // Watchers
@@ -257,6 +294,13 @@ export default {
         renderChart()
       }
     }, {deep: true, flush: 'post'})
+
+    // 当变量选择状态变化时也需要重绘
+    watch(() => props.variableStates, () => {
+      if (isMounted.value) {
+        renderChart()
+      }
+    }, {deep: true})
 
     return {
       container,
