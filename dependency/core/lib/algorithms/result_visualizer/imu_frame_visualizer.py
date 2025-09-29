@@ -91,4 +91,4 @@ class IMUFrameVisualizer(ImageVisualizer, abc.ABC):
             LOGGER.warning(f'Video visualization fetch failed: {str(e)}')
             LOGGER.exception(e)
 
-        return {'image': base64_data}
+        return {self.variables[0]: base64_data}

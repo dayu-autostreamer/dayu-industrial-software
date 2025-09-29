@@ -186,4 +186,4 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
             LOGGER.warning(f'Audio visualization failed: {str(e)}')
             LOGGER.exception(e)
 
-        return {'image': base64_data}
+        return {self.variables[0]: base64_data}
