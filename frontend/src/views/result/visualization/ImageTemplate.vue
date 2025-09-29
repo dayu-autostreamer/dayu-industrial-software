@@ -57,12 +57,16 @@ export default {
       return `data:image/png;base64,${input}`
     }
 
-    // 辅助函数：获取对象第一个非空（非null/非空字符串）值
+    // Retrieve the first non-empty (non-null/non-empty string) value of the object
     const getFirstNonEmptyValue = (obj) => {
+      console.log('Checking obj:', obj)
       if (!obj || typeof obj !== 'object') return null
+      console.log('Checking obj 2:', obj)
       for (const key of Object.keys(obj)) {
         const val = obj[key]
+        console.log('Checking obj[key]:', obj[key])
         if (val !== null && val !== undefined && val !== '') {
+          console.log('Return val:', val)
           return val
         }
       }
