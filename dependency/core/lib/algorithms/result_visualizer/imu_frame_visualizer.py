@@ -15,30 +15,29 @@ __all__ = ('IMUFrameVisualizer',)
 class IMUFrameVisualizer(ImageVisualizer, abc.ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.imu_service = kwargs.get('imu_service', None)
-
-    def draw_imu_trajectory(self, input_data):
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-        process_data = np.array(input_data)
+        self.imu_service = kwargs.get('imu_service', None)
 
-        fig = plt.figure()
-        canvas = FigureCanvas(fig)
-        ax = fig.add_subplot(111, projection='3d')
+        self.fig = plt.figure()
+        self.canvas = FigureCanvas(self.fig)
+        self.ax = self.fig.add_subplot(111, projection='3d')
+        self.fig.tight_layout(pad=0)
+        (self.line,) = self.ax.plot([], [], [], linewidth=0.8, antialiased=False)
+        self.canvas.draw()
+        w, h = self.canvas.get_width_height()
+        self._img = np.empty((h, w, 3), dtype=np.uint8)
 
-        ax.plot(process_data[:, 0], process_data[:, 1], process_data[:, 2],
-                linewidth=0.8, antialiased=False)
-        fig.tight_layout(pad=0)
+    def draw_imu_trajectory(self, input_data):
+        process_data = np.asarray(input_data, dtype=np.float32)
 
-        canvas.draw()
-        w, h = fig.canvas.get_width_height()
-        buf = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
-        image = buf.reshape(h, w, 3)
-
-        plt.close(fig)
-
-        return image
+        self.line.set_data_3d(process_data[:, 0], process_data[:, 1], process_data[:, 2], )
+        self.canvas.draw()
+        buf = np.frombuffer(self.canvas.tostring_rgb(), dtype=np.uint8)
+        h, w, _ = self._img.shape
+        np.copyto(self._img.reshape(-1), buf[: h * w * 3])
+        return self._img.copy()
 
     def __call__(self, task: Task):
         try:

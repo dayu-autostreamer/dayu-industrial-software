@@ -7,6 +7,7 @@ import os
 import time
 from core.lib.content import Task
 from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig, Queue
+from core.lib.common import ConfigBoundInstanceCache
 from core.lib.network import http_request, NodeInfo, PortInfo, merge_address, NetworkAPIPath, NetworkAPIMethod
 
 from kube_helper import KubeHelper
@@ -26,6 +27,14 @@ class BackendCore:
         self.result_visualization_configs = None
         self.system_visualization_configs = None
         self.customized_source_result_visualization_configs = {}
+        self.visualization_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'RESULT_VISUALIZER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {}),
+                variables=vf['variables']
+            )
+        )
 
         self.source_configs = []
 
@@ -353,19 +362,17 @@ class BackendCore:
     def prepare_result_visualization_data(self, task):
         source_id = task.get_source_id()
         if source_id in self.customized_source_result_visualization_configs:
-            visualizations = self.customized_source_result_visualization_configs[source_id]
+            viz_configs = self.customized_source_result_visualization_configs[source_id]
         else:
-            visualizations = self.result_visualization_configs[task.get_source_type()] \
+            viz_configs = self.result_visualization_configs[task.get_source_type()] \
                 if (self.result_visualization_configs['allow-flexible-switch'] and
                     task.get_source_type() in self.result_visualization_configs) \
                 else self.result_visualization_configs['base']
+
+        vf_functions = self.visualization_cache.sync_and_get(viz_configs)
         visualization_data = []
-        for idx, vf in enumerate(visualizations):
+        for idx, vf_func in enumerate(vf_functions):
             try:
-                al_name = vf['hook_name']
-                al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
-                al_params.update({'variables': vf['variables']})
-                vf_func = Context.get_algorithm('RESULT_VISUALIZER', al_name=al_name, **al_params)
                 visualization_data.append({"id": idx, "data": vf_func(task)})
             except Exception as e:
                 LOGGER.warning(f'Failed to load result visualization data: {e}')
