@@ -68,8 +68,8 @@ audio:
   - name: 音频类别变化曲线
     type: curve
     x_axis: 任务序号
-    y_axis: 音频类别
-    variables: [ "0:其他 1:喇叭 2:钻孔 3:引擎 4:重型机械 5:警报" ]
+    y_axis: "音频类别: 0:其他 1:喇叭 2:钻孔 3:引擎 4:重型机械 5:警报"
+    variables: [ "音频类别" ]
     hook_name: audio_class
     size: 1
   - name: 服务拓扑图

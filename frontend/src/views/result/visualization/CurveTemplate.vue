@@ -70,6 +70,43 @@ export default {
       }
     }
 
+    // Utility: measure text width to dynamically allocate grid.left for long y-axis name
+    const estimateTextWidth = (text = '', font = '12px sans-serif') => {
+      try {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return 0
+        ctx.font = font
+        return ctx.measureText(String(text)).width
+      } catch (e) {
+        return 0
+      }
+    }
+
+    const computeGridLeft = () => {
+      // Base percentage fallback
+      if (!container.value) return '8%'
+      const width = container.value.clientWidth || 0
+      if (!width) return '8%'
+
+      const name = props.config?.y_axis || ''
+      // Keep in sync with nameTextStyle below
+      const fontSize = 12
+      const nameWidth = estimateTextWidth(name, `${fontSize}px sans-serif`)
+
+      // Heuristics: allow tick labels + padding
+      const tickLabelReserve = 56 // px
+      const padding = 16 // px
+
+      // Desired left in px, clamped to at most 40% of container width
+      const desired = Math.min(
+          Math.max(width * 0.08, nameWidth + tickLabelReserve + padding),
+          width * 0.4
+      )
+
+      return `${Math.round(desired)}px`
+    }
+
     // Computed Properties
     const safeData = computed(() => {
       return (props.data || []).map(item => {
@@ -166,7 +203,7 @@ export default {
           const success = await initChart()
           if (!success) return
         }
-        chart.value.setOption(getChartOption())
+        chart.value.setOption(getChartOption(), true)
 
         // 添加视觉连续性
         chart.value.dispatchAction({
@@ -226,9 +263,13 @@ export default {
         nameLocation: 'end',
         nameGap: 20,
         alignTicks: true,
+        // Ensure long name doesn't overflow by allowing wrap within reserved grid.left
+        nameTextStyle: {
+          fontSize: 12,
+          overflow: 'breakAll'
+        },
         axisLabel: {
           formatter: value => {
-            // 处理离散字符串类型数据
             if (valueTypes.value[activeVariables.value[0]] === 'category') {
               const entry = Object.entries(discreteValueMap.value[activeVariables.value[0]])
                   .find(([, v]) => v === value)
@@ -284,7 +325,7 @@ export default {
           type: 'scroll'
         },
         grid: {
-          left: '3%',
+          left: computeGridLeft(),
           right: '4%',
           bottom: '15%',
           containLabel: true
@@ -319,6 +360,19 @@ export default {
           attributes: true,
           attributeFilter: ['style', 'class']
         })
+        // Observe size changes to recompute grid.left for long y-axis name
+        if ('ResizeObserver' in window) {
+          resizeObserver.value = new ResizeObserver(() => {
+            // debounce via rAF
+            requestAnimationFrame(() => {
+              if (chart.value && !showEmptyState.value) {
+                renderChart()
+                chart.value.resize()
+              }
+            })
+          })
+          resizeObserver.value.observe(container.value)
+        }
       }
       setTimeout(renderChart, 300)
     })
@@ -349,6 +403,18 @@ export default {
         renderChart()
       }
     }, {deep: true, flush: 'post'})
+
+    // Re-render when y-axis name or variable visibility changes
+    watch(() => props.config.y_axis, () => {
+      if (isMounted.value && !showEmptyState.value) {
+        renderChart()
+      }
+    })
+    watch(() => props.variableStates, () => {
+      if (isMounted.value && !showEmptyState.value) {
+        renderChart()
+      }
+    }, {deep: true})
 
     return {
       container,
