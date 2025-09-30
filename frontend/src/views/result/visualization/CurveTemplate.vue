@@ -153,31 +153,6 @@ export default {
     }
 
 
-    const buildGraphics = () => {
-      const name = props.config?.y_axis || ''
-      if (!name) return []
-      // 将Y轴标签移动到图表右侧空白处，竖排显示，不影响坐标轴位置
-      const rightMargin = '4%'
-      return [
-        {
-          type: 'text',
-          right: rightMargin,
-          top: '50%',
-          z: 10,
-          rotation: -Math.PI / 2,
-          silent: true,
-          style: {
-            text: String(name),
-            fontSize: 12,
-            fill: '#606266',
-            textAlign: 'center',
-            textVerticalAlign: 'middle',
-            lineHeight: 14
-          }
-        }
-      ]
-    }
-
     const renderChart = async () => {
       try {
 
@@ -236,10 +211,17 @@ export default {
 
       const yAxisConfig = {
         type: valueTypes.value[activeVariables.value[0]],
-        name: '', // 取消默认位置的Y轴名称，防止溢出并改为右侧graphic呈现
+        name: props.config.y_axis,
         nameLocation: 'end',
-        nameGap: 20,
+        nameRotate: 0, // 水平放置于轴末端
+        nameGap: -6, // 小幅向内（右侧）挪动，避免左溢出
         alignTicks: true,
+        nameTextStyle: {
+          align: 'left', // 文本向右延展到绘图区
+          padding: [0, 0, 0, 2],
+          fontSize: 12,
+          overflow: 'breakAll'
+        },
         axisLabel: {
           formatter: value => {
             if (valueTypes.value[activeVariables.value[0]] === 'category') {
@@ -265,9 +247,7 @@ export default {
                 ? getDiscreteValue(varName, v)
                 : Number(v)
           }),
-          // 新增：空数据跳过渲染
           connectNulls: false,
-          // 新增：优化渲染性能
           progressive: 200,
           animation: values.length < 100
         }
@@ -275,7 +255,6 @@ export default {
 
 
       return {
-        // 新增动画配置
         animation: true,
         animationDuration: animationConfig.duration,
         animationEasing: animationConfig.easing,
@@ -297,7 +276,7 @@ export default {
           type: 'scroll'
         },
         grid: {
-          left: '8%', // 固定左边距，坐标轴不移动
+          left: '8%',
           right: '4%',
           bottom: '15%',
           containLabel: true
@@ -318,8 +297,7 @@ export default {
           axisTick: {show: true}
         },
         yAxis: yAxisConfig,
-        series: seriesConfig,
-        graphic: buildGraphics()
+        series: seriesConfig
       }
     }
 
@@ -329,12 +307,11 @@ export default {
         renderChart()
       }
       if (container.value) {
-        // Observe size changes to keep graphic label well placed
+        // 仅监听尺寸变化进行 resize，轴名始终绑定于轴末端
         if ('ResizeObserver' in window) {
           resizeObserver.value = new ResizeObserver(() => {
             requestAnimationFrame(() => {
               if (chart.value && !showEmptyState.value) {
-                chart.value.setOption({graphic: buildGraphics()})
                 chart.value.resize()
               }
             })
@@ -370,10 +347,10 @@ export default {
       }
     }, {deep: true, flush: 'post'})
 
-    // Re-render when y-axis name or variable visibility changes
+    // 轴名或变量显示变化时重绘
     watch(() => props.config.y_axis, () => {
       if (!showEmptyState.value) {
-        if (chart.value) chart.value.setOption({graphic: buildGraphics()}, true)
+        renderChart()
       }
     })
     watch(() => props.variableStates, () => {
