@@ -27,7 +27,7 @@ export default {
         name: '',
         type: 'curve',
         variables: [],
-        x_axis: 'Task Index',
+        x_axis: 'Time',
         y_axis: ''
       })
     },
@@ -36,7 +36,7 @@ export default {
       required: true,
       validator: value => {
         return Array.isArray(value) && value.every(item =>
-            item.taskId !== undefined
+            item.timestamp !== undefined
         )
       }
     },
@@ -73,7 +73,7 @@ export default {
     // Computed Properties
     const safeData = computed(() => {
       return (props.data || []).map(item => {
-        const cleanItem = {taskId: item.taskId}
+        const cleanItem = {timestamp: item.timestamp}
 
         props.config.variables?.forEach(varName => {
           const rawValue = item[varName]
@@ -294,7 +294,7 @@ export default {
           name: props.config.x_axis,
           nameLocation: 'center',
           nameGap: 25,
-          data: safeData.value.map(d => d.taskId),
+          data: safeData.value.map(d => d.timestamp),
           axisLabel: {
             formatter: value => value.length > 8 ? `${value.slice(0, 8)}...` : value
           },

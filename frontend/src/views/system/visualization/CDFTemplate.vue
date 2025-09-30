@@ -36,7 +36,7 @@ export default {
       required: true,
       validator: value => {
         return Array.isArray(value) && value.every(item =>
-            item.taskId !== undefined
+            item.timestamp !== undefined
         )
       }
     },
