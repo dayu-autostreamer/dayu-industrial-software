@@ -53,8 +53,6 @@ export default {
     const chart = ref(null)
     const container = ref(null)
     const resizeObserver = ref(null)
-    const isMounted = ref(true)
-    const forceUpdate = ref(0)
 
     let renderRetryCount = 0
 
@@ -68,43 +66,6 @@ export default {
         chart.value.dispose()
         chart.value = null
       }
-    }
-
-    // Utility: measure text width to dynamically allocate grid.left for long y-axis name
-    const estimateTextWidth = (text = '', font = '12px sans-serif') => {
-      try {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return 0
-        ctx.font = font
-        return ctx.measureText(String(text)).width
-      } catch (e) {
-        return 0
-      }
-    }
-
-    const computeGridLeft = () => {
-      // Base percentage fallback
-      if (!container.value) return '8%'
-      const width = container.value.clientWidth || 0
-      if (!width) return '8%'
-
-      const name = props.config?.y_axis || ''
-      // Keep in sync with nameTextStyle below
-      const fontSize = 12
-      const nameWidth = estimateTextWidth(name, `${fontSize}px sans-serif`)
-
-      // Heuristics: allow tick labels + padding
-      const tickLabelReserve = 56 // px
-      const padding = 16 // px
-
-      // Desired left in px, clamped to at most 40% of container width
-      const desired = Math.min(
-          Math.max(width * 0.08, nameWidth + tickLabelReserve + padding),
-          width * 0.4
-      )
-
-      return `${Math.round(desired)}px`
     }
 
     // Computed Properties
@@ -148,7 +109,6 @@ export default {
     // Methods
     const initChart = async () => {
       try {
-        // 三重等待确保 DOM 就绪
         await nextTick()
         if (!container.value) return false
 
@@ -168,14 +128,12 @@ export default {
           return false
         }
 
-        // 检查容器可见性
         const style = window.getComputedStyle(container.value)
         if (style.display === 'none' || style.visibility === 'hidden') {
           console.warn('Chart container is hidden')
           return false
         }
 
-        // 清理旧实例
         if (chart.value) {
           chart.value.dispose()
           chart.value = null
@@ -186,7 +144,6 @@ export default {
           useDirtyRect: true
         })
 
-        // 标记容器状态
         container.value.dataset.chartReady = 'true'
         return true
       } catch (e) {
@@ -195,6 +152,31 @@ export default {
       }
     }
 
+
+    const buildGraphics = () => {
+      const name = props.config?.y_axis || ''
+      if (!name) return []
+      // 将Y轴标签移动到图表右侧空白处，竖排显示，不影响坐标轴位置
+      const rightMargin = '4%'
+      return [
+        {
+          type: 'text',
+          right: rightMargin,
+          top: '50%',
+          z: 10,
+          rotation: -Math.PI / 2,
+          silent: true,
+          style: {
+            text: String(name),
+            fontSize: 12,
+            fill: '#606266',
+            textAlign: 'center',
+            textVerticalAlign: 'middle',
+            lineHeight: 14
+          }
+        }
+      ]
+    }
 
     const renderChart = async () => {
       try {
@@ -220,11 +202,6 @@ export default {
         console.error('Render failed:', e)
       }
     }
-
-    const observer = new MutationObserver(() => {
-      forceUpdate.value++
-    })
-
 
     const valueTypes = computed(() => {
       const types = {}
@@ -259,15 +236,10 @@ export default {
 
       const yAxisConfig = {
         type: valueTypes.value[activeVariables.value[0]],
-        name: props.config.y_axis,
+        name: '', // 取消默认位置的Y轴名称，防止溢出并改为右侧graphic呈现
         nameLocation: 'end',
         nameGap: 20,
         alignTicks: true,
-        // Ensure long name doesn't overflow by allowing wrap within reserved grid.left
-        nameTextStyle: {
-          fontSize: 12,
-          overflow: 'breakAll'
-        },
         axisLabel: {
           formatter: value => {
             if (valueTypes.value[activeVariables.value[0]] === 'category') {
@@ -325,7 +297,7 @@ export default {
           type: 'scroll'
         },
         grid: {
-          left: computeGridLeft(),
+          left: '8%', // 固定左边距，坐标轴不移动
           right: '4%',
           bottom: '15%',
           containLabel: true
@@ -346,7 +318,8 @@ export default {
           axisTick: {show: true}
         },
         yAxis: yAxisConfig,
-        series: seriesConfig
+        series: seriesConfig,
+        graphic: buildGraphics()
       }
     }
 
@@ -356,17 +329,12 @@ export default {
         renderChart()
       }
       if (container.value) {
-        observer.observe(container.value, {
-          attributes: true,
-          attributeFilter: ['style', 'class']
-        })
-        // Observe size changes to recompute grid.left for long y-axis name
+        // Observe size changes to keep graphic label well placed
         if ('ResizeObserver' in window) {
           resizeObserver.value = new ResizeObserver(() => {
-            // debounce via rAF
             requestAnimationFrame(() => {
               if (chart.value && !showEmptyState.value) {
-                renderChart()
+                chart.value.setOption({graphic: buildGraphics()})
                 chart.value.resize()
               }
             })
@@ -378,7 +346,6 @@ export default {
     })
 
     onBeforeUnmount(() => {
-      isMounted.value = false
       if (chart.value) {
         chart.value.dispose()
         chart.value = null
@@ -397,21 +364,20 @@ export default {
       }
     })
 
-
     watch(() => props.data, () => {
-      if (isMounted.value && !showEmptyState.value) {
+      if (!showEmptyState.value) {
         renderChart()
       }
     }, {deep: true, flush: 'post'})
 
     // Re-render when y-axis name or variable visibility changes
     watch(() => props.config.y_axis, () => {
-      if (isMounted.value && !showEmptyState.value) {
-        renderChart()
+      if (!showEmptyState.value) {
+        if (chart.value) chart.value.setOption({graphic: buildGraphics()}, true)
       }
     })
     watch(() => props.variableStates, () => {
-      if (isMounted.value && !showEmptyState.value) {
+      if (!showEmptyState.value) {
         renderChart()
       }
     }, {deep: true})
@@ -445,7 +411,7 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: var(--el-text-color-secondary);
+  color: #909399; /* hardcode to avoid unresolved CSS var error */
 }
 
 .empty-state p {
