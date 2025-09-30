@@ -9,6 +9,7 @@ from core.lib.content import Task
 from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig, Queue
 from core.lib.common import ConfigBoundInstanceCache
 from core.lib.network import http_request, NodeInfo, PortInfo, merge_address, NetworkAPIPath, NetworkAPIMethod
+from core.lib.estimation import Timer
 
 from kube_helper import KubeHelper
 from template_helper import TemplateHelper
@@ -375,7 +376,6 @@ class BackendCore:
         for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
             try:
                 if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
-                    LOGGER.debug('**** Save expense for visualization, skip this time.')
                     visualization_data.append({"id": idx, "data": {v:None for v in viz_config['variables']}})
                 else:
                     visualization_data.append({"id": idx, "data": viz_func(task)})
@@ -401,55 +401,42 @@ class BackendCore:
         return visualization_data
 
     def parse_task_result(self, results):
-        __start = time.time()
         for result in results:
             if result is None or result == '':
                 continue
-
-            _start = time.time()
             task = Task.deserialize(result)
-            _end = time.time()
             source_id = task.get_source_id()
-            LOGGER.debug(f'Parse one task for {_end-_start} s')
             LOGGER.debug(task.get_delay_info())
 
             if not self.source_open:
                 break
 
             self.task_results[source_id].put(copy.deepcopy(task))
-            LOGGER.debug(f'[GET RESULT] Put task result in result queue done.')
             self.task_results_for_priority.put(copy.deepcopy(task))
-            LOGGER.debug(f'[GET RESULT] Put task result in priority queue done.')
-
-        __end = time.time()
-        LOGGER.debug(f'Parse {len(results)} task for {__end-__start} s')
 
     def fetch_visualization_data(self, source_id):
         assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
         tasks = self.task_results[source_id].get_all()
         vis_results = []
-        _start = time.time()
 
-        for idx, task in enumerate(tasks):
-            file_path = self.get_file_result(task.get_file_path())
+        with Timer(f'Visualization preparation for {len(tasks)} tasks'):
+            for idx, task in enumerate(tasks):
+                file_path = self.get_file_result(task.get_file_path())
+                try:
+                    visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
+                except Exception as e:
+                    LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
+                    LOGGER.exception(e)
+                    continue
 
-            try:
-                visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
-            except Exception as e:
-                LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
-                LOGGER.exception(e)
-                continue
+                if os.path.exists(file_path):
+                    os.remove(file_path)
 
-            if os.path.exists(file_path):
-                os.remove(file_path)
+                vis_results.append({
+                    'task_id': task.get_task_id(),
+                    'data': visualization_data,
+                })
 
-            vis_results.append({
-                'task_id': task.get_task_id(),
-                'data': visualization_data,
-            })
-        _end = time.time()
-        print('-----visualization data time: ', _end - _start)
-        print('-----visualization data size: ', len(vis_results))
         return vis_results
 
     def run_get_result(self):
@@ -457,19 +444,13 @@ class BackendCore:
         while self.is_get_result:
             try:
                 time.sleep(1)
-                LOGGER.debug('[GET RESULT] Start to fetch task result...')
                 self.get_result_url()
-                LOGGER.debug('[GET RESULT] Fetch result url done.')
                 if not self.result_url:
                     LOGGER.debug('[NO RESULT] Fetch result url failed.')
                     continue
-                _start = time.time()
                 response = http_request(self.result_url,
                                         method=NetworkAPIMethod.DISTRIBUTOR_RESULT,
                                         json={'time_ticket': time_ticket, 'size': self.buffered_result_size})
-                LOGGER.debug('[GET RESULT] Fetch results with http done.')
-                _end = time.time()
-                LOGGER.debug(f'Http request for results cost {_end - _start} s')
 
                 if not response:
                     self.result_url = None
