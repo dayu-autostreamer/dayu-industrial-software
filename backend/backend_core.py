@@ -36,6 +36,13 @@ class BackendCore:
                 variables=vf['variables']
             )
         )
+        self.event_config_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'EVENT_TRIGGER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {})
+            )
+        )
 
         self.source_configs = []
 
@@ -473,36 +480,35 @@ class BackendCore:
             minid = min(minid,task_id)
             # 如何找到回调函数
 
-            cfg = self.event_trigger_config[task.get_source_type()] if (self.event_trigger_config['allow-flexible-switch'] and task.get_source_type() in self.event_trigger_config) else self.event_trigger_config['base']
-            for idx, vf in enumerate(cfg):
+            cfgs = self.event_trigger_config[task.get_source_type()] if (self.event_trigger_config['allow-flexible-switch'] and task.get_source_type() in self.event_trigger_config) else self.event_trigger_config['base']
+            event_functions = self.event_config_cache.sync_and_get(cfgs)
+            for idx, (cfg,vf_func) in enumerate(zip(cfgs,event_functions)):
                 try:
-                    if 'warning_interval' in vf and idx in self.event_results: # check一下最晚告警距离现在是否太近,如果是则不告警(注意过滤相同数据源的)
-                        if task_id-max([res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]) < vf['warning_interval']:
+                    if 'warning_interval' in cfg and idx in self.event_results: # check一下最晚告警距离现在是否太近,如果是则不告警(注意过滤相同数据源的)
+                        if task_id-max([res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]) < cfg['warning_interval']:
                             continue
-                    al_name = vf['hook_name']
-                    al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
-                    vf_func = Context.get_algorithm('EVENT_TRIGGER', al_name=al_name, **al_params)
-                    LOGGER.info(vf_func)
+                    # al_name = vf['hook_name']
+                    # al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
+                    # vf_func = Context.get_algorithm('EVENT_TRIGGER', al_name=al_name, **al_params)
                     is_warn, detail = vf_func(task)
                     if is_warn:
-                        self.event_results.setdefault(idx,[]).append({
+                        self.event_results.setdefault(idx, []).append({
                             'task_id': task_id,
                             "source_id": source_id,
-                            'message': vf['warning'],
-                            'is_read':False
+                            'message': cfg['warning'],
+                            'is_read': False
                         })
                         timestamp = time.time()
                         task_tmp_data = task.get_tmp_data()
                         if task_tmp_data:
                             for name,time_tick in task_tmp_data.items():
                                 if name.endswith('total_start_time'):
-                                    LOGGER.info('hi!')
                                     timestamp = time_tick
                                     break
                         self.full_event_results.append({
                             'task_id': task_id,
                             "source_id": source_id,
-                            'message': vf['warning'],
+                            'message': cfg['warning'],
                             'tms': timestamp,
                             'detail': detail
                         })
