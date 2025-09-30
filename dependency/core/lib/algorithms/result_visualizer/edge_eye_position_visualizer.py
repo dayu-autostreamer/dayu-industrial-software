@@ -13,7 +13,8 @@ class EdgeEyePositionVisualizer(CurveVisualizer, abc.ABC):
         super().__init__(**kwargs)
 
     def __call__(self, task: Task):
+        content = task.get_last_content()
         return {
-            self.variables[0]: task.get_last_content()['lps'],
-            self.variables[1]: task.get_last_content()['rps']
+            self.variables[0]: content['lps'] if 'lps' in content else 0,
+            self.variables[1]: content['rps'] if 'rps' in content else 0,
         }
