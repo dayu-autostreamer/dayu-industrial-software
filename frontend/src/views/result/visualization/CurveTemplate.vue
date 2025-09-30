@@ -11,7 +11,7 @@
 </template>
 
 <script>
-import {ref, computed, onMounted, onBeforeUnmount, watch, nextTick, toRaw} from 'vue'
+import {ref, computed, onMounted, onBeforeUnmount, watch, nextTick} from 'vue'
 import * as echarts from 'echarts'
 import {PieChart} from '@element-plus/icons-vue'
 
@@ -53,8 +53,6 @@ export default {
     const chart = ref(null)
     const container = ref(null)
     const resizeObserver = ref(null)
-    const isMounted = ref(true)
-    const forceUpdate = ref(0)
 
     let renderRetryCount = 0
 
@@ -86,12 +84,6 @@ export default {
       })
     })
 
-    const availableVariables = computed(() => {
-      if (!safeData.value.length) return []
-      return Object.keys(safeData.value[0])
-          .filter(k => k !== 'taskId' && props.config.variables?.includes(k))
-    })
-
     const activeVariables = computed(() => {
       return props.config.variables?.filter(varName =>
           props.variableStates[varName] !== false
@@ -101,7 +93,6 @@ export default {
 
     const showEmptyState = computed(() => {
       const hasData = safeData.value.length > 0
-      const hasActiveVars = activeVariables.value.length > 0
       const hasValidData = hasData && activeVariables.value.some(v =>
           safeData.value.some(d => d[v] !== undefined)
       )
@@ -118,7 +109,6 @@ export default {
     // Methods
     const initChart = async () => {
       try {
-        // 三重等待确保 DOM 就绪
         await nextTick()
         if (!container.value) return false
 
@@ -138,14 +128,12 @@ export default {
           return false
         }
 
-        // 检查容器可见性
         const style = window.getComputedStyle(container.value)
         if (style.display === 'none' || style.visibility === 'hidden') {
           console.warn('Chart container is hidden')
           return false
         }
 
-        // 清理旧实例
         if (chart.value) {
           chart.value.dispose()
           chart.value = null
@@ -156,7 +144,6 @@ export default {
           useDirtyRect: true
         })
 
-        // 标记容器状态
         container.value.dataset.chartReady = 'true'
         return true
       } catch (e) {
@@ -166,6 +153,31 @@ export default {
     }
 
 
+    const buildGraphics = () => {
+      const name = props.config?.y_axis || ''
+      if (!name) return []
+      // 将Y轴标签移动到图表右侧空白处，竖排显示，不影响坐标轴位置
+      const rightMargin = '4%'
+      return [
+        {
+          type: 'text',
+          right: rightMargin,
+          top: '50%',
+          z: 10,
+          rotation: -Math.PI / 2,
+          silent: true,
+          style: {
+            text: String(name),
+            fontSize: 12,
+            fill: '#606266',
+            textAlign: 'center',
+            textVerticalAlign: 'middle',
+            lineHeight: 14
+          }
+        }
+      ]
+    }
+
     const renderChart = async () => {
       try {
 
@@ -173,7 +185,7 @@ export default {
           const success = await initChart()
           if (!success) return
         }
-        chart.value.setOption(getChartOption())
+        chart.value.setOption(getChartOption(), true)
 
         // 添加视觉连续性
         chart.value.dispatchAction({
@@ -190,11 +202,6 @@ export default {
         console.error('Render failed:', e)
       }
     }
-
-    const observer = new MutationObserver(() => {
-      forceUpdate.value++
-    })
-
 
     const valueTypes = computed(() => {
       const types = {}
@@ -216,6 +223,11 @@ export default {
       }
       return map[value]
     }
+    const getOriginalDiscreteLabel = (varName, code) => {
+      const map = discreteValueMap.value[varName] || {}
+      const entry = Object.entries(map).find(([, v]) => v === code)
+      return entry ? entry[0] : code
+    }
 
     const getChartOption = () => {
       if (activeVariables.value.length === 0 || safeData.value.length === 0) {
@@ -224,16 +236,15 @@ export default {
 
       const yAxisConfig = {
         type: valueTypes.value[activeVariables.value[0]],
-        name: props.config.y_axis,
+        name: '', // 取消默认位置的Y轴名称，防止溢出并改为右侧graphic呈现
         nameLocation: 'end',
         nameGap: 20,
         alignTicks: true,
         axisLabel: {
           formatter: value => {
-            // 处理字符串类型数据
-            if (valueTypes.value[activeVariables.value[0]] === 'string') {
+            if (valueTypes.value[activeVariables.value[0]] === 'category') {
               const entry = Object.entries(discreteValueMap.value[activeVariables.value[0]])
-                  .find(([k, v]) => v === value)
+                  .find(([, v]) => v === value)
               return entry ? entry[0] : value
             }
             return Number(value).toFixed(2)
@@ -250,7 +261,7 @@ export default {
           yAxisIndex: 0,
           data: values.map(v => {
             if (v === undefined) return null
-            return valueTypes.value[varName] === 'string'
+            return valueTypes.value[varName] === 'category'
                 ? getDiscreteValue(varName, v)
                 : Number(v)
           }),
@@ -269,13 +280,16 @@ export default {
         animationDuration: animationConfig.duration,
         animationEasing: animationConfig.easing,
         tooltip: {
-          trigger: 'axis',
+          trigger: 'item',
           formatter: params => {
-            if (!params || !params.length) return ''
-            return `${params[0].axisValue}<br/>` +
-                params.map(p =>
-                    `${p.marker} ${p.seriesName}: ${Number(p.value).toFixed(2)}`
-                ).join('<br>')
+            if (!params) return ''
+            const name = params.name
+            const seriesName = params.seriesName
+            const varType = valueTypes.value[seriesName]
+            const yValue = varType === 'category'
+                ? getOriginalDiscreteLabel(seriesName, params.value)
+                : Number(params.value).toFixed(2)
+            return `${name}<br/>${params.marker} ${seriesName}: ${yValue}`
           }
         },
         legend: {
@@ -283,7 +297,7 @@ export default {
           type: 'scroll'
         },
         grid: {
-          left: '3%',
+          left: '8%', // 固定左边距，坐标轴不移动
           right: '4%',
           bottom: '15%',
           containLabel: true
@@ -304,20 +318,9 @@ export default {
           axisTick: {show: true}
         },
         yAxis: yAxisConfig,
-        series: seriesConfig
+        series: seriesConfig,
+        graphic: buildGraphics()
       }
-    }
-
-    const smoothUpdate = () => {
-      if (!chart.value) return
-      chart.value.setOption({
-        series: activeVariables.value.map(varName => ({
-          data: safeData.value.map(d => d[varName])
-        }))
-      }, {
-        replaceMerge: ['series'],
-        notMerge: false
-      })
     }
 
     // Lifecycle Hooks
@@ -326,16 +329,23 @@ export default {
         renderChart()
       }
       if (container.value) {
-        observer.observe(container.value, {
-          attributes: true,
-          attributeFilter: ['style', 'class']
-        })
+        // Observe size changes to keep graphic label well placed
+        if ('ResizeObserver' in window) {
+          resizeObserver.value = new ResizeObserver(() => {
+            requestAnimationFrame(() => {
+              if (chart.value && !showEmptyState.value) {
+                chart.value.setOption({graphic: buildGraphics()})
+                chart.value.resize()
+              }
+            })
+          })
+          resizeObserver.value.observe(container.value)
+        }
       }
       setTimeout(renderChart, 300)
     })
 
     onBeforeUnmount(() => {
-      isMounted.value = false
       if (chart.value) {
         chart.value.dispose()
         chart.value = null
@@ -354,12 +364,23 @@ export default {
       }
     })
 
-
     watch(() => props.data, () => {
-      if (isMounted.value && !showEmptyState.value) {
+      if (!showEmptyState.value) {
         renderChart()
       }
     }, {deep: true, flush: 'post'})
+
+    // Re-render when y-axis name or variable visibility changes
+    watch(() => props.config.y_axis, () => {
+      if (!showEmptyState.value) {
+        if (chart.value) chart.value.setOption({graphic: buildGraphics()}, true)
+      }
+    })
+    watch(() => props.variableStates, () => {
+      if (!showEmptyState.value) {
+        renderChart()
+      }
+    }, {deep: true})
 
     return {
       container,
@@ -390,8 +411,7 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: var(--el-text-color-secondary);
-  z-index: 10;
+  color: #909399; /* hardcode to avoid unresolved CSS var error */
 }
 
 .empty-state p {
