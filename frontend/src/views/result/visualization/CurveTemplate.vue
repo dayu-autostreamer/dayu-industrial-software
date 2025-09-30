@@ -53,6 +53,8 @@ export default {
     const chart = ref(null)
     const container = ref(null)
     const resizeObserver = ref(null)
+    const isMounted = ref(true)
+    const forceUpdate = ref(0)
 
     let renderRetryCount = 0
 
@@ -109,6 +111,7 @@ export default {
     // Methods
     const initChart = async () => {
       try {
+        // 三重等待确保 DOM 就绪
         await nextTick()
         if (!container.value) return false
 
@@ -128,12 +131,14 @@ export default {
           return false
         }
 
+        // 检查容器可见性
         const style = window.getComputedStyle(container.value)
         if (style.display === 'none' || style.visibility === 'hidden') {
           console.warn('Chart container is hidden')
           return false
         }
 
+        // 清理旧实例
         if (chart.value) {
           chart.value.dispose()
           chart.value = null
@@ -144,6 +149,7 @@ export default {
           useDirtyRect: true
         })
 
+        // 标记容器状态
         container.value.dataset.chartReady = 'true'
         return true
       } catch (e) {
@@ -160,7 +166,7 @@ export default {
           const success = await initChart()
           if (!success) return
         }
-        chart.value.setOption(getChartOption(), true)
+        chart.value.setOption(getChartOption())
 
         // 添加视觉连续性
         chart.value.dispatchAction({
@@ -177,6 +183,11 @@ export default {
         console.error('Render failed:', e)
       }
     }
+
+    const observer = new MutationObserver(() => {
+      forceUpdate.value++
+    })
+
 
     const valueTypes = computed(() => {
       const types = {}
@@ -213,17 +224,11 @@ export default {
         type: valueTypes.value[activeVariables.value[0]],
         name: props.config.y_axis,
         nameLocation: 'end',
-        nameRotate: 0, // 水平放置于轴末端
-        nameGap: -6, // 小幅向内（右侧）挪动，避免左溢出
+        nameGap: 20,
         alignTicks: true,
-        nameTextStyle: {
-          align: 'left', // 文本向右延展到绘图区
-          padding: [0, 0, 0, 2],
-          fontSize: 12,
-          overflow: 'breakAll'
-        },
         axisLabel: {
           formatter: value => {
+            // 处理离散字符串类型数据
             if (valueTypes.value[activeVariables.value[0]] === 'category') {
               const entry = Object.entries(discreteValueMap.value[activeVariables.value[0]])
                   .find(([, v]) => v === value)
@@ -247,7 +252,9 @@ export default {
                 ? getDiscreteValue(varName, v)
                 : Number(v)
           }),
+          // 新增：空数据跳过渲染
           connectNulls: false,
+          // 新增：优化渲染性能
           progressive: 200,
           animation: values.length < 100
         }
@@ -255,6 +262,7 @@ export default {
 
 
       return {
+        // 新增动画配置
         animation: true,
         animationDuration: animationConfig.duration,
         animationEasing: animationConfig.easing,
@@ -276,7 +284,7 @@ export default {
           type: 'scroll'
         },
         grid: {
-          left: '8%',
+          left: '3%',
           right: '4%',
           bottom: '15%',
           containLabel: true
@@ -307,22 +315,16 @@ export default {
         renderChart()
       }
       if (container.value) {
-        // 仅监听尺寸变化进行 resize，轴名始终绑定于轴末端
-        if ('ResizeObserver' in window) {
-          resizeObserver.value = new ResizeObserver(() => {
-            requestAnimationFrame(() => {
-              if (chart.value && !showEmptyState.value) {
-                chart.value.resize()
-              }
-            })
-          })
-          resizeObserver.value.observe(container.value)
-        }
+        observer.observe(container.value, {
+          attributes: true,
+          attributeFilter: ['style', 'class']
+        })
       }
       setTimeout(renderChart, 300)
     })
 
     onBeforeUnmount(() => {
+      isMounted.value = false
       if (chart.value) {
         chart.value.dispose()
         chart.value = null
@@ -341,23 +343,12 @@ export default {
       }
     })
 
+
     watch(() => props.data, () => {
-      if (!showEmptyState.value) {
+      if (isMounted.value && !showEmptyState.value) {
         renderChart()
       }
     }, {deep: true, flush: 'post'})
-
-    // 轴名或变量显示变化时重绘
-    watch(() => props.config.y_axis, () => {
-      if (!showEmptyState.value) {
-        renderChart()
-      }
-    })
-    watch(() => props.variableStates, () => {
-      if (!showEmptyState.value) {
-        renderChart()
-      }
-    }, {deep: true})
 
     return {
       container,
@@ -388,7 +379,7 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: #909399; /* hardcode to avoid unresolved CSS var error */
+  color: var(--el-text-color-secondary);
 }
 
 .empty-state p {
