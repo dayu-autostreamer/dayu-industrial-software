@@ -350,7 +350,7 @@ export default {
     async resetTimeRange() {
       const now = new Date();
       const endTime = now;
-      const startTime = new Date(now.getTime() - 5 * 1000);
+      const startTime = new Date(now.getTime() - 10 * 1000);
 
       this.timeRange.start = Math.floor(startTime.getTime() / 1000);
       this.timeRange.end = Math.floor(endTime.getTime() / 1000);
