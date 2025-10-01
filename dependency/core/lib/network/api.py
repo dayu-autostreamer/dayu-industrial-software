@@ -40,7 +40,7 @@ class NetworkAPIPath:
     BACKEND_SOURCE_LIST = '/source_list'
     BACKEND_TASK_RESULT = '/task_result'
     BACKEND_FREE_TASK_RESULT = '/free_task_result'
-    BACKEND_FREE_VISUALIZATION_CONFIG = '/free_visualization_config/{source_id}'
+    BACKEND_FREE_VISUALIZATION_CONFIG = '/free_visualization_config'
     BACKEND_SYSTEM_PARAMETERS = '/system_parameters'
     BACKEND_GET_RESULT_VISUALIZATION_CONFIG = '/result_visualization_config/{source_id}'
     BACKEND_POST_RESULT_VISUALIZATION_CONFIG = '/result_visualization_config/{source_id}'
