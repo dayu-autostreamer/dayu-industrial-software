@@ -238,6 +238,7 @@ class Distributor:
         """Remove the DB file entirely."""
         FileOps.remove_file(self.record_path)
         LOGGER.info('[Distributor] Database Cleared')
+        self._init_db()
 
     def is_database_empty(self):
         """Quick existence check."""
