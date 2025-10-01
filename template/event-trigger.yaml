@@ -4,21 +4,33 @@ base:
     warning: "任务出现严重超时!"
     hook_name: total_time
     hook_params: '{"threshold":10}'
+    warning_interval: 10
 video:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
     hook_name: total_time
-    hook_params: '{"threshold":1}'
+    hook_params: '{"threshold":2}'
+    warning_interval: 10
+  - name: 发泡塑料边缘告警
+    warning: "边缘位置偏移程度过大!"
+    hook_name: video
+    hook_params: '{"LThreshold":275,"RThreshold":1000}'
 audio:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
     hook_name: total_time
-    hook_params: '{"threshold":1}'
+    hook_params: '{"threshold":2}'
+    warning_interval: 10
+  - name: 警报声告警
+    warning: "出现警报声!"
+    hook_name: audio
+
 imu:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
     hook_name: total_time
-    hook_params: '{"threshold":1}'
+    hook_params: '{"threshold":2}'
+    warning_interval: 10
 mmw:
   - name: 材料表面缺陷感知
     warning: "检测到明显表面缺陷!"
@@ -27,4 +39,5 @@ mmw:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
     hook_name: total_time
-    hook_params: '{"threshold":1}'
+    hook_params: '{"threshold":2}'
+    warning_interval: 10
