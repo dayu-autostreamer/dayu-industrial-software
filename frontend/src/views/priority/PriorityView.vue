@@ -176,17 +176,25 @@ export default {
     };
   },
   created() {
-    // 默认全部展开
-    if (this.queue_result && Object.keys(this.queue_result).length) {
-      const expanded = {};
-      Object.keys(this.queue_result).forEach(svc => {
-        const lanes = this.queue_result[svc] || [];
-        expanded[svc] = {};
-        for (let i = 0; i < lanes.length; i++) {
-          expanded[svc][i] = true;
-        }
-      });
-      this.expanded = expanded;
+    // 初始化：尽可能将可见队列默认展开
+    this.initExpanded();
+  },
+  watch: {
+    // 当数据/配置变化时，补齐未初始化的展开位，避免覆盖用户手动折叠
+    queue_result() {
+      this.$nextTick(() => this.initExpanded());
+    },
+    priority_num() {
+      this.$nextTick(() => this.initExpanded());
+    },
+    service: {
+      handler() {
+        this.$nextTick(() => this.initExpanded());
+      },
+      deep: false
+    },
+    selectedNode() {
+      this.$nextTick(() => this.initExpanded());
     }
   },
   computed: {
@@ -233,6 +241,22 @@ export default {
   methods: {
     hasDataFor(svc) {
       return !!(this.queue_result && this.queue_result[svc]);
+    },
+    // 初始化展开位：为所有可见 service 的所有队列索引补齐默认展开
+    initExpanded() {
+      const svcNames = this.serviceNames;
+      if (!svcNames.length || this.queueCount <= 0) return;
+      const expanded = { ...this.expanded };
+      svcNames.forEach(svc => {
+        const svcMap = { ...(expanded[svc] || {}) };
+        for (let i = 0; i < this.queueCount; i++) {
+          if (typeof svcMap[i] === 'undefined') {
+            svcMap[i] = true; // 默认展开
+          }
+        }
+        expanded[svc] = svcMap;
+      });
+      this.expanded = expanded;
     },
     // 获取指定 service 的第 idx 个优先级队列（idx 从 0 开始）
     getQueue(svc, idx) {
@@ -595,7 +619,7 @@ export default {
   grid-template-columns: auto 1fr auto;
   align-items: start; /* 允许中间区域按需增高 */
   gap: 8px;
-  padding: 10px;
+  padding: 4px; /* 进一步缩小到4px，使总宽度匹配卡片 */
 
   .arrow-head, .arrow-tail {
     display: flex;
@@ -603,7 +627,7 @@ export default {
     justify-content: center;
     font-size: 12px;
     color: var(--el-text-color-secondary);
-    min-width: 36px;
+    min-width: 28px; /* 由32缩小到28，配合410px中间区正好不溢出 */
   }
 }
 
@@ -615,8 +639,8 @@ export default {
   gap: 8px;
   overflow-x: auto;
   min-height: var(--lane-height, 160px);
-  width: 400px; /* 固定宽度，避免因任务数量不同导致宽度变化 */
-  max-width: 400px;
+  width: 410px; /* 固定宽度，略微加宽，避免“队尾”被遮挡；410适配520卡片 */
+  max-width: 410px;
   padding: 6px;
   border-radius: 8px;
   background: var(--el-color-white);
