@@ -660,7 +660,7 @@ class BackendCore:
             ]
         }
         """
-        show_time = time.time() - 3
+        show_time = time.time() - 4
         services = KubeConfig.get_node_services_dict()[node]
         tasks: list[Task] = self.task_results_for_priority.get_all()
         total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])

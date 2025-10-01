@@ -20,6 +20,8 @@ class PriorityQueue(BaseQueue, abc.ABC):
     def put(self, task: Task) -> None:
         with self.lock:
             task.record_priority_timestamp(is_enter=True)
+            # Retrieve the priority to trigger priority calculation
+            priority = task.priority
             self._queue.put(task)
 
     def get(self):
