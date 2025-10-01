@@ -63,10 +63,10 @@
           </div>
           <div class="time-cell time-status">
             <span class="time-range-label">状态：</span>
-            <span class="status-full" v-if="isTimeRangeApplied">
+            <span class="status-full status-applied" v-if="isTimeRangeApplied">
               已应用：{{ formatTimeRangeDisplay() }}
             </span>
-            <span class="status-full" v-else>
+            <span class="status-full status-unapplied" v-else>
               未应用：请选择时间区间后点击“应用区间”
             </span>
           </div>
@@ -693,7 +693,17 @@ export default {
 
 /* 完整状态文本：不截断，不省略 */
 .status-full {
-  color: var(--el-text-color-primary);
+  color: inherit;
+}
+
+/* 按状态着色 */
+.status-applied {
+  color: #67C23A; /* 成功绿 */
+  font-weight: 500;
+}
+.status-unapplied {
+  color: #E6A23C; /* 警告橙 */
+  font-weight: 500;
 }
 
 .viz-controls-row {
