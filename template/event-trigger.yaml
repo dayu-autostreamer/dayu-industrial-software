@@ -4,6 +4,21 @@ base:
     warning: "任务出现严重超时!"
     hook_name: total_time
     hook_params: '{"threshold":10}'
+video:
+  - name: 任务时长告警
+    warning: "任务出现严重超时!"
+    hook_name: total_time
+    hook_params: '{"threshold":1}'
+audio:
+  - name: 任务时长告警
+    warning: "任务出现严重超时!"
+    hook_name: total_time
+    hook_params: '{"threshold":1}'
+imu:
+  - name: 任务时长告警
+    warning: "任务出现严重超时!"
+    hook_name: total_time
+    hook_params: '{"threshold":1}'
 mmw:
   - name: 材料表面缺陷感知
     warning: "检测到明显表面缺陷!"

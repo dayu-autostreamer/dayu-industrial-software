@@ -48,7 +48,7 @@
       </div>
 
       <div v-else>
-        <el-collapse v-model="activeKeys" accordion>
+        <el-collapse v-model="activeKeys">
           <el-collapse-item
             v-for="alarm in filteredSorted"
             :key="alarm._localKey"
