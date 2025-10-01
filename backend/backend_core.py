@@ -678,6 +678,14 @@ class BackendCore:
 
         for task in self.priority_task_buffer:
             ordered_services = task.get_topologically_sorted_services()
+
+            # Adjust the key order of priority_queue to follow ordered_services with minimal overhead
+            # Keep only services present in the current priority_queue, then append remaining keys preserving order
+            ordered = [s for s in ordered_services if s in priority_queue]
+            if ordered:
+                remaining = [k for k in priority_queue.keys() if k not in ordered]
+                priority_queue = {k: priority_queue[k] for k in (*ordered, *remaining)}
+
             for service in ordered_services:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
                 print(f'---task_id: {task.get_task_id()}, service: {service}, '
