@@ -660,11 +660,11 @@ class BackendCore:
             ]
         }
         """
-        show_time = time.time() - 2
+        show_time = time.time() - 3
         services = KubeConfig.get_node_services_dict()[node]
         tasks: list[Task] = self.task_results_for_priority.get_all()
         total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])
-        show_time = time.time() - total_time_list[len(total_time_list) // 2] if total_time_list else 0
+        show_time = show_time - min(total_time_list[len(total_time_list) // 2],2) if total_time_list else 0
         print('*** current time: ', time.time())
         print('*** show_time: ', show_time)
         print('*** control interval: ', total_time_list[len(total_time_list) // 2] if total_time_list else 0)
