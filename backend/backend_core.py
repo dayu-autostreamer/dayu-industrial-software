@@ -691,6 +691,5 @@ class BackendCore:
                         'urgency': task.get_service(service).get_urgency(),
                         'priority': task.get_service(service).get_priority()
                     })
-                    break
 
         return priority_queue
