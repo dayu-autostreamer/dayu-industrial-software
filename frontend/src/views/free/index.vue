@@ -34,7 +34,7 @@
 
     <!-- Time Range Selection Row -->
     <el-row :gutter="15" class="time-range-row mb15">
-      <el-col :xs="22" :sm="22" :md="10" :lg="7" :xl="7">
+      <el-col :xs="24" :sm="24" :md="8" :lg="7" :xl="7">
         <div class="home-card-item time-range-container">
           <div class="time-range-label">开始时间：</div>
           <el-date-picker
@@ -48,7 +48,7 @@
           />
         </div>
       </el-col>
-      <el-col :xs="22" :sm="22" :md="10" :lg="7" :xl="7">
+      <el-col :xs="24" :sm="24" :md="8" :lg="7" :xl="7">
         <div class="home-card-item time-range-container">
           <div class="time-range-label">结束时间：</div>
           <el-date-picker
@@ -62,33 +62,45 @@
           />
         </div>
       </el-col>
-      <el-col :xs="28" :sm="28" :md="16" :lg="10" :xl="10">
+      <el-col :xs="24" :sm="24" :md="8" :lg="10" :xl="10">
         <div class="home-card-item time-range-actions">
-          <el-button
-              type="primary"
-              :disabled="!timeRange.start || !timeRange.end"
-              @click="applyTimeRange"
-          >
-            应用区间
-          </el-button>
-          <el-button
-              type="info"
-              @click="clearTimeRange"
-          >
-            清除区间
-          </el-button>
-          <el-button
-              @click="resetTimeRange"
-          >
-            重置为当前
-          </el-button>
+          <div class="time-actions-buttons">
+            <el-button
+                type="primary"
+                :disabled="!timeRange.start || !timeRange.end"
+                @click="applyTimeRange"
+            >
+              应用区间
+            </el-button>
+            <el-button
+                type="info"
+                @click="clearTimeRange"
+            >
+              清除区间
+            </el-button>
+            <el-button
+                @click="resetTimeRange"
+            >
+              重置为当前
+            </el-button>
+          </div>
 
-          <span class="time-range-hint" v-if="!isTimeRangeApplied">
-            （时间区间未应用）
-          </span>
-          <span class="time-range-hint applied" v-else>
-            （已应用：{{ formatTimeRangeDisplay() }}）
-          </span>
+          <div class="time-actions-status" v-if="!isTimeRangeApplied">
+            <el-tooltip content="时间区间未应用" placement="top">
+              <el-tag type="warning" effect="plain" class="time-range-tag">
+                <span class="status-prefix">未应用</span>
+                <span class="status-text">请选择时间区间后点击“应用区间”</span>
+              </el-tag>
+            </el-tooltip>
+          </div>
+          <div class="time-actions-status" v-else>
+            <el-tooltip :content="formatTimeRangeDisplay()" placement="top">
+              <el-tag type="success" effect="plain" class="time-range-tag">
+                <span class="status-prefix">已应用：</span>
+                <span class="status-text">{{ formatTimeRangeDisplay() }}</span>
+              </el-tag>
+            </el-tooltip>
+          </div>
         </div>
       </el-col>
     </el-row>
@@ -671,14 +683,55 @@ export default {
   gap: 10px;
 }
 
-.time-range-hint {
-  margin-left: 10px;
-  color: #f56c6c;
-  font-size: 12px;
+/* 按钮区域允许换行，避免拥挤 */
+.time-actions-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.time-range-hint.applied {
-  color: #67c23a;
+/* 状态区域在宽屏时靠右，窄屏时换到下一行 */
+.time-actions-status {
+  margin-left: auto;
+  min-width: 200px;
+  max-width: 60%;
+  display: flex;
+  align-items: center;
+}
+
+/* 统一的状态样式（使用 Tag 更紧凑）*/
+.time-range-tag {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.status-prefix {
+  color: var(--el-text-color-regular);
+  margin-right: 4px;
+}
+
+.status-text {
+  display: inline-block;
+  max-width: 70%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* 窄屏：状态单独占一行，铺满 */
+@media (max-width: 992px) {
+  .time-actions-status {
+    flex-basis: 100%;
+    margin-left: 0;
+    max-width: 100%;
+  }
+  .status-text {
+    max-width: 100%;
+  }
 }
 
 .viz-controls-row {
@@ -789,7 +842,7 @@ export default {
 }
 
 .loading-overlay span {
-  color: var(--el-color-primary);
+  color: var(--el-color-primary, #409EFF);
   font-weight: 500;
 }
 
