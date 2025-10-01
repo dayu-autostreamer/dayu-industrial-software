@@ -28,6 +28,8 @@ services:
   !include services.yaml
 result-visualizations:
   !include result-visualizations.yaml
+free-visualizations:
+  !include free-visualizations.yaml
 system-visualizations:
   !include system-visualizations.yaml
 

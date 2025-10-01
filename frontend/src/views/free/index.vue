@@ -22,25 +22,6 @@
                 />
               </el-select>
 
-              <el-button
-                  ref="uploadButton"
-                  type="primary"
-                  :disabled="!selectedDataSource"
-                  @click="triggerConfigUpload"
-                  style="margin-left: 15px"
-              >
-                上传配置
-                <template #loading>
-                  <i class="el-icon-loading"></i>
-                </template>
-              </el-button>
-
-              <input
-                  ref="uploadInput"
-                  type="file"
-                  hidden
-                  @change="handleFileUpload"
-              >
             </div>
             <div v-if="isSourceLoading" class="loading-overlay">
               <i class="el-icon-loading"></i>
@@ -399,41 +380,6 @@ export default {
       return sortedA.every((val, i) => val === sortedB[i]);
     },
 
-    triggerConfigUpload() {
-      if (!this.selectedDataSource) return
-      this.$refs.uploadInput.value = null
-      this.$refs.uploadInput.click()
-    },
-
-    async handleFileUpload(event) {
-      const file = event.target.files[0]
-      if (!file) return
-
-      try {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        this.$refs.uploadButton.loading = true
-
-        fetch(`/api/result_visualization_config/${this.selectedDataSource}`, {
-          method: 'POST',
-          body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-              const state = data['state']
-              const msg = data['msg']
-              this.fetchVisualizationConfig(this.selectedDataSource)
-              this.showMsg(state, msg);
-            })
-      } catch (error) {
-        ElMessage.error("System Error")
-        console.log(error);
-      } finally {
-        this.$refs.uploadButton.loading = false
-      }
-    },
-
     async handleSourceChange(sourceId) {
       if (!sourceId || !this.dataSourceList.some(s => s.id === sourceId)) {
         console.error('Invalid source selection')
@@ -578,7 +524,7 @@ export default {
 
     async fetchVisualizationConfig(sourceId) {
       try {
-        const response = await fetch(`/api/result_visualization_config/${sourceId}`)
+        const response = await fetch(`/api/free_visualization_config/`)
         const data = await response.json()
 
         const processedConfig = data.map(viz => reactive({
@@ -610,7 +556,7 @@ export default {
 
     async getLatestResultData() {
       try {
-        const response = await fetch('/api/freetask_result')
+        const response = await fetch('/api/free_task_result')
         const data = await response.json()
 
         const newCache = {}
@@ -631,10 +577,8 @@ export default {
                 }))
               }))
 
-          // 🔄 直接替换，不再拼接 slice
           newCache[sourceId] = validTasks
 
-          // 检查可视化配置是否需要更新
           tasks.forEach(task => {
             task.data?.forEach(item => {
               const vizId = String(item.id)
@@ -655,23 +599,9 @@ export default {
         })
 
         this.bufferedTaskCache = newCache
-
-        if (Object.keys(configUpdates).length > 0) {
-          this.handleConfigUpdates(configUpdates)
-        }
       } catch (error) {
         console.error('Error fetching task results:', error)
       }
-    },
-
-
-    setupDataPolling() {
-      // 仅在初始化时获取一次数据，不设置定时器
-      this.getLatestResultData()
-      // 移除自动轮询
-      // this.pollingInterval = setInterval(() => {
-      //   this.getLatestResultData()
-      // }, 2000)
     },
 
     showMsg(state, msg) {
