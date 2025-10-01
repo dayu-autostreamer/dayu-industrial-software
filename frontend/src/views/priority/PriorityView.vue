@@ -51,12 +51,7 @@
                 <span>只看非空</span>
               </label>
               <div class="actions-right">
-                <!-- 新增：每条展开队列行高调节 -->
-                <label class="laneheight">
-                  <span>行高</span>
-                  <input type="range" min="160" max="400" step="20" v-model.number="laneHeight" />
-                  <span class="val">{{ laneHeight }}px</span>
-                </label>
+                <!-- 行高调节条已移除，laneHeight 固定为160 -->
                 <span class="sep">|</span>
                 <button class="text-btn" @click="expandAll(svc)">展开全部</button>
                 <span class="sep">|</span>
@@ -99,7 +94,7 @@
                         :title="taskTooltip(task)"
                     >
                       <div class="chip-top">
-                        <span class="chip-id">#{{ safe(task.task_id) }}</span>
+                        <span class="chip-id">SRC{{ safe(task.source_id) }} #{{ safe(task.task_id) }}</span>
                         <div class="chip-badges">
                           <span
                               class="tag imp"
@@ -114,9 +109,6 @@
                             U: {{ displayLevel(task.urgency) }}
                           </span>
                         </div>
-                      </div>
-                      <div class="chip-bottom">
-                        <span class="meta">src: {{ safe(task.source_id) }}</span>
                       </div>
                     </div>
 
@@ -180,8 +172,22 @@ export default {
       // 展开状态映射：{ [svc]: { [idx]: true } }
       expanded: {},
       // 展开时，每条队列固定可视高度（px）——默认与滑块最小值一致
-      laneHeight: 160
+      laneHeight: 160 // 固定为160
     };
+  },
+  created() {
+    // 默认全部展开
+    if (this.queue_result && Object.keys(this.queue_result).length) {
+      const expanded = {};
+      Object.keys(this.queue_result).forEach(svc => {
+        const lanes = this.queue_result[svc] || [];
+        expanded[svc] = {};
+        for (let i = 0; i < lanes.length; i++) {
+          expanded[svc][i] = true;
+        }
+      });
+      this.expanded = expanded;
+    }
   },
   computed: {
     // 是否已选择 node
@@ -502,16 +508,7 @@ export default {
       }
       /* 行高调节控件样式 */
       .laneheight {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
-        input[type='range']{
-          width: 120px;
-          accent-color: var(--el-color-primary);
-        }
-        .val{ color: var(--el-text-color-regular); min-width: 54px; text-align: right; }
+        display: none;
       }
     }
   }
@@ -614,9 +611,12 @@ export default {
 .tasks-scroller {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   overflow-x: auto;
+  min-height: var(--lane-height, 160px);
+  width: 400px; /* 固定宽度，避免因任务数量不同导致宽度变化 */
+  max-width: 400px;
   padding: 6px;
   border-radius: 8px;
   background: var(--el-color-white);
