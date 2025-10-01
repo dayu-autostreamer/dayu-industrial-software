@@ -678,6 +678,7 @@ export default {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap; /* 窄屏按钮可换行 */
+  justify-content: flex-end; /* 右对齐按钮 */
 }
 
 .time-range-label {
