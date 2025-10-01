@@ -43,30 +43,45 @@
                 <span class="stat muted">暂无数据</span>
               </template>
             </div>
+
+            <div class="service-actions">
+              <label class="toggle">
+                <input type="checkbox" v-model="onlyNonEmpty" />
+                <span>只看非空</span>
+              </label>
+              <div class="actions-right">
+                <button class="text-btn" @click="expandAll(svc)">展开全部</button>
+                <span class="sep">|</span>
+                <button class="text-btn" @click="collapseAll(svc)">折叠全部</button>
+              </div>
+            </div>
           </div>
 
           <!-- 队列纵向排列；优先显示 priority_num 条（P0..P(n-1)） -->
           <template v-if="queueCount > 0">
             <div class="queues-list">
               <div
-                  v-for="idx in queueCount"
+                  v-for="idx in queueIndices(svc)"
                   :key="idx"
                   class="queue-lane"
-                  :class="{'is-empty': getQueue(svc, idx-1).length === 0}"
+                  :class="{'is-empty': getQueue(svc, idx).length === 0}"
               >
                 <div class="lane-header">
-                  <span class="lane-title">P{{ idx - 1 }}</span>
-                  <span v-if="getQueue(svc, idx-1).length === 0" class="lane-badge">空</span>
-                  <span v-else class="lane-count">{{ getQueue(svc, idx - 1).length }} 项</span>
+                  <span class="lane-title">P{{ idx }}</span>
+                  <div class="lane-right">
+                    <span v-if="getQueue(svc, idx).length === 0" class="lane-badge">空</span>
+                    <span v-else class="lane-count">{{ getQueue(svc, idx).length }} 项</span>
+                    <button class="lane-toggle" @click="toggleLane(svc, idx)">{{ isExpanded(svc, idx) ? '收起' : '展开' }}</button>
+                  </div>
                 </div>
 
                 <!-- 单条优先级队列：队首 → 队尾 -->
                 <div class="lane-track">
                   <div class="arrow-head">队首</div>
 
-                  <div class="tasks-scroller">
+                  <div class="tasks-scroller" :class="{ wrap: isExpanded(svc, idx) }">
                     <div
-                        v-for="(task, tIndex) in getQueue(svc, idx-1)"
+                        v-for="(task, tIndex) in getQueue(svc, idx)"
                         :key="tIndex"
                         class="task-chip"
                         :title="taskTooltip(task)"
@@ -94,7 +109,7 @@
                     </div>
 
                     <!-- 空队列占位，保持“形状” -->
-                    <div v-if="getQueue(svc, idx-1).length === 0" class="empty-placeholder">
+                    <div v-if="getQueue(svc, idx).length === 0" class="empty-placeholder">
                       <span>（空队列）</span>
                     </div>
                   </div>
@@ -143,6 +158,14 @@ export default {
       type: [String, null],
       default: null
     }
+  },
+  data() {
+    return {
+      // 只显示非空队列（作用于当前组件内所有 service 卡片）
+      onlyNonEmpty: false,
+      // 展开状态映射：{ [svc]: { [idx]: true } }
+      expanded: {}
+    };
   },
   computed: {
     // 是否已选择 node
@@ -253,6 +276,31 @@ export default {
       const h = kind === 'imp' ? 0 : 210;
       const s = kind === 'imp' ? 78 : 72;
       return {background: this.hslColor(h, s, t), color: '#fff'};
+    },
+    // ===== 新增：可见队列索引（支持“只看非空”） =====
+    queueIndices(svc) {
+      const all = Array.from({ length: this.queueCount }, (_, i) => i);
+      if (!this.onlyNonEmpty) return all;
+      return all.filter(i => this.getQueue(svc, i).length > 0);
+    },
+    // ===== 新增：展开/折叠状态 & 操作 =====
+    isExpanded(svc, idx) {
+      return !!(this.expanded[svc] && this.expanded[svc][idx]);
+    },
+    toggleLane(svc, idx) {
+      const svcMap = this.expanded[svc] ? { ...this.expanded[svc] } : {};
+      svcMap[idx] = !svcMap[idx];
+      this.expanded = { ...this.expanded, [svc]: svcMap };
+    },
+    expandAll(svc) {
+      const map = {};
+      for (let i = 0; i < this.queueCount; i++) {
+        if (!this.onlyNonEmpty || this.getQueue(svc, i).length > 0) map[i] = true;
+      }
+      this.expanded = { ...this.expanded, [svc]: map };
+    },
+    collapseAll(svc) {
+      this.expanded = { ...this.expanded, [svc]: {} };
     }
   }
 };
@@ -390,6 +438,43 @@ export default {
       color: var(--el-text-color-disabled);
     }
   }
+
+  /* 新增：视图控制条 */
+  .service-actions {
+    width: 100%;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      input { transform: translateY(1px); }
+    }
+
+    .actions-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      .sep { color: var(--el-text-color-disabled); }
+      .text-btn {
+        font-size: 12px;
+        color: var(--el-text-color-regular);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 2px 4px;
+      }
+      .text-btn:hover {
+        color: var(--el-text-color-primary);
+        text-decoration: underline;
+      }
+    }
+  }
 }
 
 /* 队列纵向列表：service 卡片内部可纵向滚动 */
@@ -445,13 +530,28 @@ export default {
     border-radius: 999px;
     border: 1px dashed #dcdfe6;
   }
+
+  .lane-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .lane-toggle {
+    font-size: 12px;
+    background: #fff;
+    border: 1px solid var(--next-border-color-light);
+    border-radius: 999px;
+    padding: 2px 8px;
+    cursor: pointer;
+  }
 }
 
 /* 轨道：左“队首” → 右“队尾”；任务横向滚动 */
 .lane-track {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  align-items: stretch;
+  align-items: start; /* 允许中间区域按需增高 */
   gap: 8px;
   padding: 10px;
 
@@ -485,6 +585,17 @@ export default {
     margin-left: auto;
     font-size: 12px;
     color: var(--el-text-color-secondary);
+  }
+
+  /* 展开态：多行换行 + 纵向滚动，完整展示内容 */
+  &.wrap {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 260px; /* 展开后的最大高度，可按需调整 */
+    row-gap: 8px;
+    padding-right: 10px;
   }
 }
 
