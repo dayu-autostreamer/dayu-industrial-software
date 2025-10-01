@@ -2,7 +2,7 @@
   <div class="home-container layout-pd">
     <!-- Data Source Selection Row -->
     <el-row :gutter="15" class="home-card-two mb15">
-      <el-col :xs="24" :sm="24" :md="20" :lg="20" :xl="20">
+      <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
         <div class="home-card-item data-source-container"
              :class="{ 'source-loading': isSourceLoading }">
           <div class="flex-margin flex w100">
@@ -49,22 +49,11 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="24" :sm="24" :md="4" :lg="4" :xl="4">
-        <div class="home-card-item export-container">
-          <el-button
-              type="primary"
-              class="export-button"
-              @click="exportTaskLog"
-          >
-            导出日志
-          </el-button>
-        </div>
-      </el-col>
     </el-row>
 
     <!-- Time Range Selection Row -->
     <el-row :gutter="15" class="time-range-row mb15">
-      <el-col :xs="24" :sm="24" :md="12" :lg="8" :xl="6">
+      <el-col :xs="22" :sm="22" :md="10" :lg="7" :xl="7">
         <div class="home-card-item time-range-container">
           <div class="time-range-label">开始时间：</div>
           <el-date-picker
@@ -78,7 +67,7 @@
           />
         </div>
       </el-col>
-      <el-col :xs="24" :sm="24" :md="12" :lg="8" :xl="6">
+      <el-col :xs="22" :sm="22" :md="10" :lg="7" :xl="7">
         <div class="home-card-item time-range-container">
           <div class="time-range-label">结束时间：</div>
           <el-date-picker
@@ -92,26 +81,27 @@
           />
         </div>
       </el-col>
-      <el-col :xs="24" :sm="24" :md="24" :lg="8" :xl="12">
+      <el-col :xs="28" :sm="28" :md="16" :lg="10" :xl="10">
         <div class="home-card-item time-range-actions">
           <el-button
               type="primary"
               :disabled="!timeRange.start || !timeRange.end"
               @click="applyTimeRange"
           >
-            应用时间区间
-          </el-button>
-          <el-button
-              @click="resetTimeRange"
-          >
-            重置为当前时间并应用
+            应用区间
           </el-button>
           <el-button
               type="info"
               @click="clearTimeRange"
           >
-            清除时间区间
+            清除区间
           </el-button>
+          <el-button
+              @click="resetTimeRange"
+          >
+            重置为当前
+          </el-button>
+
           <span class="time-range-hint" v-if="!isTimeRangeApplied">
             （时间区间未应用）
           </span>
@@ -178,7 +168,7 @@
                 :variable-states="variableStates[selectedDataSource]?.[viz.id] || {}"
             />
             <div v-else-if="!isTimeRangeApplied" class="no-data-prompt">
-              <el-empty description="请先选择并应用时间区间以显示数据" />
+              <el-empty description="请先选择并应用时间区间以显示数据"/>
             </div>
           </div>
         </el-col>
@@ -208,7 +198,7 @@ export default {
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-    
+
     return {
       selectedDataSource: null,
       dataSourceList: [],
@@ -224,7 +214,7 @@ export default {
 
       isSourceLoading: false,
       isUploading: false,
-      
+
       // 新增时间区间相关数据
       timeRange: {
         start: Math.floor(startOfDay.getTime() / 1000), // 转换为秒级时间戳
@@ -237,7 +227,7 @@ export default {
   computed: {
     processedData() {
       const result = {}
-      
+
       // 如果时间区间未应用，返回空数据
       if (!this.isTimeRangeApplied) {
         this.currentVisualizationConfig.forEach(viz => {
@@ -245,7 +235,7 @@ export default {
         })
         return result
       }
-      
+
       this.currentVisualizationConfig.forEach(viz => {
         result[viz.id] = this.processVizData(viz)
       })
@@ -315,7 +305,7 @@ export default {
       }
       return false;
     },
-    
+
     disabledEndDate(time) {
       // 结束时间不能早于当前开始时间
       if (this.timeRange.start) {
@@ -323,31 +313,31 @@ export default {
       }
       return false;
     },
-    
+
     handleTimeRangeChange() {
       // 时间选择变化时，自动取消应用状态
       this.isTimeRangeApplied = false;
     },
-    
+
     applyTimeRange() {
       if (!this.timeRange.start || !this.timeRange.end) {
         ElMessage.warning('请选择完整的时间区间');
         return;
       }
-      
+
       if (this.timeRange.start >= this.timeRange.end) {
         ElMessage.warning('开始时间必须早于结束时间');
         return;
       }
-      
+
       this.appliedTimeRange = {
         start: this.timeRange.start,
         end: this.timeRange.end
       };
       this.isTimeRangeApplied = true;
-      
+
       ElMessage.success(`时间区间已应用: ${this.formatTimeRangeDisplay()}`);
-      
+
       // 应用时间区间后获取最新数据
       this.getLatestResultData().then(() => {
         // 数据更新后强制更新图表
@@ -356,39 +346,39 @@ export default {
         });
       });
     },
-    
+
     async resetTimeRange() {
       const now = new Date();
       const endTime = now;
-      const startTime = new Date(now.getTime() - 5 * 1000); 
+      const startTime = new Date(now.getTime() - 5 * 1000);
 
-      this.timeRange.start = Math.floor(startTime.getTime() / 1000); 
+      this.timeRange.start = Math.floor(startTime.getTime() / 1000);
       this.timeRange.end = Math.floor(endTime.getTime() / 1000);
-      
+
       this.applyTimeRange();
     },
-    
+
     clearTimeRange() {
       this.timeRange.start = null;
       this.timeRange.end = null;
       this.isTimeRangeApplied = false;
       this.appliedTimeRange = {};
-      
+
       ElMessage.info('时间区间已清除');
     },
-    
+
     formatTimeRangeDisplay() {
       if (!this.appliedTimeRange.start || !this.appliedTimeRange.end) {
         return '';
       }
-      
+
       const startDate = new Date(this.appliedTimeRange.start * 1000);
       const endDate = new Date(this.appliedTimeRange.end * 1000);
-      
+
       const formatTime = (date) => {
         return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
       };
-      
+
       return `${formatTime(startDate)} 至 ${formatTime(endDate)}`;
     },
 
@@ -408,7 +398,7 @@ export default {
       const sortedB = [...b].sort();
       return sortedA.every((val, i) => val === sortedB[i]);
     },
-    
+
     triggerConfigUpload() {
       if (!this.selectedDataSource) return
       this.$refs.uploadInput.value = null
@@ -443,7 +433,7 @@ export default {
         this.$refs.uploadButton.loading = false
       }
     },
-    
+
     async handleSourceChange(sourceId) {
       if (!sourceId || !this.dataSourceList.some(s => s.id === sourceId)) {
         console.error('Invalid source selection')
@@ -471,7 +461,7 @@ export default {
         emitter.emit('force-update-charts')
       })
     },
-    
+
     getVisualizationSpan(size, breakpoint) {
       const baseSize = size || 1
       switch (breakpoint) {
@@ -483,7 +473,7 @@ export default {
           return baseSize > 1 ? 24 : 8
       }
     },
-    
+
     async autoRegisterComponents() {
       try {
         const modules = import.meta.glob('./visualization/*Template.vue')
@@ -521,23 +511,23 @@ export default {
       if (!sourceId || !this.bufferedTaskCache[sourceId]) return []
 
       const validVizIds = new Set(this.currentVisualizationConfig.map(v => String(v.id)))
-      
+
       // 根据应用的时间区间过滤数据
       const filteredData = this.bufferedTaskCache[sourceId]
           .filter(task => {
             // 检查任务是否在时间区间内
             const taskTime = task.task_start_time;
             if (taskTime === 'unknown') return false;
-            
+
             const taskTimestamp = parseInt(taskTime);
             if (isNaN(taskTimestamp)) return false;
-            
+
             if (this.isTimeRangeApplied && this.appliedTimeRange.start && this.appliedTimeRange.end) {
               if (taskTimestamp < this.appliedTimeRange.start || taskTimestamp > this.appliedTimeRange.end) {
                 return false;
               }
             }
-            
+
             return task.data?.some(item =>
                 validVizIds.has(String(item.id)) &&
                 String(item.id) === String(vizConfig.id))
@@ -631,15 +621,15 @@ export default {
           if (!Array.isArray(tasks)) return
 
           const validTasks = tasks
-            .filter(task => task?.task_id && Array.isArray(task.data))
-            .map(task => ({
-              task_id: task.task_id,
-              task_start_time: task.task_start_time || 'unknown',
-              data: task.data.map(item => ({
-                id: String(item.id) || 'unknown',
-                data: item.data || {}
+              .filter(task => task?.task_id && Array.isArray(task.data))
+              .map(task => ({
+                task_id: task.task_id,
+                task_start_time: task.task_start_time || 'unknown',
+                data: task.data.map(item => ({
+                  id: String(item.id) || 'unknown',
+                  data: item.data || {}
+                }))
               }))
-            }))
 
           // 🔄 直接替换，不再拼接 slice
           newCache[sourceId] = validTasks
@@ -651,7 +641,7 @@ export default {
               const newVariables = Object.keys(item.data || {})
 
               const vizConfig = (this.visualizationConfig[sourceId] || [])
-                .find(v => v.id === vizId)
+                  .find(v => v.id === vizId)
 
               if (vizConfig && !this.arraysEqual(vizConfig.variables, newVariables)) {
                 configUpdates[sourceId] = configUpdates[sourceId] || []
@@ -682,20 +672,6 @@ export default {
       // this.pollingInterval = setInterval(() => {
       //   this.getLatestResultData()
       // }, 2000)
-    },
-
-    exportTaskLog() {
-      fetch('/api/download_log')
-          .then(response => response.blob())
-          .then(blob => {
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.setAttribute('download', 'task_log.json')
-            document.body.appendChild(link)
-            link.click()
-            link.remove()
-          })
     },
 
     showMsg(state, msg) {
@@ -730,14 +706,6 @@ export default {
   padding: 8px 12px;
 }
 
-.export-container {
-  height: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-}
-
 .compact-select {
   width: 70%;
 }
@@ -747,10 +715,6 @@ export default {
   line-height: 32px;
 }
 
-.export-button {
-  width: 100%;
-  padding: 8px 12px;
-}
 
 /* 时间区间选择器样式 */
 .time-range-row {
