@@ -568,8 +568,8 @@ class BackendServer:
         self.server.source_label = source_label
         source_ids = self.server.get_source_ids()
         for source_id in source_ids:
-            self.server.task_results[source_id] = Queue(20)
-            self.server.freetask_results[source_id] = Queue(20000)
+            self.server.freetask_results[source_id] = Queue(10000)
+            self.server.task_results[source_id] = Queue(self.server.buffered_result_size)
 
         time.sleep((len(source_ids) - 1) * 4)
 
@@ -652,7 +652,7 @@ class BackendServer:
         source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
         for source in source_config['source_list']:
             source_id = source['id']
-            ans[source_id] = self.server.task_results[source_id].get_all()
+            ans[source_id] = self.server.fetch_visualization_data(source_id)
 
         return ans
 
@@ -675,7 +675,7 @@ class BackendServer:
         source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
         for source in source_config['source_list']:
             source_id = source['id']
-            ans[source_id] = self.server.freetask_results[source_id].get_all_without_drop()
+            ans[source_id] = self.server.fetch_freetask_visualization_data(source_id)
 
         return ans
 
@@ -758,8 +758,6 @@ class BackendServer:
         }
         """
         return self.server.get_priority_info()
-
-
 
     async def get_priority_queue(self, node):
         """

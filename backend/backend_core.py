@@ -7,7 +7,9 @@ import os
 import time
 from core.lib.content import Task
 from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig, Queue
+from core.lib.common import ConfigBoundInstanceCache
 from core.lib.network import http_request, NodeInfo, PortInfo, merge_address, NetworkAPIPath, NetworkAPIMethod
+from core.lib.estimation import Timer
 
 from kube_helper import KubeHelper
 from template_helper import TemplateHelper
@@ -26,12 +28,21 @@ class BackendCore:
         self.result_visualization_configs = None
         self.system_visualization_configs = None
         self.customized_source_result_visualization_configs = {}
+        self.visualization_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'RESULT_VISUALIZER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {}),
+                variables=vf['variables']
+            )
+        )
 
         self.source_configs = []
 
         self.dags = []
 
         self.time_ticket = 0
+        self.buffered_result_size = 20
 
         self.result_url = None
         self.result_file_url = None
@@ -46,8 +57,9 @@ class BackendCore:
         self.task_results = {}
 
         self.freetask_results = {}
+        self.freetask_vis_results = []
 
-        self.task_results_for_priority = Queue()
+        self.task_results_for_priority = Queue(self.buffered_result_size)
         self.priority_task_buffer = []
 
 
@@ -354,23 +366,24 @@ class BackendCore:
 
         return source_ids
 
-    def prepare_result_visualization_data(self, task):
+    def prepare_result_visualization_data(self, task, is_last=False):
         source_id = task.get_source_id()
         if source_id in self.customized_source_result_visualization_configs:
-            visualizations = self.customized_source_result_visualization_configs[source_id]
+            viz_configs = self.customized_source_result_visualization_configs[source_id]
         else:
-            visualizations = self.result_visualization_configs[task.get_source_type()] \
+            viz_configs = self.result_visualization_configs[task.get_source_type()] \
                 if (self.result_visualization_configs['allow-flexible-switch'] and
                     task.get_source_type() in self.result_visualization_configs) \
                 else self.result_visualization_configs['base']
+
+        viz_functions = self.visualization_cache.sync_and_get(viz_configs)
         visualization_data = []
-        for idx, vf in enumerate(visualizations):
+        for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
             try:
-                al_name = vf['hook_name']
-                al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
-                al_params.update({'variables': vf['variables']})
-                vf_func = Context.get_algorithm('RESULT_VISUALIZER', al_name=al_name, **al_params)
-                visualization_data.append({"id": idx, "data": vf_func(task)})
+                if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
+                    visualization_data.append({"id": idx, "data": {v:None for v in viz_config['variables']}})
+                else:
+                    visualization_data.append({"id": idx, "data": viz_func(task)})
             except Exception as e:
                 LOGGER.warning(f'Failed to load result visualization data: {e}')
                 LOGGER.exception(e)
@@ -392,48 +405,72 @@ class BackendCore:
 
         return visualization_data
 
-    #TODO 在这里加入时间戳信息
     def parse_task_result(self, results):
         for result in results:
             if result is None or result == '':
                 continue
-
             task = Task.deserialize(result)
-
             source_id = task.get_source_id()
-            task_id = task.get_task_id()
-            task_start_time = task.get_total_start_time()   #add start time info
-            
-            file_path = self.get_file_result(task.get_file_path())
             LOGGER.debug(task.get_delay_info())
-
-            try:
-                visualization_data = self.prepare_result_visualization_data(task)
-            except Exception as e:
-                LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
-                LOGGER.exception(e)
-                continue
-
-            if os.path.exists(file_path):
-                os.remove(file_path)
 
             if not self.source_open:
                 break
 
-            self.task_results[source_id].put_all([{
-                'task_id': task_id,
-                'data': visualization_data,
-            }])
+            self.task_results[source_id].put(copy.deepcopy(task))
+            self.task_results_for_priority.put(copy.deepcopy(task))
+            self.freetask_results[source_id].put(copy.deepcopy(task))
 
-            freetask_data = [item for item in visualization_data if not any(k in item.get('data', {}) for k in ['image', 'topology'])]
+    def fetch_visualization_data(self, source_id):
+        assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
+        tasks = self.task_results[source_id].get_all()
+        vis_results = []
 
-            self.freetask_results[source_id].put_all([{
-                'task_id': task_id,
-                'task_start_time': task_start_time,
-                'data': freetask_data,
-            }])
+        with Timer(f'Visualization preparation for {len(tasks)} tasks'):
+            for idx, task in enumerate(tasks):
+                file_path = self.get_file_result(task.get_file_path())
+                try:
+                    visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
+                except Exception as e:
+                    LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
+                    LOGGER.exception(e)
+                    continue
 
-            self.task_results_for_priority.put_all([copy.deepcopy(task)])
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
+                vis_results.append({
+                    'task_id': task.get_task_id(),
+                    'data': visualization_data,
+                })
+
+        return vis_results
+    
+    def fetch_freetask_visualization_data(self, source_id):
+        assert source_id in self.freetask_results, f'Source_id {source_id} not found in freetask results!'
+        tasks = self.freetask_results[source_id].get_all()
+
+        with Timer(f'Visualization preparation for {len(tasks)} freetasks'):
+            for idx, task in enumerate(tasks):
+                file_path = self.get_file_result(task.get_file_path())
+                try:
+                    visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
+                except Exception as e:
+                    LOGGER.warning(f'Prepare visualization freetask data failed: {str(e)}')
+                    LOGGER.exception(e)
+                    continue
+
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
+                freetask_data = [item for item in visualization_data if not any(k in item.get('data', {}) for k in ['image', 'topology'])]
+
+                self.freetask_vis_results.append({
+                    'task_id': task.get_task_id(),
+                    'task_start_time': task.get_total_start_time(),
+                    'data': freetask_data,
+                })
+
+        return self.freetask_vis_result[source_id]        
 
     def run_get_result(self):
         time_ticket = 0
@@ -446,7 +483,7 @@ class BackendCore:
                     continue
                 response = http_request(self.result_url,
                                         method=NetworkAPIMethod.DISTRIBUTOR_RESULT,
-                                        json={'time_ticket': time_ticket, 'size': 0})
+                                        json={'time_ticket': time_ticket, 'size': self.buffered_result_size})
 
                 if not response:
                     self.result_url = None
@@ -455,8 +492,8 @@ class BackendCore:
                     continue
 
                 time_ticket = response["time_ticket"]
-                LOGGER.debug(f'time ticket: {time_ticket}')
                 results = response['result']
+                LOGGER.debug(f'Fetch {len(results)} tasks from time ticket: {time_ticket}')
                 self.parse_task_result(results)
 
             except Exception as e:
@@ -656,18 +693,30 @@ class BackendCore:
             ]
         }
         """
-        show_time = time.time() - 5
+        show_time = time.time() - 2
         services = KubeConfig.get_node_services_dict()[node]
-        self.priority_task_buffer.extend(self.task_results_for_priority.get_all())
+        tasks: list[Task] = self.task_results_for_priority.get_all()
+        total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])
+        show_time = time.time() - total_time_list[len(total_time_list) // 2] if total_time_list else 0
+        print('*** current time: ', time.time())
+        print('*** show_time: ', show_time)
+        print('*** control interval: ', total_time_list[len(total_time_list) // 2] if total_time_list else 0)
+        self.priority_task_buffer.extend(tasks)
+
+        for task in self.priority_task_buffer:
+            print(f'---task_id: {task.get_task_id()}, total_end_time: {task.get_total_end_time()}')
         # Filter tasks satisfied time requirements
-        self.priority_task_buffer = [task for task in self.priority_task_buffer if task.get_total_end_time() <= show_time]
+        self.priority_task_buffer = [task for task in self.priority_task_buffer if
+                                     task.get_total_end_time() >= show_time]
         priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
 
         for service in services:
             for task in self.priority_task_buffer:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
-                if task.get(service) and task.get(service).get_execute_device() == node and \
-                        enter_time <= show_time <= quit_time:
+                print(
+                    f'---task_id: {task.get_task_id()}, service: {service}, enter_time: {enter_time}, quit_time: {quit_time}')
+                if task.get_service(service) and task.get_service(service).get_execute_device() == node and \
+                        quit_time >= show_time:
                     priority_queue[service][task.get_service(service).get_priority()].append({
                         'source_id': task.get_source_id(),
                         'task_id': task.get_task_id(),

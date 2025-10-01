@@ -17,8 +17,10 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
     def draw_edges(self, image, lps, rps):
         import cv2
         cv2.putText(image, f'lps:{lps}  rps:{rps}', (50, 50), cv2.FONT_HERSHEY_COMPLEX, 2.0, (208, 2, 27), 5)
-        cv2.line(image, (lps, 300), (lps, 500), (0, 0, 255), 4, 8)
-        cv2.line(image, (rps, 300), (rps, 500), (0, 0, 255), 4, 8)
+        if lps and lps>0:
+            cv2.line(image, (lps, 300), (lps, 500), (0, 0, 255), 4, 8)
+        if rps and rps>0:
+            cv2.line(image, (rps, 300), (rps, 500), (0, 0, 255), 4, 8)
 
         return image
 
@@ -34,7 +36,9 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
         try:
             frame = content['frame']
             image = EncodeOps.decode_image(frame)
-            image = self.draw_edges(image, content['lps'], content['rps'])
+            lps = content['lps'] if 'lps' in content else 0
+            rps = content['rps'] if 'rps' in content else 0
+            image = self.draw_edges(image, lps, rps)
 
             base64_data = EncodeOps.encode_image(image)
         except Exception as e:
@@ -45,4 +49,4 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
             LOGGER.warning(f'Video visualization fetch failed: {str(e)}')
             LOGGER.exception(e)
 
-        return {'image': base64_data}
+        return {self.variables[0]: base64_data}

@@ -358,39 +358,13 @@ export default {
     },
     
     async resetTimeRange() {
-      // 首先获取最新任务数据
-      await this.getLatestResultData();
-      
-      // 获取当前选中数据源的任务
-      const tasks = this.bufferedTaskCache[this.selectedDataSource] || [];
-      
-      // 找到最后一个任务的开始时间
-      let lastTaskStartTime = null;
-      if (tasks.length > 0) {
-        // 按任务开始时间排序（从新到旧）
-        const sortedTasks = [...tasks].sort((a, b) => {
-          return parseInt(b.task_start_time) - parseInt(a.task_start_time);
-        });
-        lastTaskStartTime = sortedTasks[0].task_start_time;
-      }
-      
-      // 如果没有任务数据或任务时间无效，使用当前时间
       const now = new Date();
-      let endTime, startTime;
-      
-      if (lastTaskStartTime && !isNaN(parseInt(lastTaskStartTime))) {
-        endTime = new Date(parseInt(lastTaskStartTime) * 1000);
-      } else {
-        endTime = now;
-      }
-      
-      // 开始时间为结束时间前5秒
-      startTime = new Date(endTime.getTime() - 5 * 1000);
-      
-      this.timeRange.start = Math.floor(startTime.getTime() / 1000); // 转换为秒级时间戳
+      const endTime = now;
+      const startTime = new Date(now.getTime() - 5 * 1000); 
+
+      this.timeRange.start = Math.floor(startTime.getTime() / 1000); 
       this.timeRange.end = Math.floor(endTime.getTime() / 1000);
       
-      // 重置后自动应用时间区间
       this.applyTimeRange();
     },
     
