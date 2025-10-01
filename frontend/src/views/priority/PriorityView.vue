@@ -24,6 +24,7 @@
             v-for="svc in serviceNames"
             :key="svc"
             class="service-card"
+            :class="{ 'expand-all': isAllExpanded(svc) }"
         >
           <!-- service 标题与统计 -->
           <div class="service-header" style="flex-direction: column; align-items: flex-start; gap: 2px;">
@@ -50,6 +51,13 @@
                 <span>只看非空</span>
               </label>
               <div class="actions-right">
+                <!-- 新增：每条展开队列行高调节 -->
+                <label class="laneheight">
+                  <span>行高</span>
+                  <input type="range" min="160" max="400" step="20" v-model.number="laneHeight" />
+                  <span class="val">{{ laneHeight }}px</span>
+                </label>
+                <span class="sep">|</span>
                 <button class="text-btn" @click="expandAll(svc)">展开全部</button>
                 <span class="sep">|</span>
                 <button class="text-btn" @click="collapseAll(svc)">折叠全部</button>
@@ -59,7 +67,7 @@
 
           <!-- 队列纵向排列；优先显示 priority_num 条（P0..P(n-1)） -->
           <template v-if="queueCount > 0">
-            <div class="queues-list">
+            <div class="queues-list" :class="{ 'expand-all': isAllExpanded(svc) }">
               <div
                   v-for="idx in queueIndices(svc)"
                   :key="idx"
@@ -79,7 +87,11 @@
                 <div class="lane-track">
                   <div class="arrow-head">队首</div>
 
-                  <div class="tasks-scroller" :class="{ wrap: isExpanded(svc, idx) }">
+                  <div
+                    class="tasks-scroller"
+                    :class="{ wrap: isExpanded(svc, idx) }"
+                    :style="isExpanded(svc, idx) ? {'--lane-height': laneHeight + 'px'} : null"
+                  >
                     <div
                         v-for="(task, tIndex) in getQueue(svc, idx)"
                         :key="tIndex"
@@ -135,8 +147,10 @@
 </template>
 
 <script>
+import { ElEmpty } from 'element-plus';
 export default {
   name: 'PriorityView',
+  components: { ElEmpty },
   props: {
     // 每个 service 的优先级队列个数（即 level 取值个数）
     priority_num: {
@@ -164,15 +178,17 @@ export default {
       // 只显示非空队列（作用于当前组件内所有 service 卡片）
       onlyNonEmpty: false,
       // 展开状态映射：{ [svc]: { [idx]: true } }
-      expanded: {}
+      expanded: {},
+      // 展开时，每条队列固定可视高度（px）
+      laneHeight: 260
     };
   },
   computed: {
     // 是否已选择 node
     isNodeSelected() {
-      if (this.selectedNode && String(this.selectedNode).trim() !== '') return true;
-      if (this.queue_result && Object.keys(this.queue_result).length > 0) return true;
-      return false;
+      const hasNode = !!(this.selectedNode && String(this.selectedNode).trim() !== '');
+      const hasData = !!(this.queue_result && Object.keys(this.queue_result).length);
+      return hasNode || hasData;
     },
     // service 名列表：在“已选择 node”才展示
     serviceNames() {
@@ -277,15 +293,22 @@ export default {
       const s = kind === 'imp' ? 78 : 72;
       return {background: this.hslColor(h, s, t), color: '#fff'};
     },
-    // ===== 新增：可见队列索引（支持“只看非空”） =====
+    // 可见队列索引（支持“只看非空”）
     queueIndices(svc) {
       const all = Array.from({ length: this.queueCount }, (_, i) => i);
       if (!this.onlyNonEmpty) return all;
       return all.filter(i => this.getQueue(svc, i).length > 0);
     },
-    // ===== 新增：展开/折叠状态 & 操作 =====
+    // 展开状态
     isExpanded(svc, idx) {
       return !!(this.expanded[svc] && this.expanded[svc][idx]);
+    },
+    // 判断某 service 的“可见队列是否全部展开”
+    isAllExpanded(svc) {
+      const idxs = this.queueIndices(svc);
+      if (!idxs.length) return false;
+      const map = this.expanded[svc] || {};
+      return idxs.every(i => !!map[i]);
     },
     toggleLane(svc, idx) {
       const svcMap = this.expanded[svc] ? { ...this.expanded[svc] } : {};
@@ -393,6 +416,10 @@ export default {
     box-shadow: 0 4px 16px var(--next-color-dark-hover);
   }
 }
+/* 展开全部时：解除卡片高度限制，交由页面滚动 */
+.service-card.expand-all {
+  max-height: none;
+}
 
 .service-header {
   display: flex;
@@ -473,6 +500,19 @@ export default {
         color: var(--el-text-color-primary);
         text-decoration: underline;
       }
+      /* 行高调节控件样式 */
+      .laneheight {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        input[type='range']{
+          width: 120px;
+          accent-color: var(--el-color-primary);
+        }
+        .val{ color: var(--el-text-color-regular); min-width: 54px; text-align: right; }
+      }
     }
   }
 }
@@ -484,6 +524,11 @@ export default {
   gap: 12px;
   overflow-y: auto;
   padding-right: 6px; /* 为滚动条留白 */
+}
+/* 展开全部时：不再在卡片内部滚动，由页面滚动 */
+.queues-list.expand-all {
+  overflow-y: visible;
+  max-height: none;
 }
 
 /* 单条优先级队列（轨道） */
@@ -587,13 +632,13 @@ export default {
     color: var(--el-text-color-secondary);
   }
 
-  /* 展开态：多行换行 + 纵向滚动，完整展示内容 */
+  /* 展开态：多行换行 + 纵向滚动，完整展示内容；高度固定便于阅读 */
   &.wrap {
     flex-wrap: wrap;
     align-content: flex-start;
     overflow-x: hidden;
     overflow-y: auto;
-    max-height: 260px; /* 展开后的最大高度，可按需调整 */
+    height: var(--lane-height, 260px);
     row-gap: 8px;
     padding-right: 10px;
   }
