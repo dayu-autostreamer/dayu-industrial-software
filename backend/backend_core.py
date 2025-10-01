@@ -376,7 +376,7 @@ class BackendCore:
         for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
             try:
                 if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
-                    visualization_data.append({"id": idx, "data": {v:None for v in viz_config['variables']}})
+                    visualization_data.append({"id": idx, "data": {v: None for v in viz_config['variables']}})
                 else:
                     visualization_data.append({"id": idx, "data": viz_func(task)})
             except Exception as e:
@@ -423,7 +423,7 @@ class BackendCore:
             for idx, task in enumerate(tasks):
                 file_path = self.get_file_result(task.get_file_path())
                 try:
-                    visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
+                    visualization_data = self.prepare_result_visualization_data(task, idx == len(tasks) - 1)
                 except Exception as e:
                     LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
                     LOGGER.exception(e)
@@ -660,11 +660,10 @@ class BackendCore:
             ]
         }
         """
-        show_time = time.time() - 4
-        services = KubeConfig.get_node_services_dict()[node]
+        device_services = KubeConfig.get_node_services_dict()[node]
         tasks: list[Task] = self.task_results_for_priority.get_all()
         total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])
-        show_time = show_time - min(total_time_list[len(total_time_list) // 2],2) if total_time_list else 0
+        show_time = time.time() - 4 - min(total_time_list[len(total_time_list) // 2], 2) if total_time_list else 0
         print('*** current time: ', time.time())
         print('*** show_time: ', show_time)
         print('*** control interval: ', total_time_list[len(total_time_list) // 2] if total_time_list else 0)
@@ -675,14 +674,17 @@ class BackendCore:
         # Filter tasks satisfied time requirements
         self.priority_task_buffer = [task for task in self.priority_task_buffer if
                                      task.get_total_end_time() >= show_time]
-        priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
+        priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in device_services}
 
-        for service in services:
-            for task in self.priority_task_buffer:
+        for task in self.priority_task_buffer:
+            ordered_services = task.get_topologically_sorted_services()
+            for service in ordered_services:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
-                print(
-                    f'---task_id: {task.get_task_id()}, service: {service}, enter_time: {enter_time}, quit_time: {quit_time}')
-                if task.get_service(service) and task.get_service(service).get_execute_device() == node and \
+                print(f'---task_id: {task.get_task_id()}, service: {service}, '
+                      f'enter_time: {enter_time}, quit_time: {quit_time}')
+                if task.get_service(service) and \
+                        service in device_services and \
+                        task.get_service(service).get_execute_device() == node and \
                         quit_time >= show_time:
                     priority_queue[service][task.get_service(service).get_priority()].append({
                         'source_id': task.get_source_id(),
@@ -691,5 +693,6 @@ class BackendCore:
                         'urgency': task.get_service(service).get_urgency(),
                         'priority': task.get_service(service).get_priority()
                     })
+                    break
 
         return priority_queue
