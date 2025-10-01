@@ -475,6 +475,11 @@ class Task:
 
         return enter_time, quit_time
 
+    def get_topologically_sorted_services(self):
+        assert self.__dag_flow, 'Task DAG is empty!'
+
+        return self.__dag_flow.get_topologically_sorted_services()
+
     def to_dict(self):
         return {
             'source_id': self.get_source_id(),
