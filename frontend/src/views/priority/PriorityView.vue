@@ -179,8 +179,8 @@ export default {
       onlyNonEmpty: false,
       // 展开状态映射：{ [svc]: { [idx]: true } }
       expanded: {},
-      // 展开时，每条队列固定可视高度（px）
-      laneHeight: 260
+      // 展开时，每条队列固定可视高度（px）——默认与滑块最小值一致
+      laneHeight: 160
     };
   },
   computed: {
