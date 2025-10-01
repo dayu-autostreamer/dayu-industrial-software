@@ -32,39 +32,35 @@
       </el-col>
     </el-row>
 
-    <!-- Time Range Selection Row -->
+    <!-- Time Range Selection Row (refactored into a single grid) -->
     <el-row :gutter="15" class="time-range-row mb15">
-      <el-col :xs="24" :sm="24" :md="8" :lg="7" :xl="7">
-        <div class="home-card-item time-range-container">
-          <div class="time-range-label">开始时间：</div>
-          <el-date-picker
-              v-model="timeRange.start"
-              type="datetime"
-              placeholder="选择开始时间"
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="X"
-              :disabled-date="disabledStartDate"
-              @change="handleTimeRangeChange"
-          />
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="8" :lg="7" :xl="7">
-        <div class="home-card-item time-range-container">
-          <div class="time-range-label">结束时间：</div>
-          <el-date-picker
-              v-model="timeRange.end"
-              type="datetime"
-              placeholder="选择结束时间"
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="X"
-              :disabled-date="disabledEndDate"
-              @change="handleTimeRangeChange"
-          />
-        </div>
-      </el-col>
-      <el-col :xs="24" :sm="24" :md="8" :lg="10" :xl="10">
-        <div class="home-card-item time-range-actions">
-          <div class="time-actions-buttons">
+      <el-col :span="24">
+        <div class="home-card-item time-range-grid">
+          <div class="time-cell time-start">
+            <span class="time-range-label">开始时间：</span>
+            <el-date-picker
+                v-model="timeRange.start"
+                type="datetime"
+                placeholder="选择开始时间"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="X"
+                :disabled-date="disabledStartDate"
+                @change="handleTimeRangeChange"
+            />
+          </div>
+          <div class="time-cell time-end">
+            <span class="time-range-label">结束时间：</span>
+            <el-date-picker
+                v-model="timeRange.end"
+                type="datetime"
+                placeholder="选择结束时间"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="X"
+                :disabled-date="disabledEndDate"
+                @change="handleTimeRangeChange"
+            />
+          </div>
+          <div class="time-cell time-actions">
             <el-button
                 type="primary"
                 :disabled="!timeRange.start || !timeRange.end"
@@ -84,22 +80,23 @@
               重置为当前
             </el-button>
           </div>
-
-          <div class="time-actions-status" v-if="!isTimeRangeApplied">
-            <el-tooltip content="时间区间未应用" placement="top">
-              <el-tag type="warning" effect="plain" class="time-range-tag">
-                <span class="status-prefix">未应用</span>
-                <span class="status-text">请选择时间区间后点击“应用区间”</span>
-              </el-tag>
-            </el-tooltip>
-          </div>
-          <div class="time-actions-status" v-else>
-            <el-tooltip :content="formatTimeRangeDisplay()" placement="top">
-              <el-tag type="success" effect="plain" class="time-range-tag">
-                <span class="status-prefix">已应用：</span>
-                <span class="status-text">{{ formatTimeRangeDisplay() }}</span>
-              </el-tag>
-            </el-tooltip>
+          <div class="time-cell time-status">
+            <template v-if="!isTimeRangeApplied">
+              <el-tooltip content="时间区间未应用" placement="top">
+                <el-tag type="warning" effect="plain" class="time-range-tag">
+                  <span class="status-prefix">未应用</span>
+                  <span class="status-text">请选择时间区间后点击“应用区间”</span>
+                </el-tag>
+              </el-tooltip>
+            </template>
+            <template v-else>
+              <el-tooltip :content="formatTimeRangeDisplay()" placement="top">
+                <el-tag type="success" effect="plain" class="time-range-tag">
+                  <span class="status-prefix">已应用：</span>
+                  <span class="status-text">{{ formatTimeRangeDisplay() }}</span>
+                </el-tag>
+              </el-tooltip>
+            </template>
           </div>
         </div>
       </el-col>
@@ -652,52 +649,67 @@ export default {
   width: 70%;
 }
 
-.compact-select ::v-deep .el-input__inner {
+.compact-select :deep(.el-input__inner) {
   height: 32px;
   line-height: 32px;
 }
 
 
-/* 时间区间选择器样式 */
+/* 时间区间选择器样式（栅格布局） */
 .time-range-row {
   margin-top: 15px;
 }
 
-.time-range-container {
+.time-range-grid {
   padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-rows: minmax(32px, auto);
+  row-gap: 12px;
+  column-gap: 12px;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .time-range-grid {
+    grid-template-columns: 1fr 1fr auto minmax(240px, 35%);
+  }
+}
+
+.time-cell {
   display: flex;
   align-items: center;
+  min-width: 0; /* 允许内部文本省略 */
 }
 
 .time-range-label {
   font-weight: bold;
   margin-right: 10px;
-  min-width: 70px;
+  min-width: 72px;
+  white-space: nowrap;
 }
 
-.time-range-actions {
-  padding: 12px;
+/* 让日期选择器在格子内自适应宽度 */
+.time-cell :deep(.el-date-editor) {
+  width: 100%;
+}
+
+.time-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 10px;
+  flex-wrap: nowrap;
 }
 
-/* 按钮区域允许换行，避免拥挤 */
-.time-actions-buttons {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+/* 中屏以下允许按钮自动换行，但格子不变形 */
+@media (max-width: 992px) {
+  .time-actions {
+    flex-wrap: wrap;
+  }
 }
 
-/* 状态区域在宽屏时靠右，窄屏时换到下一行 */
-.time-actions-status {
-  margin-left: auto;
-  min-width: 200px;
-  max-width: 60%;
-  display: flex;
-  align-items: center;
+.time-status {
+  justify-self: end; /* 栅格内靠右对齐 */
 }
 
 /* 统一的状态样式（使用 Tag 更紧凑）*/
@@ -722,12 +734,10 @@ export default {
   vertical-align: bottom;
 }
 
-/* 窄屏：状态单独占一行，铺满 */
-@media (max-width: 992px) {
-  .time-actions-status {
-    flex-basis: 100%;
-    margin-left: 0;
-    max-width: 100%;
+/* 小屏堆叠时，状态占满一行并居左/可根据需要改为居中 */
+@media (max-width: 767.98px) {
+  .time-status {
+    justify-self: start;
   }
   .status-text {
     max-width: 100%;
@@ -842,7 +852,7 @@ export default {
 }
 
 .loading-overlay span {
-  color: var(--el-color-primary, #409EFF);
+  color: #409EFF;
   font-weight: 500;
 }
 
