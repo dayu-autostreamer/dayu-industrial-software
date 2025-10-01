@@ -57,7 +57,7 @@ class BackendCore:
         self.task_results = {}
 
         self.freetask_results = {}
-        self.freetask_vis_results = []
+        self.freetask_vis_results = {}
 
         self.task_results_for_priority = Queue(self.buffered_result_size)
         self.priority_task_buffer = []
@@ -449,9 +449,11 @@ class BackendCore:
         assert source_id in self.freetask_results, f'Source_id {source_id} not found in freetask results!'
         tasks = self.freetask_results[source_id].get_all()
 
+        if source_id not in self.freetask_vis_results:
+            self.freetask_vis_results[source_id] = []
+
         with Timer(f'Visualization preparation for {len(tasks)} freetasks'):
-            for idx, task in enumerate(tasks):
-                file_path = self.get_file_result(task.get_file_path())
+            for idx, task in enumerate(tasks):    
                 try:
                     visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
                 except Exception as e:
@@ -459,18 +461,15 @@ class BackendCore:
                     LOGGER.exception(e)
                     continue
 
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-
                 freetask_data = [item for item in visualization_data if not any(k in item.get('data', {}) for k in ['image', 'topology'])]
 
-                self.freetask_vis_results.append({
+                self.freetask_vis_results[source_id].append({
                     'task_id': task.get_task_id(),
                     'task_start_time': task.get_total_start_time(),
                     'data': freetask_data,
                 })
 
-        return self.freetask_vis_result[source_id]        
+        return self.freetask_vis_results[source_id]        
 
     def run_get_result(self):
         time_ticket = 0
