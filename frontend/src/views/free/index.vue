@@ -36,6 +36,7 @@
     <el-row :gutter="15" class="time-range-row mb15">
       <el-col :span="24">
         <div class="home-card-item time-range-grid">
+          <!-- Row 1: start | end | status -->
           <div class="time-cell time-start">
             <span class="time-range-label">开始时间：</span>
             <el-date-picker
@@ -60,6 +61,17 @@
                 @change="handleTimeRangeChange"
             />
           </div>
+          <div class="time-cell time-status">
+            <span class="time-range-label">状态：</span>
+            <span class="status-full" v-if="isTimeRangeApplied">
+              已应用：{{ formatTimeRangeDisplay() }}
+            </span>
+            <span class="status-full" v-else>
+              未应用：请选择时间区间后点击“应用区间”
+            </span>
+          </div>
+
+          <!-- Row 2: actions spanning all columns -->
           <div class="time-cell time-actions">
             <el-button
                 type="primary"
@@ -68,35 +80,8 @@
             >
               应用区间
             </el-button>
-            <el-button
-                type="info"
-                @click="clearTimeRange"
-            >
-              清除区间
-            </el-button>
-            <el-button
-                @click="resetTimeRange"
-            >
-              重置为当前
-            </el-button>
-          </div>
-          <div class="time-cell time-status">
-            <template v-if="!isTimeRangeApplied">
-              <el-tooltip content="时间区间未应用" placement="top">
-                <el-tag type="warning" effect="plain" class="time-range-tag">
-                  <span class="status-prefix">未应用</span>
-                  <span class="status-text">请选择时间区间后点击“应用区间”</span>
-                </el-tag>
-              </el-tooltip>
-            </template>
-            <template v-else>
-              <el-tooltip :content="formatTimeRangeDisplay()" placement="top">
-                <el-tag type="success" effect="plain" class="time-range-tag">
-                  <span class="status-prefix">已应用：</span>
-                  <span class="status-text">{{ formatTimeRangeDisplay() }}</span>
-                </el-tag>
-              </el-tooltip>
-            </template>
+            <el-button type="info" @click="clearTimeRange">清除区间</el-button>
+            <el-button @click="resetTimeRange">重置为当前</el-button>
           </div>
         </div>
       </el-col>
@@ -660,88 +645,55 @@ export default {
   margin-top: 15px;
 }
 
+/* Grid: 320px | 320px | auto; Buttons row spans all columns */
 .time-range-grid {
   padding: 12px;
   display: grid;
-  grid-template-columns: 1fr;
-  grid-auto-rows: minmax(32px, auto);
+  grid-template-columns: 320px 320px 1fr;
+  grid-auto-rows: minmax(40px, auto);
   row-gap: 12px;
   column-gap: 12px;
   align-items: center;
+  overflow-x: auto; /* 保证三项同一行且完整显示 */
 }
 
-@media (min-width: 768px) {
+/* 小屏仍保持同一行：允许横向滚动显示完整内容 */
+@media (max-width: 767.98px) {
   .time-range-grid {
-    grid-template-columns: 1fr 1fr auto minmax(240px, 35%);
+    grid-template-columns: 320px 320px minmax(320px, 1fr);
   }
 }
 
 .time-cell {
   display: flex;
   align-items: center;
-  min-width: 0; /* 允许内部文本省略 */
+  min-width: 0;
+  white-space: nowrap; /* 保持单行显示 */
+}
+
+/* Actions 行独占第二行，跨越所有列 */
+.time-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap; /* 窄屏按钮可换行 */
 }
 
 .time-range-label {
   font-weight: bold;
-  margin-right: 10px;
-  min-width: 72px;
-  white-space: nowrap;
+  margin-right: 8px;
 }
 
-/* 让日期选择器在格子内自适应宽度 */
-.time-cell :deep(.el-date-editor) {
+/* 日期选择器宽度与列宽一致 */
+.time-start :deep(.el-date-editor),
+.time-end :deep(.el-date-editor) {
   width: 100%;
 }
 
-.time-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: nowrap;
-}
-
-/* 中屏以下允许按钮自动换行，但格子不变形 */
-@media (max-width: 992px) {
-  .time-actions {
-    flex-wrap: wrap;
-  }
-}
-
-.time-status {
-  justify-self: end; /* 栅格内靠右对齐 */
-}
-
-/* 统一的状态样式（使用 Tag 更紧凑）*/
-.time-range-tag {
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.status-prefix {
-  color: var(--el-text-color-regular);
-  margin-right: 4px;
-}
-
-.status-text {
-  display: inline-block;
-  max-width: 70%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  vertical-align: bottom;
-}
-
-/* 小屏堆叠时，状态占满一行并居左/可根据需要改为居中 */
-@media (max-width: 767.98px) {
-  .time-status {
-    justify-self: start;
-  }
-  .status-text {
-    max-width: 100%;
-  }
+/* 完整状态文本：不截断，不省略 */
+.status-full {
+  color: var(--el-text-color-primary);
 }
 
 .viz-controls-row {
