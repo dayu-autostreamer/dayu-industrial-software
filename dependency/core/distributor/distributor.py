@@ -33,11 +33,6 @@ class Distributor:
         )
         self.record_path = FileNameConstant.DISTRIBUTOR_RECORD.value
 
-        # Ensure DB directory exists if a directory component is present
-        dirpath = os.path.dirname(self.record_path)
-        if dirpath:
-            os.makedirs(dirpath, exist_ok=True)
-
         # Initialize DB schema and indexes
         self._init_db()
 
@@ -69,6 +64,11 @@ class Distributor:
 
     def _init_db(self):
         """Create table and indexes if not present."""
+        # Ensure DB directory exists if a directory component is present
+        dirpath = os.path.dirname(self.record_path)
+        if dirpath:
+            os.makedirs(dirpath, exist_ok=True)
+
         with self._connect(autocommit=True) as conn:
             c = conn.cursor()
             # Primary key is (source_id, task_id).
