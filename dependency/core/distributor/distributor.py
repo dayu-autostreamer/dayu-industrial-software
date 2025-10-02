@@ -69,6 +69,11 @@ class Distributor:
 
     def _init_db(self):
         """Create table and indexes if not present."""
+        # Ensure DB directory exists if a directory component is present
+        dirpath = os.path.dirname(self.record_path)
+        if dirpath:
+            os.makedirs(dirpath, exist_ok=True)
+
         with self._connect(autocommit=True) as conn:
             c = conn.cursor()
             # Primary key is (source_id, task_id).
@@ -238,6 +243,7 @@ class Distributor:
         """Remove the DB file entirely."""
         FileOps.remove_file(self.record_path)
         LOGGER.info('[Distributor] Database Cleared')
+        self._init_db()
 
     def is_database_empty(self):
         """Quick existence check."""

@@ -47,7 +47,7 @@ export default {
 
     this.getPipelineInfo();
     this.getLatestPriorityData();
-    setInterval(this.getLatestPriorityData, 1000);
+    setInterval(this.getLatestPriorityData, 500);
 
   },
   data() {
