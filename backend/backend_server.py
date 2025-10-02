@@ -112,6 +112,16 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_TASK_RESULT]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_FREE_VISUALIZATION_CONFIG,
+                     self.get_free_visualization_config,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_FREE_VISUALIZATION_CONFIG]
+                     ),
+            APIRoute(NetworkAPIPath.BACKEND_FREE_TASK_RESULT,
+                     self.get_free_task_result,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_FREE_TASK_RESULT]
+                     ),
             APIRoute(NetworkAPIPath.BACKEND_EVENT_RESULT,
                      self.get_event_result,
                      response_class=JSONResponse,
@@ -658,6 +668,36 @@ class BackendServer:
             ans[source_id] = self.server.fetch_visualization_data(source_id)
 
         return ans
+
+    async def get_free_visualization_config(self):
+        """
+        get free visualization configuration
+        """
+        return self.server.get_free_visualization_config()
+
+    async def get_free_task_result(self):
+        """
+        all results without image
+        {
+        'datasource1':[
+            task_id: 12,
+            data: {0:{"delay":"0.5"}...}
+
+        ],
+        'datasource2':[]
+        }
+        :return:
+        """
+        if not self.server.source_open:
+            return {}
+        ans = {}
+        source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
+        for source in source_config['source_list']:
+            source_id = source['id']
+            ans[source_id] = self.server.fetch_free_task_visualization_data(source_id)
+
+        return ans
+
     async def get_event_result(self):
         # 查询告警接口...
         '''
@@ -676,7 +716,7 @@ class BackendServer:
         # ans = {}
         ans = []
         # 读取未读信息并进行整合.
-        for idx,event_res in self.server.event_results.items():
+        for idx, event_res in self.server.event_results.items():
             for info in event_res:
                 if info['is_read']:
                     continue
@@ -694,6 +734,7 @@ class BackendServer:
         ans = copy.deepcopy(self.server.full_event_results)
         self.server.full_event_results = []
         return ans
+
     async def get_system_parameters(self):
         return self.server.get_system_parameters()
 

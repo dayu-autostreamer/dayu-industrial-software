@@ -27,6 +27,7 @@ class BackendCore:
         self.priority = None
         self.result_visualization_configs = None
         self.system_visualization_configs = None
+        self.free_visualization_configs = None
         self.event_trigger_config = None
         self.customized_source_result_visualization_configs = {}
         self.visualization_cache = ConfigBoundInstanceCache(
@@ -63,6 +64,8 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
+        self.free_task_results = {}
+        self.free_task_vis_results = {}
         self.event_results = {}
         self.full_event_results = []
         self.task_results_for_priority = Queue(self.buffered_result_size)
@@ -89,7 +92,6 @@ class BackendCore:
             self.result_visualization_configs = base_info['result-visualizations']
             self.system_visualization_configs = base_info['system-visualizations']
             self.event_trigger_config = base_info['event-trigger']
-            # LOGGER.info(self.event_trigger_config)
         except KeyError as e:
             LOGGER.warning(f'Parse base info failed: {str(e)}')
             LOGGER.exception(e)
@@ -450,6 +452,45 @@ class BackendCore:
                 })
 
         return vis_results
+
+    def get_free_visualization_config(self):
+        self.parse_base_info()
+        source_config = self.find_datasource_configuration_by_label(self.source_label)
+        source_type = source_config['source_type']
+
+        visualizations = self.free_visualization_configs[source_type] \
+            if (self.free_visualization_configs['allow-flexible-switch'] and
+                source_type in self.free_visualization_configs) \
+            else self.free_visualization_configs['base']
+
+        return [{'id': idx, **vf} for idx, vf in enumerate(visualizations)]
+
+    def fetch_free_task_visualization_data(self, source_id):
+        assert source_id in self.free_task_results, f'Source_id {source_id} not found in free task results!'
+        tasks = self.free_task_results[source_id].get_all()
+
+        if source_id not in self.free_task_vis_results:
+            self.free_task_vis_results[source_id] = []
+
+        with Timer(f'Visualization preparation for {len(tasks)} free tasks'):
+            for idx, task in enumerate(tasks):
+                try:
+                    visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
+                except Exception as e:
+                    LOGGER.warning(f'Prepare visualization free task data failed: {str(e)}')
+                    LOGGER.exception(e)
+                    continue
+
+                free_task_data = [item for item in visualization_data if not any(k in item.get('data', {}) for k in ['image', 'topology'])]
+
+                self.free_task_vis_results[source_id].append({
+                    'task_id': task.get_task_id(),
+                    'task_start_time': task.get_total_start_time(),
+                    'data': free_task_data,
+                })
+
+        return self.free_task_vis_results[source_id]
+
 
     def parse_event_result(self, results):
         # 每次只处理一批新的数据.
