@@ -1,0 +1,19 @@
+position: both
+pod-template:
+  image: mmw-detection:is-hgz-v1.1
+  imagePullPolicy: Always
+  env:
+    - name: PROCESSOR_NAME
+      value: "mmw_detector_processor"
+    - name: SCENARIOS_EXTRACTORS
+      value: "[]"
+    - name: MMW_CONFIG
+      value: "1.mmwave.json"
+    - name: PRO_QUEUE_NAME
+      value: "priority"
+port-open:
+  pos: both
+  port: 9000
+file-mount:
+  - pos: both
+    path: "processor/mmw-detection/"

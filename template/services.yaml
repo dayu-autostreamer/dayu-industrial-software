@@ -40,3 +40,10 @@
   input: imu_data
   output: text
   yaml: imu-trajectory-sensing.yaml
+- id: mmw-detection
+  service: mmw-detection
+  name: mmw detection
+  description: 毫米波缺陷感知
+  input: mmw_data
+  output: text
+  yaml: mmw-detection.yaml

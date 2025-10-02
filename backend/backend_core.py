@@ -26,8 +26,8 @@ class BackendCore:
         self.services = None
         self.priority = None
         self.result_visualization_configs = None
-        self.free_visualization_configs = None
         self.system_visualization_configs = None
+        self.event_trigger_config = None
         self.customized_source_result_visualization_configs = {}
         self.visualization_cache = ConfigBoundInstanceCache(
             factory=lambda vf: Context.get_algorithm(
@@ -35,6 +35,13 @@ class BackendCore:
                 al_name=vf['hook_name'],
                 **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {}),
                 variables=vf['variables']
+            )
+        )
+        self.event_config_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'EVENT_TRIGGER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {})
             )
         )
 
@@ -56,13 +63,10 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
-
-        self.free_task_results = {}
-        self.free_task_vis_results = {}
-
+        self.event_results = {}
+        self.full_event_results = []
         self.task_results_for_priority = Queue(self.buffered_result_size)
         self.priority_task_buffer = []
-
 
         self.is_get_result = False
 
@@ -83,8 +87,9 @@ class BackendCore:
             self.services = base_info['services']
             self.priority = base_info['priority']
             self.result_visualization_configs = base_info['result-visualizations']
-            self.free_visualization_configs = base_info['free-visualizations']
             self.system_visualization_configs = base_info['system-visualizations']
+            self.event_trigger_config = base_info['event-trigger']
+            # LOGGER.info(self.event_trigger_config)
         except KeyError as e:
             LOGGER.warning(f'Parse base info failed: {str(e)}')
             LOGGER.exception(e)
@@ -420,7 +425,6 @@ class BackendCore:
 
             self.task_results[source_id].put(copy.deepcopy(task))
             self.task_results_for_priority.put(copy.deepcopy(task))
-            self.free_task_results[source_id].put(copy.deepcopy(task))
 
     def fetch_visualization_data(self, source_id):
         assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
@@ -447,44 +451,58 @@ class BackendCore:
 
         return vis_results
 
-    def get_free_visualization_config(self):
-        self.parse_base_info()
-        source_config = self.find_datasource_configuration_by_label(self.source_label)
-        source_type = source_config['source_type']
+    def parse_event_result(self, results):
+        # 每次只处理一批新的数据.
+        maxid,minid = 0,10000
+        for result in results:
+            if result is None or result == '':
+                continue
 
-        visualizations = self.free_visualization_configs[source_type] \
-            if (self.free_visualization_configs['allow-flexible-switch'] and
-                source_type in self.free_visualization_configs) \
-            else self.free_visualization_configs['base']
+            task = Task.deserialize(result)
+            source_id = task.get_source_id()
+            task_id = task.get_task_id()
 
-        return [{'id': idx, **vf} for idx, vf in enumerate(visualizations)]
-    
-    def fetch_free_task_visualization_data(self, source_id):
-        assert source_id in self.free_task_results, f'Source_id {source_id} not found in free task results!'
-        tasks = self.free_task_results[source_id].get_all()
+            # DEBUG
+            maxid = max(maxid,task_id)
+            minid = min(minid,task_id)
+            # 如何找到回调函数
 
-        if source_id not in self.free_task_vis_results:
-            self.free_task_vis_results[source_id] = []
-
-        with Timer(f'Visualization preparation for {len(tasks)} free tasks'):
-            for idx, task in enumerate(tasks):    
+            cfgs = self.event_trigger_config[task.get_source_type()] if (self.event_trigger_config['allow-flexible-switch'] and task.get_source_type() in self.event_trigger_config) else self.event_trigger_config['base']
+            event_functions = self.event_config_cache.sync_and_get(cfgs)
+            for idx, (cfg,vf_func) in enumerate(zip(cfgs,event_functions)):
                 try:
-                    visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
+                    if 'warning_interval' in cfg and idx in self.event_results: # check一下最晚告警距离现在是否太近,如果是则不告警(注意过滤相同数据源的)
+                        if task_id-max([res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]) < cfg['warning_interval']:
+                            continue
+                    # al_name = vf['hook_name']
+                    # al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
+                    # vf_func = Context.get_algorithm('EVENT_TRIGGER', al_name=al_name, **al_params)
+                    is_warn, detail = vf_func(task)
+                    if is_warn:
+                        self.event_results.setdefault(idx, []).append({
+                            'task_id': task_id,
+                            "source_id": source_id,
+                            'message': cfg['warning'],
+                            'is_read': False
+                        })
+                        timestamp = time.time()
+                        task_tmp_data = task.get_tmp_data()
+                        if task_tmp_data:
+                            for name,time_tick in task_tmp_data.items():
+                                if name.endswith('total_start_time'):
+                                    timestamp = time_tick
+                                    break
+                        self.full_event_results.append({
+                            'task_id': task_id,
+                            "source_id": source_id,
+                            'message': cfg['warning'],
+                            'tms': timestamp,
+                            'detail': detail
+                        })
                 except Exception as e:
-                    LOGGER.warning(f'Prepare visualization free task data failed: {str(e)}')
+                    LOGGER.warning(f'Failed to load event data: {e}')
                     LOGGER.exception(e)
-                    continue
-
-                free_task_data = [item for item in visualization_data if not any(k in item.get('data', {}) for k in ['image', 'topology'])]
-
-                self.free_task_vis_results[source_id].append({
-                    'task_id': task.get_task_id(),
-                    'task_start_time': task.get_total_start_time(),
-                    'data': free_task_data,
-                })
-
-        return self.free_task_vis_results[source_id]
-
+        LOGGER.info(f'处理了{minid}-{maxid}')
     def run_get_result(self):
         time_ticket = 0
         while self.is_get_result:
@@ -506,8 +524,10 @@ class BackendCore:
 
                 time_ticket = response["time_ticket"]
                 results = response['result']
+                self.parse_event_result(results)
                 LOGGER.debug(f'Fetch {len(results)} tasks from time ticket: {time_ticket}')
                 self.parse_task_result(results)
+
 
             except Exception as e:
                 LOGGER.warning(f'Error occurred in getting task result: {str(e)}')
