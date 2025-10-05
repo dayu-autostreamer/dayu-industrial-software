@@ -155,74 +155,6 @@ export default {
     const dagOptions = ref([]);
     const nodeOptions = ref([]);
 
-    // ========= 新增：最小化全局单例实现（保存在 window.__svcInstallPolling） =========
-    // 只用 fetch，ElMessage（element-plus），并去重（lastSeen）
-    function getGlobalPolling() {
-      if (!window.__svcInstallPolling) {
-        window.__svcInstallPolling = {
-          intervalId: null,
-          running: false,
-          interval: 5000,
-          alarmApi: null,
-          lastSeen: new Set(),
-          start: async function ({ alarmApi, interval = 5000 } = {}) {
-            if (!alarmApi && !this.alarmApi) {
-              console.warn('start: missing alarmApi');
-              return;
-            }
-            this.alarmApi = alarmApi || this.alarmApi;
-            this.interval = interval || this.interval;
-            if (this.running) return;
-            this.running = true;
-            await this._doPollOnce();
-            this.intervalId = setInterval(() => this._doPollOnce(), this.interval);
-          },
-          stop: function () {
-            if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
-            this.running = false;
-            this.lastSeen.clear();
-          },
-          isRunning: function () { return this.running; },
-
-          _doPollOnce: async function () {
-            if (!this.alarmApi) return;
-            try {
-              const resp = await fetch(this.alarmApi, { method: 'GET' });
-              const data = await resp.json().catch(()=> null) || null;
-              const alarms = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
-              if (!alarms || alarms.length === 0) return;
-              for (const item of alarms) {
-                const key = this._alarmKey(item);
-                if (this.lastSeen.has(key)) continue;
-                this.lastSeen.add(key);
-                try {
-                  let txt = item.message+'更多细节请前往事件触发任务查看!'
-                  //let txt = typeof item === 'string' ? item : (item.message || item.msg || item.alert || JSON.stringify(item));
-                  ElMessage({ message: txt,type:'warning',duration: 6000, showClose: true, grouping: false });
-                } catch {
-                  ElMessage({ message: String(item), duration: 6000 });
-                }
-              }
-              if (this.lastSeen.size > 2000) {
-                this.lastSeen = new Set(Array.from(this.lastSeen).slice(-1000));
-              }
-            } catch (e) {
-              // 单次失败不停止轮询
-            }
-          },
-          _alarmKey: function (item) {
-            if (!item) return JSON.stringify(item);
-            if (item.id !== undefined) return String(item.id);
-            if (item.timestamp !== undefined && item.msg !== undefined) return String(item.timestamp) + '|' + String(item.msg);
-            try { return JSON.stringify(item); } catch { return String(item); }
-          }
-        };
-      }
-      return window.__svcInstallPolling;
-    }
-    // ==============================================================================
-
-
     const isValidIndex = (index, array) => {
       return (
           Number.isSafeInteger(index) &&
@@ -346,7 +278,7 @@ export default {
           const prevNodeL = localStorage.getItem(LENGTH_KEYS.node);
           if (prevNodeL && received_node.length < prevNodeL) {
             const config = loadStorage();
-            config.selectedSources = selectedSources.map(source => ({
+            config.selectedSources = selectedSources.value.map(source => ({
               ...source,
               node_selected: source.node_selected.filter(nodeName =>
                   nodeOptions.value.some(node => node.name === nodeName)
@@ -364,14 +296,6 @@ export default {
 
       if (installed.value === "install") {
         install_state.install();
-        // ========== 新增：已安装 -> 启动轮询（保证切路由或 reload 后也能在初始化时恢复轮询） ==========
-        try {
-          const g = getGlobalPolling();
-          g.start({ alarmApi: ALARM_QUERY_API, interval: 5000 });
-        } catch (e) {
-          console.warn('failed to start global polling', e);
-        }
-        // =====================================================================
         const savedInstall = localStorage.getItem(INSTALL_STATE_KEY);
         if (savedInstall) {
           const parsed = JSON.parse(savedInstall);
@@ -398,14 +322,6 @@ export default {
         }
 
       } else {
-        // ========== 新增：未安装 -> 停止轮询（防止残留） ==========
-        try {
-          const g = getGlobalPolling();
-          g.stop();
-        } catch (e) {
-          // ignore
-        }
-        // =================================================================
         install_state.uninstall();
         const savedDraft = localStorage.getItem(DRAFT_STATE_KEY);
         if (savedDraft) {
@@ -600,72 +516,6 @@ export default {
               };
               localStorage.setItem(this.INSTALL_STATE_KEY, JSON.stringify(installConfig));
               localStorage.removeItem(this.DRAFT_STATE_KEY);
-
-              // ========== 新增：启动全局轮询（最小改动） ==========
-              try {
-                const g = (window.__svcInstallPolling) ? window.__svcInstallPolling : null;
-                // 如果尚未初始化，则使用在 setup 中定义的 getGlobalPolling 逻辑
-                if (!g) {
-                  // try to initialize via calling getGlobalPolling from setup (exists in closure)
-                  // but methods here cannot directly call setup's local function; instead initialize window instance minimally:
-                  if (!window.__svcInstallPolling) {
-                    window.__svcInstallPolling = {
-                      intervalId: null,
-                      running: false,
-                      interval: 5000,
-                      alarmApi: ALARM_QUERY_API, // ALARM_QUERY_API exists in setup closure; but to be safe, set string
-                      lastSeen: new Set(),
-                      start: async function ({ alarmApi, interval = 5000 } = {}) {
-                        this.alarmApi = alarmApi || this.alarmApi;
-                        this.interval = interval || this.interval;
-                        if (this.running) return;
-                        this.running = true;
-                        // perform single fetch + setInterval using basic fetch + Element Plus ElMessage
-                        try {
-                          const resp = await fetch(this.alarmApi, { method: 'GET' });
-                          const data = await resp.json().catch(()=> null) || null;
-                          const alarms = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
-                          if (alarms && alarms.length) {
-                            for (const item of alarms) {
-                              const key = JSON.stringify(item);
-                              if (this.lastSeen.has(key)) continue;
-                              this.lastSeen.add(key);
-                              ElMessage({ message: typeof item === 'string' ? item : (item.message || item.msg || JSON.stringify(item)), duration: 6000, showClose: true });
-                            }
-                          }
-                        } catch (e) {}
-                        this.intervalId = setInterval(async () => {
-                          try {
-                            const resp = await fetch(this.alarmApi, { method: 'GET' });
-                            const data = await resp.json().catch(()=> null) || null;
-                            const alarms = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
-                            if (!alarms || alarms.length === 0) return;
-                            for (const item of alarms) {
-                              const key = JSON.stringify(item);
-                              if (this.lastSeen.has(key)) continue;
-                              this.lastSeen.add(key);
-                              ElMessage({ message: typeof item === 'string' ? item : (item.message || item.msg || JSON.stringify(item)), duration: 6000, showClose: true });
-                            }
-                          } catch (e) {}
-                        }, 5000);
-                      },
-                      stop: function () {
-                        if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
-                        this.running = false;
-                        this.lastSeen.clear();
-                      }
-                    };
-                  }
-                  // finally call start
-                  window.__svcInstallPolling.start({ alarmApi: ALARM_QUERY_API, interval: 5000 });
-                } else {
-                  // already exists: start with known alarm api
-                  window.__svcInstallPolling.start({ alarmApi: ALARM_QUERY_API, interval: 5000 });
-                }
-              } catch (e) {
-                console.warn('start polling failed', e);
-              }
-              // =================================================================
 
               msg += ". Refreshing..";
               ElMessage({

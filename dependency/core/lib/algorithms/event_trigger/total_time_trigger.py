@@ -15,7 +15,7 @@ class TotalTimeTrigger(BaseTrigger, abc.ABC):
         self.threshold = kwargs.get('threshold', None)
 
     def __call__(self, task: Task):
-        # 返回各阶段的详细用时
+        # Return detailed time of each stage
         if task.calculate_total_time() < self.threshold:
             return False, {}
         return True, {'延迟信息': task.get_delay_info()}

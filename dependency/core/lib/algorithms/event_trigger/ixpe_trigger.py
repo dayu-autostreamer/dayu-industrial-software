@@ -15,7 +15,7 @@ class IxpeTrigger(BaseTrigger, abc.ABC):
         self.RThreshold = kwargs.get('RThreshold', None)
 
     def __call__(self, task: Task):
-        # 返回各阶段的详细用时
+        # Return detailed time of each stage
         content = task.get_last_content()
         lps = content['lps'] if 'lps' in content else 0
         rps = content['rps'] if 'rps' in content else 0

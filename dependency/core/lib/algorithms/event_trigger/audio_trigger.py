@@ -13,7 +13,7 @@ class AudioTrigger(BaseTrigger, abc.ABC):
         super().__init__(**kwargs)
 
     def __call__(self, task: Task):
-        # 返回各阶段的详细用时
+        # Return the detailed time of each stage
         if task.get_last_content() == 5:
             return True, {}
         return False, {}

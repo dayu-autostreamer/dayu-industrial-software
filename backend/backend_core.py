@@ -522,8 +522,7 @@ class BackendCore:
         return free_task_vis_results
 
     def parse_event_result(self, results):
-        # 每次只处理一批新的数据.
-        maxid, minid = 0, 10000
+        # Process a batch of new data at a time.
         for result in results:
             if result is None or result == '':
                 continue
@@ -532,25 +531,19 @@ class BackendCore:
             source_id = task.get_source_id()
             task_id = task.get_task_id()
 
-            # DEBUG
-            maxid = max(maxid, task_id)
-            minid = min(minid, task_id)
-            # 如何找到回调函数
-
-            cfgs = self.event_trigger_config[task.get_source_type()] if (self.event_trigger_config[
-                                                                             'allow-flexible-switch'] and task.get_source_type() in self.event_trigger_config) else \
+            cfgs = self.event_trigger_config[task.get_source_type()] \
+                if (self.event_trigger_config['allow-flexible-switch']
+                    and task.get_source_type() in self.event_trigger_config) else \
                 self.event_trigger_config['base']
             event_functions = self.event_config_cache.sync_and_get(cfgs)
             for idx, (cfg, vf_func) in enumerate(zip(cfgs, event_functions)):
                 try:
-                    if 'warning_interval' in cfg and idx in self.event_results:  # check一下最晚告警距离现在是否太近,如果是则不告警(注意过滤相同数据源的)
-                        if task_id - max(
-                                [res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]) < \
-                                cfg['warning_interval']:
+                    if 'warning_interval' in cfg and idx in self.event_results:
+                        # If latest alarm distance is too close now, do not alarm (filtering same data source)
+                        if task_id - max([res['task_id'] for res in self.event_results[idx]
+                                          if res['source_id'] == source_id]) < cfg['warning_interval']:
                             continue
-                    # al_name = vf['hook_name']
-                    # al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
-                    # vf_func = Context.get_algorithm('EVENT_TRIGGER', al_name=al_name, **al_params)
+
                     is_warn, detail = vf_func(task)
                     if is_warn:
                         self.event_results.setdefault(idx, []).append({
@@ -576,7 +569,6 @@ class BackendCore:
                 except Exception as e:
                     LOGGER.warning(f'Failed to load event data: {e}')
                     LOGGER.exception(e)
-        LOGGER.info(f'处理了{minid}-{maxid}')
 
     def run_get_result(self):
         time_ticket = 0
