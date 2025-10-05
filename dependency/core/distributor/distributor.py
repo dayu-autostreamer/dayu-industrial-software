@@ -214,6 +214,39 @@ class Distributor:
             'size': len(json_results)
         }
 
+    def query_results_by_time(self, start_time, end_time, source_id=None):
+        """
+        Query records within a specific time range, optionally filtered by source_id.
+        """
+        if self.is_database_empty():
+            return {'result': [], 'size': 0}
+
+        with self._connect() as conn:
+            c = conn.cursor()
+            if source_id is not None:
+                c.execute(
+                    """
+                    SELECT json
+                    FROM records
+                    WHERE ctime BETWEEN ? AND ? AND source_id = ?
+                    ORDER BY ctime ASC
+                    """,
+                    (start_time, end_time, source_id)
+                )
+            else:
+                c.execute(
+                    """
+                    SELECT json
+                    FROM records
+                    WHERE ctime BETWEEN ? AND ?
+                    ORDER BY ctime ASC
+                    """,
+                    (start_time, end_time)
+                )
+            results = [row[0] for row in c.fetchall()]
+
+        return {'result': results, 'size': len(results)}
+
     def query_all_result(self):
         """
         Return all records ordered by (source_id, task_id).

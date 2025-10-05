@@ -455,18 +455,6 @@ export default {
       // 根据应用的时间区间过滤数据
       const filteredData = this.bufferedTaskCache[sourceId]
           .filter(task => {
-            // 检查任务是否在时间区间内
-            const taskTime = task.task_start_time;
-            if (taskTime === 'unknown') return false;
-
-            const taskTimestamp = parseInt(taskTime);
-            if (isNaN(taskTimestamp)) return false;
-
-            if (this.isTimeRangeApplied && this.appliedTimeRange.start && this.appliedTimeRange.end) {
-              if (taskTimestamp < this.appliedTimeRange.start || taskTimestamp > this.appliedTimeRange.end) {
-                return false;
-              }
-            }
 
             return task.data?.some(item =>
                 validVizIds.has(String(item.id)) &&
@@ -476,7 +464,6 @@ export default {
             const vizDataItem = task.data.find(item => String(item.id) === String(vizConfig.id))
             return {
               taskId: String(task.task_id),
-              taskStartTime: task.task_start_time,
               ...(vizDataItem?.data || {})
             }
           })
@@ -518,7 +505,7 @@ export default {
 
     async fetchVisualizationConfig(sourceId) {
       try {
-        const response = await fetch(`/api/free_visualization_config/`)
+        const response = await fetch(`/api/free_visualization_config`)
         const data = await response.json()
 
         const processedConfig = data.map(viz => reactive({
@@ -550,7 +537,18 @@ export default {
 
     async getLatestResultData() {
       try {
-        const response = await fetch('/api/free_task_result')
+        // Build query params for server-side time filtering
+        const params = new URLSearchParams();
+        if (this.isTimeRangeApplied && this.appliedTimeRange) {
+          if (this.appliedTimeRange.start != null) {
+            params.set('start_time', String(this.appliedTimeRange.start));
+          }
+          if (this.appliedTimeRange.end != null) {
+            params.set('end_time', String(this.appliedTimeRange.end));
+          }
+        }
+        const url = `/api/free_task_result${params.toString() ? `?${params.toString()}` : ''}`
+        const response = await fetch(url)
         const data = await response.json()
 
         const newCache = {}
@@ -564,7 +562,6 @@ export default {
               .filter(task => task?.task_id && Array.isArray(task.data))
               .map(task => ({
                 task_id: task.task_id,
-                task_start_time: task.task_start_time || 'unknown',
                 data: task.data.map(item => ({
                   id: String(item.id) || 'unknown',
                   data: item.data || {}

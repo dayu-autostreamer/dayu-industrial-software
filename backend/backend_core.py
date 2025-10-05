@@ -56,6 +56,7 @@ class BackendCore:
         self.result_url = None
         self.result_file_url = None
         self.resource_url = None
+        self.free_result_url = None
         self.log_fetch_url = None
         self.log_clear_url = None
 
@@ -64,8 +65,6 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
-        self.free_task_results = {}
-        self.free_task_vis_results = {}
         self.event_results = {}
         self.full_event_results = []
         self.task_results_for_priority = Queue(self.buffered_result_size)
@@ -465,36 +464,37 @@ class BackendCore:
 
         return [{'id': idx, **vf} for idx, vf in enumerate(visualizations)]
 
-    def fetch_free_task_visualization_data(self, source_id):
-        assert source_id in self.free_task_results, f'Source_id {source_id} not found in free task results!'
-        tasks = self.free_task_results[source_id].get_all()
+    def fetch_free_task_visualization_data(self, start_time, end_time, source_id):
+        assert source_id in self.get_source_ids(), f'Source_id {source_id} not found!'
+        self.get_free_url()
+        if self.free_result_url is None:
+            return []
 
-        if source_id not in self.free_task_vis_results:
-            self.free_task_vis_results[source_id] = []
+        response = http_request(self.free_result_url,
+                                method=NetworkAPIMethod.DISTRIBUTOR_RESULT_BY_TIME,
+                                json={'start_time': start_time, 'end_time': end_time, 'source_id': source_id})
+        results = response['result']
 
-        with Timer(f'Visualization preparation for {len(tasks)} free tasks'):
-            for idx, task in enumerate(tasks):
+        free_task_vis_results = []
+        with Timer(f'Visualization preparation for {len(results)} free tasks'):
+            for idx, result in enumerate(results):
+                task = Task.deserialize(result)
                 try:
-                    visualization_data = self.prepare_result_visualization_data(task, idx==len(tasks)-1)
+                    visualization_data = self.prepare_result_visualization_data(task, False)
                 except Exception as e:
                     LOGGER.warning(f'Prepare visualization free task data failed: {str(e)}')
                     LOGGER.exception(e)
                     continue
-
-                free_task_data = [item for item in visualization_data if not any(k in item.get('data', {}) for k in ['image', 'topology'])]
-
-                self.free_task_vis_results[source_id].append({
+                free_task_vis_results.append({
                     'task_id': task.get_task_id(),
-                    'task_start_time': task.get_total_start_time(),
-                    'data': free_task_data,
+                    'data': visualization_data
                 })
 
-        return self.free_task_vis_results[source_id]
-
+        return free_task_vis_results
 
     def parse_event_result(self, results):
         # 每次只处理一批新的数据.
-        maxid,minid = 0,10000
+        maxid, minid = 0, 10000
         for result in results:
             if result is None or result == '':
                 continue
@@ -504,16 +504,20 @@ class BackendCore:
             task_id = task.get_task_id()
 
             # DEBUG
-            maxid = max(maxid,task_id)
-            minid = min(minid,task_id)
+            maxid = max(maxid, task_id)
+            minid = min(minid, task_id)
             # 如何找到回调函数
 
-            cfgs = self.event_trigger_config[task.get_source_type()] if (self.event_trigger_config['allow-flexible-switch'] and task.get_source_type() in self.event_trigger_config) else self.event_trigger_config['base']
+            cfgs = self.event_trigger_config[task.get_source_type()] if (self.event_trigger_config[
+                                                                             'allow-flexible-switch'] and task.get_source_type() in self.event_trigger_config) else \
+                self.event_trigger_config['base']
             event_functions = self.event_config_cache.sync_and_get(cfgs)
-            for idx, (cfg,vf_func) in enumerate(zip(cfgs,event_functions)):
+            for idx, (cfg, vf_func) in enumerate(zip(cfgs, event_functions)):
                 try:
-                    if 'warning_interval' in cfg and idx in self.event_results: # check一下最晚告警距离现在是否太近,如果是则不告警(注意过滤相同数据源的)
-                        if task_id-max([res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]) < cfg['warning_interval']:
+                    if 'warning_interval' in cfg and idx in self.event_results:  # check一下最晚告警距离现在是否太近,如果是则不告警(注意过滤相同数据源的)
+                        if task_id - max(
+                                [res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]) < \
+                                cfg['warning_interval']:
                             continue
                     # al_name = vf['hook_name']
                     # al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
@@ -529,7 +533,7 @@ class BackendCore:
                         timestamp = time.time()
                         task_tmp_data = task.get_tmp_data()
                         if task_tmp_data:
-                            for name,time_tick in task_tmp_data.items():
+                            for name, time_tick in task_tmp_data.items():
                                 if name.endswith('total_start_time'):
                                     timestamp = time_tick
                                     break
@@ -544,6 +548,7 @@ class BackendCore:
                     LOGGER.warning(f'Failed to load event data: {e}')
                     LOGGER.exception(e)
         LOGGER.info(f'处理了{minid}-{maxid}')
+
     def run_get_result(self):
         time_ticket = 0
         while self.is_get_result:
@@ -641,6 +646,16 @@ class BackendCore:
         self.resource_url = merge_address(NodeInfo.hostname2ip(cloud_hostname),
                                           port=scheduler_port,
                                           path=NetworkAPIPath.SCHEDULER_GET_RESOURCE)
+
+    def get_free_url(self):
+        cloud_hostname = NodeInfo.get_cloud_node()
+        try:
+            distributor_port = PortInfo.get_component_port(SystemConstant.DISTRIBUTOR.value)
+        except AssertionError:
+            return
+        self.free_result_url = merge_address(NodeInfo.hostname2ip(cloud_hostname),
+                                             port=distributor_port,
+                                             path=NetworkAPIPath.DISTRIBUTOR_RESULT_BY_TIME)
 
     def get_result_url(self):
         cloud_hostname = NodeInfo.get_cloud_node()
