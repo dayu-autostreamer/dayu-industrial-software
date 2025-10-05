@@ -14,7 +14,6 @@ class EdgeEyeStage1:
 
     def __call__(self, input_ctx):
         frame = input_ctx['frame']
-        frame = EncodeOps.decode_image(frame)
 
         output_ctx = self.process_frame(frame)
 
