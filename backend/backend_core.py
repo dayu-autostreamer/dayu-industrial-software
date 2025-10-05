@@ -40,7 +40,7 @@ class BackendCore:
         )
         self.free_visualization_cache = ConfigBoundInstanceCache(
             factory=lambda vf: Context.get_algorithm(
-                'FREE_VISUALIZER',
+                'RESULT_VISUALIZER',
                 al_name=vf['hook_name'],
                 **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {}),
                 variables=vf['variables']
