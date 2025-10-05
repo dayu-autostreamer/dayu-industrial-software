@@ -36,8 +36,7 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
 
         try:
             file_path = task.get_file_path()
-            frame = cv2.VideoCapture(file_path).read()[1]
-            image = EncodeOps.decode_image(frame)
+            image = cv2.VideoCapture(file_path).read()[1]
             lps = content['lps'] if 'lps' in content else 0
             rps = content['rps'] if 'rps' in content else 0
             image = self.draw_edges(image, lps, rps)
