@@ -169,11 +169,6 @@ const emitter = mitt()
 
 export default {
   data() {
-    // 设置默认时间为当天
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-
     return {
       selectedDataSource: null,
       dataSourceList: [],
@@ -190,10 +185,10 @@ export default {
       isSourceLoading: false,
       isUploading: false,
 
-      // 新增时间区间相关数据
+      // 时间区间相关数据（初始为空）
       timeRange: {
-        start: Math.floor(startOfDay.getTime() / 1000), // 转换为秒级时间戳
-        end: Math.floor(endOfDay.getTime() / 1000)
+        start: null,
+        end: null
       },
       isTimeRangeApplied: false, // 标记时间区间是否已应用
       appliedTimeRange: {} // 实际应用的时间区间
@@ -217,9 +212,7 @@ export default {
       return result
     },
     currentVisualizationConfig() {
-      const configs = this.visualizationConfig[this.selectedDataSource] || [];
-      // 过滤掉类型为 'image' 或 'topology' 的可视化配置
-      return configs.filter(viz => viz.type !== 'image' && viz.type !== 'topology');
+      return this.visualizationConfig[this.selectedDataSource] || [];
     },
     currentActiveVisualizations() {
       console.log('activeVisualizations:', this.activeVisualizations[this.selectedDataSource])
@@ -325,7 +318,7 @@ export default {
     async resetTimeRange() {
       const now = new Date();
       const endTime = now;
-      const startTime = new Date(now.getTime() - 10 * 1000);
+      const startTime = new Date(now.getTime() - 20 * 1000);
 
       this.timeRange.start = Math.floor(startTime.getTime() / 1000);
       this.timeRange.end = Math.floor(endTime.getTime() / 1000);
