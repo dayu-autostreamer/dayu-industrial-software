@@ -87,7 +87,7 @@ class GlobalPollingService {
       this.lastSeen.add(key);
       try {
         const msg = (typeof item === 'string') ? item : (item.message || item.msg || '');
-        const text = msg ? `${msg}更多细节请前往事件触发任务查看!` : JSON.stringify(item);
+        const text = msg ? `${msg}，请前往事件触发任务查看！` : JSON.stringify(item);
         ElMessage({ message: text, type: 'warning', duration: 6000, showClose: true, grouping: false });
       } catch {
         // fallback

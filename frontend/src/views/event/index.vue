@@ -3,11 +3,11 @@
     <div class="header-row">
       <h3>告警详情查看</h3>
       <div class="controls">
-        <el-select v-model="selectedSource" placeholder="选择 数据源 (不选择不显示数据)" clearable style="min-width:220px; margin-right:12px;">
+        <el-select v-model="selectedSource" placeholder="请选择数据源" clearable style="min-width:220px; margin-right:12px;">
           <el-option
             v-for="sid in sourceList"
             :key="sid"
-            :label="sid"
+            :label="sourceLabel(sid)"
             :value="sid"
           />
         </el-select>
@@ -39,12 +39,12 @@
     <div class="meta-row" style="margin-top:12px;">
       <el-tag :type="polling ? 'success' : 'info'">{{ polling ? '轮询运行中' : '轮询已停止' }}</el-tag>
       <span style="margin-left:12px;">本地已保存告警数：<strong>{{ allAlarms.length }}</strong></span>
-      <span style="margin-left:12px;" v-if="selectedSource != null">当前 数据源: <strong>{{ selectedSource }}</strong>（{{ filteredSorted.length }} 条）</span>
+      <span style="margin-left:12px;" v-if="selectedSource != null">当前 数据源: <strong>{{ sourceLabel(selectedSource) }}</strong>（{{ filteredSorted.length }} 条）</span>
     </div>
 
     <el-card class="alarm-list-card" style="margin-top:16px;">
       <div v-if="selectedSource == null" class="empty-hint">
-        请选择一个 数据源 来查看该源的告警详情（上方选择框）。已接收的告警保存在本地，不会被重复请求。
+        请选择一个数据源来查看告警详情
       </div>
 
       <div v-else>
@@ -63,7 +63,7 @@
                 </div>
                 <div class="alarm-meta">
                   <span>{{ formatTms(alarm.tms) }}</span>
-                  <el-tag size="small" style="margin-left:8px;">数据源: {{ alarm.source_id }}</el-tag>
+                  <el-tag size="small" style="margin-left:8px;">数据源: {{ sourceLabel(alarm.source_id) }}</el-tag>
                 </div>
               </div>
             </template>
@@ -128,6 +128,9 @@ export default {
 
     const allAlarms = ref([]);
     const intervalId = ref(null);
+
+    // id -> name 映射
+    const sourceMap = ref({});
 
     function toMs(tms) {
       const num = (typeof tms === 'number') ? tms : Number(tms);
@@ -336,9 +339,39 @@ export default {
       ElMessage.success('本地告警存储已清空');
     }
 
+    // 获取 source id->name 映射
+    async function fetchSourceList() {
+      try {
+        const resp = await fetch('/api/source_list');
+        if (!resp.ok) return;
+        const arr = await resp.json().catch(() => []);
+        if (Array.isArray(arr)) {
+          const map = {};
+          for (const it of arr) {
+            if (!it) continue;
+            const id = it.id;
+            const label = it.label ?? it.name;
+            if (id !== undefined && id !== null && label) {
+              map[String(id)] = String(label);
+            }
+          }
+          sourceMap.value = map;
+        }
+      } catch (e) {
+        // 忽略错误，回退显示 id
+      }
+    }
+
+    function sourceLabel(id) {
+      if (id === null || id === undefined || id === '') return '';
+      const key = String(id);
+      return sourceMap.value[key] || key;
+    }
+
     onMounted(() => {
       loadFromStorage();
       fetchAlarms();
+      fetchSourceList();
       startPolling();
     });
 
@@ -365,7 +398,8 @@ export default {
       stringifyVal,
       isImageKey,
       normalizeImageSrc,
-      formatTms
+      formatTms,
+      sourceLabel
     };
   }
 };

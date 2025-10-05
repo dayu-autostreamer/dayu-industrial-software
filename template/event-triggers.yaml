@@ -25,7 +25,6 @@ audio:
     warning: "出现警报声!"
     hook_name: audio
     warning_interval: 10
-
 imu:
   - name: 任务时长告警
     warning: "任务出现严重超时!"

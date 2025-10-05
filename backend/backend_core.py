@@ -266,6 +266,15 @@ class BackendCore:
                 return source_config
         return None
 
+    def find_source_name_by_id(self, source_id):
+        source_config = self.find_datasource_configuration_by_label(self.source_label)
+        if not source_config:
+            return None
+        for source in source_config['source_list']:
+            if source['id'] == source_id:
+                return source['name']
+        return None
+
     def fill_datasource_config(self, config):
         config['source_label'] = f'source_config_{Counter.get_count("source_label")}'
         source_list = config['source_list']
@@ -529,6 +538,7 @@ class BackendCore:
 
             task = Task.deserialize(result)
             source_id = task.get_source_id()
+            source_name = self.find_source_name_by_id(source_id)
             task_id = task.get_task_id()
 
             cfgs = self.event_trigger_config[task.get_source_type()] \
@@ -547,10 +557,11 @@ class BackendCore:
                     is_warn, detail = vf_func(task)
                     if is_warn:
                         self.event_results.setdefault(idx, []).append({
-                            'task_id': task_id,
+                            "task_id": task_id,
                             "source_id": source_id,
-                            'message': cfg['warning'],
-                            'is_read': False
+                            "source_name": source_name,
+                            "message": cfg['warning'],
+                            "is_read": False
                         })
                         timestamp = time.time()
                         task_tmp_data = task.get_tmp_data()

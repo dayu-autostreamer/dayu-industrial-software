@@ -1,6 +1,6 @@
 position: both
 pod-template:
-  image: mmw-detection:is-hgz-v1.1
+  image: mmw-detection
   imagePullPolicy: Always
   env:
     - name: PROCESSOR_NAME
