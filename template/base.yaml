@@ -32,7 +32,7 @@ free-visualizations:
   !include free-visualizations.yaml
 system-visualizations:
   !include system-visualizations.yaml
-event-trigger:
+event-triggers:
   !include event-trigger.yaml
 
 

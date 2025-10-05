@@ -90,7 +90,8 @@ class BackendCore:
             self.priority = base_info['priority']
             self.result_visualization_configs = base_info['result-visualizations']
             self.system_visualization_configs = base_info['system-visualizations']
-            self.event_trigger_config = base_info['event-trigger']
+            self.free_visualization_configs = base_info['free-visualizations']
+            self.event_trigger_config = base_info['event-triggers']
         except KeyError as e:
             LOGGER.warning(f'Parse base info failed: {str(e)}')
             LOGGER.exception(e)
