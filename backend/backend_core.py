@@ -38,6 +38,14 @@ class BackendCore:
                 variables=vf['variables']
             )
         )
+        self.free_visualization_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'FREE_VISUALIZER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {}),
+                variables=vf['variables']
+            )
+        )
         self.event_config_cache = ConfigBoundInstanceCache(
             factory=lambda vf: Context.get_algorithm(
                 'EVENT_TRIGGER',
@@ -399,6 +407,26 @@ class BackendCore:
 
         return visualization_data
 
+    def prepare_free_result_visualization_data(self, task, is_last=False):
+        viz_configs = self.free_visualization_configs[task.get_source_type()] \
+            if (self.free_visualization_configs['allow-flexible-switch'] and
+                task.get_source_type() in self.free_visualization_configs) \
+            else self.free_visualization_configs['base']
+
+        viz_functions = self.free_visualization_cache.sync_and_get(viz_configs)
+        visualization_data = []
+        for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
+            try:
+                if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
+                    visualization_data.append({"id": idx, "data": {v: None for v in viz_config['variables']}})
+                else:
+                    visualization_data.append({"id": idx, "data": viz_func(task)})
+            except Exception as e:
+                LOGGER.warning(f'Failed to load result visualization data: {e}')
+                LOGGER.exception(e)
+
+        return visualization_data
+
     def prepare_system_visualizations_data(self):
         visualization_data = []
         for idx, vf in enumerate(self.system_visualization_configs):
@@ -481,7 +509,7 @@ class BackendCore:
             for idx, result in enumerate(results):
                 task = Task.deserialize(result)
                 try:
-                    visualization_data = self.prepare_result_visualization_data(task, False)
+                    visualization_data = self.prepare_free_result_visualization_data(task)
                 except Exception as e:
                     LOGGER.warning(f'Prepare visualization free task data failed: {str(e)}')
                     LOGGER.exception(e)
