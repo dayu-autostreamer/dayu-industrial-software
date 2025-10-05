@@ -25,6 +25,7 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
         return image
 
     def __call__(self, task: Task):
+        import cv2
         try:
             if self.edge_service:
                 content = task.get_dag().get_node(self.edge_service).service.get_content_data()
@@ -34,7 +35,8 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
             content = task.get_last_content()
 
         try:
-            frame = content['frame']
+            file_path = task.get_file_path()
+            frame = cv2.VideoCapture(file_path).read()[1]
             image = EncodeOps.decode_image(frame)
             lps = content['lps'] if 'lps' in content else 0
             rps = content['rps'] if 'rps' in content else 0
@@ -42,7 +44,6 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
 
             base64_data = EncodeOps.encode_image(image)
         except Exception as e:
-            import cv2
             base64_data = EncodeOps.encode_image(
                 cv2.imread(self.default_visualization_image)
             )

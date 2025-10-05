@@ -1,4 +1,3 @@
-import time
 import redis
 
 from .util_ixpe import CalPosition, AbnormalDetector
@@ -24,7 +23,6 @@ class EdgeEyeStage3:
         self.first_done_flag = False
 
     def __call__(self, input_ctx):
-        start = time.time()
         if 'frame' in input_ctx:
             input_ctx['frame'] = EncodeOps.decode_image(input_ctx['frame'])
         if "bar_roi" in input_ctx:
@@ -40,36 +38,19 @@ class EdgeEyeStage3:
         if "rabs_point" in input_ctx:
             input_ctx["rabs_point"] = tuple(input_ctx["rabs_point"])
 
-        end_pre = time.time()
-        LOGGER.debug(f'preprocess time: {end_pre - start}s')
-
         try:
 
             output_ctx = self.process_task(input_ctx)
         except Exception as e:
             output_ctx = {}
 
-        end_process = time.time()
-        LOGGER.debug(f'process time: {end_process - end_pre}s')
-
-        if "frame" in output_ctx:
-            output_ctx["frame"] = EncodeOps.encode_image(output_ctx["frame"])
-
-        end_after = time.time()
-        LOGGER.debug(f'after process time: {end_after - end_process}s')
-
-        end = time.time()
-        LOGGER.debug(f'real service call time: {end - start}s')
-
         return output_ctx
 
     def process_task(self, input_ctx):
         output_ctx = {}
 
-        if 'frame' not in input_ctx:
+        if len(input_ctx) not in [3, 5]:
             return output_ctx
-
-        frame = input_ctx['frame']
 
         if len(input_ctx) == 3:
             LOGGER.debug("get three parameters from input_ctx")
@@ -97,11 +78,10 @@ class EdgeEyeStage3:
             if not self.first_done_flag:
                 self.first_done_flag = True
                 LOGGER.debug('start get SR frame from queue')
-            # 因为roi size变大 2*h and 2*w 导致不能直接使用计算出来的单位xxx
-            lroi, rroi, labs_point, rabs_point, frame = input_ctx["srl"], input_ctx["srr"], input_ctx[
-                "labs_point"], input_ctx["rabs_point"], input_ctx['frame']
-            # print(type(lroi))
-            # print(type(rroi))
+            # ROI size increases (2*h and 2*w), cannot use the calculated unit directly
+            lroi, rroi, labs_point, rabs_point, frame = (input_ctx["srl"], input_ctx["srr"],
+                                                         input_ctx["labs_point"], input_ctx["rabs_point"],
+                                                         input_ctx['frame'])
             LOGGER.debug(f'{labs_point=}, {rabs_point=}')
 
             if len(lroi) == 1:
@@ -121,7 +101,6 @@ class EdgeEyeStage3:
         # lps, rps = abnormal_detector.repair(lpx=lps, rpx=rps)  # func3
         # update lps, rps
         self.set_edge_position(int(self.lps), int(self.rps))
-        output_ctx["frame"] = frame
         output_ctx["lps"] = self.lps
         output_ctx["rps"] = self.rps
         return output_ctx
