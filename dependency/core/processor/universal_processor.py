@@ -22,7 +22,8 @@ class UniversalProcessor(Processor):
 
         cap = cv2.VideoCapture(data_file_path)
         _, frame = cap.read()
-        content = {'frame': frame} if content is None else {**content, 'frame': frame}
+        content = {'frame': EncodeOps.encode_image(frame)} if content is None \
+            else {**content, 'frame': EncodeOps.encode_image(frame)}
 
         result = self.infer(content)
         result.pop('frame', None)

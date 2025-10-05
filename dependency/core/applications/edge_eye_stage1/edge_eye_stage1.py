@@ -13,9 +13,10 @@ class EdgeEyeStage1:
         self.first_done_flag = False
 
     def __call__(self, input_ctx):
-        frame = input_ctx['frame']
+        if 'frame' in input_ctx:
+            input_ctx['frame'] = EncodeOps.decode_image(input_ctx['frame'])
 
-        output_ctx = self.process_frame(frame)
+        output_ctx = self.process_frame(input_ctx)
 
         if 'bar_roi' in output_ctx:
             output_ctx['bar_roi'] = EncodeOps.encode_image(output_ctx['bar_roi'])
@@ -24,12 +25,12 @@ class EdgeEyeStage1:
 
         return output_ctx
 
-    def process_frame(self, frame):
+    def process_frame(self, input_ctx):
         output_ctx = {}
-        if not self.mat_detector.detect(frame=frame):
+        if not self.mat_detector.detect(frame=input_ctx['frame']):
             LOGGER.debug('no material detected, continue')
             return output_ctx
-        bar_roi, abs_point = self.bar_selector.select(frame=frame)
+        bar_roi, abs_point = self.bar_selector.select(frame=input_ctx['frame'])
         if abs_point != (0, 0):
             if not self.first_done_flag:
                 self.first_done_flag = True
