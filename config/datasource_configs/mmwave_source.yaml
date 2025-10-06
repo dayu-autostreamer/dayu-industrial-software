@@ -1,4 +1,4 @@
-source_name: "毫米波"
+source_name: "工厂毫米波雷达"
 source_type: "mmwave"
 source_mode: "http_mmwave"
 source_list:
