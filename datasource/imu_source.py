@@ -323,9 +323,11 @@ if __name__ == '__main__':
 
     if is_port_in_use(server_port):
         # server already in running
+        LOGGER.info('Server already running, just registering source...')
         register_source(args.root, server_path, args.play_mode)
     else:
         # first run server
+        LOGGER.info('Starting server and registering source...')
         server_thread = threading.Thread(target=run_server, args=(server_port,), daemon=True)
         server_thread.start()
         if wait_for_http_ready(server_port):
