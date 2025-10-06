@@ -14,7 +14,7 @@ video:
   - name: 发泡塑料边缘告警
     warning: "边缘位置偏移程度过大!"
     hook_name: video
-    hook_params: '{"LThreshold":275,"RThreshold":1000}'
+    hook_params: '{"LThreshold":271,"RThreshold":1005}'
 audio:
   - name: 任务时长告警
     warning: "任务出现严重超时!"

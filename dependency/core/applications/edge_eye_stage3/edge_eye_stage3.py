@@ -106,5 +106,6 @@ class EdgeEyeStage3:
         return output_ctx
 
     def set_edge_position(self, lps, rps):
-        self.redis.set("lps", str(lps))
-        self.redis.set("rps", str(rps))
+        # Set a 60-second TTL so stale values don't persist across restarts
+        self.redis.set("lps", str(lps), ex=60)
+        self.redis.set("rps", str(rps), ex=60)
