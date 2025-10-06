@@ -30,7 +30,15 @@ cleanup() {
     fi
 }
 
-trap cleanup INT TERM EXIT
+cleanup_and_exit() {
+    # Disarm traps to avoid recursion when calling exit
+    trap - INT TERM EXIT
+    cleanup
+    exit 0
+}
+
+# On SIGINT/SIGTERM, cleanup and exit to stop the streaming loop immediately
+trap cleanup_and_exit INT TERM
 
 function show_help() {
     echo "Usage: $0 --root <folder> --address <address>"
