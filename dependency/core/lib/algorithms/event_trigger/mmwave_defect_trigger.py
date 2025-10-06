@@ -6,11 +6,11 @@ from core.lib.common import ClassFactory, ClassType, EncodeOps, LOGGER
 from core.lib.content import Task
 from .base_trigger import BaseTrigger
 
-__all__ = ('MmwaveTrigger',)
+__all__ = ('MMWaveDefectTrigger',)
 
 
 @ClassFactory.register(ClassType.EVENT_TRIGGER, alias='mmwave_defect')
-class MmwaveDefectTrigger(BaseTrigger, abc.ABC):
+class MMWaveDefectTrigger(BaseTrigger, abc.ABC):
     frame_history = []
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
