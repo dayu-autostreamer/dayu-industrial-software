@@ -32,12 +32,12 @@ class HttpMMWaveGetter(BaseDataGetter, abc.ABC):
             if response and response.status_code == 200:
                 with open(self.file_name, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:  # 避免写入 keep-alive 空块
+                        if chunk:
                             f.write(chunk)
 
     @staticmethod
     def compute_cost_time(system, cost):
-        # 每次拉取一帧的数据(一帧为一个bin),因此实际时间是1/fps
+        # Pull one frame each time (one frame is a bin), so the actual time is 1/fps.
         return max(1 / system.meta_data['fps'] - cost, 0)
 
     def __call__(self, system):
