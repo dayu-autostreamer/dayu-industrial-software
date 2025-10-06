@@ -95,7 +95,7 @@ class AudioSource:
 
     def get_source_file(self, backtask: BackgroundTasks):
         file_name = self.get_one_audio_file()
-        return FileResponse(path=file_name, filename=file_name, media_type='text/plain',
+        return FileResponse(path=file_name, filename=file_name, media_type='application/octet-stream',
                             background=backtask.add_task(FileOps.remove_file, file_name))
 
     def _scan_wavs(self) -> List[str]:

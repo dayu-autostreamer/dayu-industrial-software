@@ -82,7 +82,7 @@ class IMUSource:
 
     def get_source_file(self, backtask: BackgroundTasks):
         self.get_one_imu_file()
-        return FileResponse(path=self.file_name, filename=self.file_name, media_type='text/plain',
+        return FileResponse(path=self.file_name, filename=self.file_name, media_type='application/octet-stream',
                             background=backtask.add_task(FileOps.remove_file, self.file_name))
 
     def _scan_csvs(self) -> List[str]:
