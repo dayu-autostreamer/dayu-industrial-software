@@ -14,7 +14,7 @@ class AbnormalAudioTrigger(BaseTrigger, abc.ABC):
 
     def __call__(self, task: Task):
         # Return the detailed time of each stage
-        if task.get_last_content() == 5:
+        if task.get_last_content() == 4:
             return True, {}
         return False, {}
 

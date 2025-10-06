@@ -24,8 +24,8 @@ class AudioFrameVisualizer(ImageVisualizer, abc.ABC):
             "喇叭声",
             "钻孔声",
             "引擎声",
-            "重型机械声",
             "警报声",
+            "重型机械声",
         ]
 
         import matplotlib
