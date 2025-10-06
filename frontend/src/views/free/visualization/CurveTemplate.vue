@@ -228,7 +228,6 @@ export default {
         alignTicks: true,
         axisLabel: {
           formatter: value => {
-            // 处理离散字符串类型数据
             if (valueTypes.value[activeVariables.value[0]] === 'category') {
               const entry = Object.entries(discreteValueMap.value[activeVariables.value[0]])
                   .find(([, v]) => v === value)
@@ -252,9 +251,10 @@ export default {
                 ? getDiscreteValue(varName, v)
                 : Number(v)
           }),
-          // 新增：空数据跳过渲染
+          showSymbol: true,
+          showAllSymbol: true,
+          sampling: 'none',
           connectNulls: false,
-          // 新增：优化渲染性能
           progressive: 200,
           animation: values.length < 100
         }
