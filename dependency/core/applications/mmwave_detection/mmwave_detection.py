@@ -1,5 +1,3 @@
-import ctypes
-from typing import List
 import numpy as np
 
 from core.lib.common import Context, LOGGER
