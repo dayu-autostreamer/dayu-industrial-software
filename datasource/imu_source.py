@@ -265,17 +265,27 @@ async def add_source(request: SourceRequest):
     return {"status": "success"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
 
 
-def wait_for_port(port: int, timeout=10):
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        if is_port_in_use(port):
-            return True
-        time.sleep(0.5)
+def wait_for_http_ready(port: int, timeout=10) -> bool:
+    url = f"http://127.0.0.1:{port}/health"
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            r = requests.get(url, timeout=0.5, headers={"Connection": "close"})
+            if r.status_code == 200:
+                return True
+        except requests.RequestException:
+            pass
+        time.sleep(0.2)
     return False
 
 
@@ -318,7 +328,7 @@ if __name__ == '__main__':
         # first run server
         server_thread = threading.Thread(target=run_server, args=(server_port,), daemon=True)
         server_thread.start()
-        if wait_for_port(server_port):
+        if wait_for_http_ready(server_port):
             register_source(args.root, server_path, args.play_mode)
             server_thread.join()
         else:
