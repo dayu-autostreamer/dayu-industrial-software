@@ -4,11 +4,11 @@ from core.lib.common import ClassFactory, ClassType, EncodeOps, LOGGER
 from core.lib.content import Task
 from .base_trigger import BaseTrigger
 
-__all__ = ('IxpeTrigger',)
+__all__ = ('IXPEOffsetTrigger',)
 
 
-@ClassFactory.register(ClassType.EVENT_TRIGGER, alias='video')
-class IxpeTrigger(BaseTrigger, abc.ABC):
+@ClassFactory.register(ClassType.EVENT_TRIGGER, alias='ixpe_offset')
+class IXPEOffsetTrigger(BaseTrigger, abc.ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.LThreshold = kwargs.get('LThreshold', None)

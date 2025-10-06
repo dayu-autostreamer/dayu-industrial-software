@@ -10,13 +10,13 @@ from core.lib.common import ClassFactory, ClassType, LOGGER, FileOps, Context, C
 from core.lib.network import http_request
 from core.lib.estimation import TimeEstimator
 
-__all__ = ('HttpMmwGetter',)
+__all__ = ('HttpMMWaveGetter',)
 
 
-@ClassFactory.register(ClassType.GEN_GETTER, alias='http_mmw')
-class HttpMmwGetter(BaseDataGetter, abc.ABC):
+@ClassFactory.register(ClassType.GEN_GETTER, alias='http_mmwave')
+class HttpMMWaveGetter(BaseDataGetter, abc.ABC):
     def __init__(self):
-        LOGGER.debug('find mmw getter!')
+        LOGGER.debug('find mmwave getter!')
         self.file_name = None
         self.hash_codes = None
 
@@ -26,10 +26,10 @@ class HttpMmwGetter(BaseDataGetter, abc.ABC):
 
     @TimeEstimator.estimate_duration_time
     def request_source_data(self, system, task_id):
-        LOGGER.debug(f'url:{system.mmw_data_source}')
+        LOGGER.debug(f'url:{system.mmwave_data_source}')
         response = None
         while not response:
-            response = http_request(url=system.mmw_data_source + '/file', no_decode=True, stream=True)
+            response = http_request(url=system.mmwave_data_source + '/file', no_decode=True, stream=True)
             LOGGER.debug(response)
             self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
             if response and response.status_code == 200:
@@ -48,7 +48,7 @@ class HttpMmwGetter(BaseDataGetter, abc.ABC):
         delay = self.request_source_data(system, new_task_id)
 
         sleep_time = self.compute_cost_time(system, delay)
-        LOGGER.info(f'[Mmw Simulation] source {system.source_id}: sleep {sleep_time}s')
+        LOGGER.info(f'[Mmwave Simulation] source {system.source_id}: sleep {sleep_time}s')
         time.sleep(sleep_time)
 
         # 原始的metadata只有fps.

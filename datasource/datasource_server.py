@@ -20,7 +20,7 @@ class DataSource:
             'http_video': 'python3 video_source.py',
             'http_audio': 'python3 audio_source.py',
             'http_imu': 'python3 imu_source.py',
-            'http_mmw': 'python3 mmw_source.py'
+            'http_mmwave': 'python3 mmwave_source.py'
         }
 
         self.backend_hostname = NodeInfo.get_cloud_node()

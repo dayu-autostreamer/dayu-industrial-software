@@ -1,4 +1,4 @@
-from .mmw_detection import MmwDetection as MmwDetector
+from .mmwave_detection import MMWaveDetection as MMWaveDetector
 
 
-__all__ = ["MmwDetector"]
+__all__ = ["MMWaveDetector"]

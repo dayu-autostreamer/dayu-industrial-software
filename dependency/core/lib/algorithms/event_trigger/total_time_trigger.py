@@ -4,11 +4,11 @@ from core.lib.common import ClassFactory, ClassType, EncodeOps, LOGGER
 from core.lib.content import Task
 from .base_trigger import BaseTrigger
 
-__all__ = ('TotalTimeTrigger',)
+__all__ = ('DelayTimeoutTrigger',)
 
 
-@ClassFactory.register(ClassType.EVENT_TRIGGER, alias='total_time')
-class TotalTimeTrigger(BaseTrigger, abc.ABC):
+@ClassFactory.register(ClassType.EVENT_TRIGGER, alias='delay_timeout')
+class DelayTimeoutTrigger(BaseTrigger, abc.ABC):
     frame_history = []
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

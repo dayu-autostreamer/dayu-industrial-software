@@ -103,13 +103,13 @@ imu:
     variables: [ "服务拓扑卸载状态" ]
     hook_name: dag_offloading
     size: 2
-mmw:
+mmwave:
   - name: 毫米波幅值曲线
     type: curve
     x_axis: 任务序号
     y_axis: 波长
     variables: [ "波长" ]
-    hook_name: mmw_length
+    hook_name: mmwave_length
     size: 1
   - name: 任务端到端时延曲线
     type: cdf
@@ -121,7 +121,7 @@ mmw:
 #  - name: 毫米波时频图
 #    type: image
 #    variables: [ "毫米波时频" ]
-#    hook_name: mmw_image
+#    hook_name: mmwave_image
 #    size: 1
   - name: 服务拓扑图
     type: topology

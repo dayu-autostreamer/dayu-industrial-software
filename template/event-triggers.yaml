@@ -2,42 +2,42 @@ allow-flexible-switch: true
 base:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
-    hook_name: total_time
+    hook_name: delay_timeout
     hook_params: '{"threshold":10}'
     warning_interval: 10
 video:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
-    hook_name: total_time
+    hook_name: delay_timeout
     hook_params: '{"threshold":2}'
     warning_interval: 10
   - name: 发泡塑料边缘告警
     warning: "边缘位置偏移程度过大!"
-    hook_name: video
+    hook_name: ixpe_offset
     hook_params: '{"LThreshold":271,"RThreshold":1005}'
 audio:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
-    hook_name: total_time
+    hook_name: delay_timeout
     hook_params: '{"threshold":2}'
     warning_interval: 10
   - name: 警报声告警
     warning: "出现警报声!"
-    hook_name: audio
+    hook_name: abnormal_audio
     warning_interval: 10
 imu:
   - name: 任务时长告警
     warning: "任务出现严重超时!"
-    hook_name: total_time
+    hook_name: delay_timeout
     hook_params: '{"threshold":2}'
     warning_interval: 10
-mmw:
+mmwave:
   - name: 材料表面缺陷感知
     warning: "检测到明显表面缺陷!"
-    hook_name: mmw
+    hook_name: mmwave_defect
     warning_interval: 50
   - name: 任务时长告警
     warning: "任务出现严重超时!"
-    hook_name: total_time
+    hook_name: delay_timeout
     hook_params: '{"threshold":2}'
     warning_interval: 10
