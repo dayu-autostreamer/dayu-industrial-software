@@ -11,10 +11,11 @@ __all__ = ('AbnormalAudioTrigger',)
 class AbnormalAudioTrigger(BaseTrigger, abc.ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.audio_class = kwargs.get('audio_class', None)
 
     def __call__(self, task: Task):
         # Return the detailed time of each stage
-        if task.get_last_content() == 4:
+        if self.audio_class and task.get_last_content() == self.audio_class:
             return True, {}
         return False, {}
 
