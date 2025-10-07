@@ -2,11 +2,9 @@ from .processor import Processor
 
 from core.lib.estimation import Timer
 from core.lib.content import Task
-from core.lib.common import Context, LOGGER, FileOps
+from core.lib.common import Context, FileOps
 from core.lib.common import ClassFactory, ClassType
 import os
-import zipfile
-import tempfile
 
 
 @ClassFactory.register(ClassType.PROCESSOR, alias='mmwave_detector_processor')

@@ -81,8 +81,8 @@ class MMWaveDefectTrigger(BaseTrigger, abc.ABC):
         return self._img.copy()[..., ::-1]
 
     def __call__(self, task: Task):
-        results = task.get_last_content()
-        MMWaveDefectTrigger.frame_history.extend(results)
+        distance_results = [result['distance'] for result in task.get_last_content()]
+        MMWaveDefectTrigger.frame_history.extend(distance_results)
         if len(MMWaveDefectTrigger.frame_history) >= 3*self.window_len*self.window_num:
             MMWaveDefectTrigger.frame_history = MMWaveDefectTrigger.frame_history[-self.window_len * self.window_num:]
         cnt = 0
