@@ -1,7 +1,6 @@
 import abc
 from collections import deque
-from typing import List, Dict
-from core.lib.common import ClassFactory, ClassType, KubeConfig, Context, ConfigLoader
+from core.lib.common import ClassFactory, ClassType, KubeConfig, Context, ConfigLoader, LOGGER
 from core.lib.estimation import OverheadEstimator
 from core.lib.content import Task
 
@@ -21,7 +20,7 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
         self.latency_constraint = latency_constraint
 
         # Bounded history buffer for recent end-to-end delays (seconds)
-        self.history_latency_buffer: deque = deque(maxlen= 30)
+        self.history_latency_buffer: deque = deque(maxlen=10)
 
         # Internal adaptive state
         self._pipe_seg: int = None  # initialized on first plan based on config or 0
@@ -48,7 +47,9 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
                                                     'scheduler/adaptive_feedback')
 
     def get_schedule_plan(self, info):
+        LOGGER.debug('[SCHEDULE DEBUG] AdaptiveFeedbackAgent get_schedule_plan called.')
         with self.overhead_estimator:
+            LOGGER.debug('[SCHEDULE DEBUG] AdaptiveFeedbackAgent overhead estimation start.')
             policy = {}
             policy.update(self.fixed_configuration)
 
@@ -58,9 +59,13 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
             all_devices = [*all_edge_devices, cloud_device]
             service_info = KubeConfig.get_service_nodes_dict()
 
+            LOGGER.debug('[SCHEDULE DEBUG] set basic info done.')
+
             dag = info['dag']
             # Extract pipeline stages in order
             pipeline = Task.extract_pipeline_deployment_from_dag_deployment(dag)
+
+            LOGGER.debug('[SCHEDULE DEBUG] extract pipeline done.')
             pipeline_len = len(pipeline)
 
             # Configurable parameters with sane defaults
@@ -115,15 +120,19 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
             else:
                 self._since_last_adjust += 1
 
+            LOGGER.debug(f'[SCHEDULE DEBUG] AdaptiveFeedbackAgent decide pipe_seg={self._pipe_seg}')
             # Build new pipeline deployment according to decided pipe_seg
             ps = max(0, min(self._pipe_seg if self._pipe_seg is not None else 0, pipeline_len))
             new_pipeline = (
-                [{**p, 'execute_device': source_edge_device} for p in pipeline[:ps]] +
-                [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
+                    [{**p, 'execute_device': source_edge_device} for p in pipeline[:ps]] +
+                    [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
             )
 
             # Build dag deployment back
             new_dag = Task.extract_dag_deployment_from_pipeline_deployment(new_pipeline)
+
+            LOGGER.debug('[SCHEDULE DEBUG] extract new dag done.')
+
             policy.update({'dag': new_dag, 'pipe_seg': ps})
 
         return policy
