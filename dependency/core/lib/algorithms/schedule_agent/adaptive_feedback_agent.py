@@ -66,6 +66,7 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
             pipeline = Task.extract_pipeline_deployment_from_dag_deployment(dag)
 
             LOGGER.debug('[SCHEDULE DEBUG] extract pipeline done.')
+            LOGGER.debug(f'[SCHEDULE DEBUG] pipeline: {pipeline}')
             pipeline_len = len(pipeline)
 
             # Configurable parameters with sane defaults
@@ -132,6 +133,7 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
             new_dag = Task.extract_dag_deployment_from_pipeline_deployment(new_pipeline)
 
             LOGGER.debug('[SCHEDULE DEBUG] extract new dag done.')
+            LOGGER.debug(f'[SCHEDULE DEBUG] new dag: {new_dag}')
 
             policy.update({'dag': new_dag, 'pipe_seg': ps})
 

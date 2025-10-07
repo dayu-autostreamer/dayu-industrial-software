@@ -133,23 +133,20 @@ class Task:
                 {'service_name': dag_flow.get_node(current).service.get_service_name(),
                  'execute_device': dag_flow.get_node(current).service.get_execute_device()}
             )
-        pipeline_deployment_info.append(
-            {'service_name': dag_flow.get_node(current).service.get_service_name(),
-             'execute_device': dag_flow.get_node(current).service.get_execute_device()}
-        )
+            current = dag_flow.get_next_nodes(current)[0]
 
         return pipeline_deployment_info
 
     @staticmethod
     def extract_dag_from_pipeline_deployment(pipeline_deployment: list):
         dag_dict = {}
-        for service in pipeline_deployment[:-1]:
+        for service in pipeline_deployment[:]:
             dag_dict[service['service_name']] = {
                 'service': service,
                 'next_nodes': [],
             }
         prev_node = None
-        for service in pipeline_deployment[-2::-1]:
+        for service in pipeline_deployment[::-1]:
             if prev_node:
                 dag_dict[service['service_name']]['next_nodes'].append(prev_node)
             prev_node = service['service_name']
