@@ -1,33 +1,50 @@
 import numpy as np
 
-from core.lib.common import Context, LOGGER
+from core.lib.common import Context, convert_ndarray_to_list
+
+from .mmwave_config import get_config
+from .data_reader import FrameIter
+
 
 class MMWaveDetection:
     def __init__(self):
-        # 初始化工作:读取配置
-        # 在计算时,所使用的毫米波配置只有c.rangeFFTWindow 和 c.dopplerFFTWindow.所以可以不用在这里引入配置类
-        LOGGER.debug(f'initializing MMWave application model!!')
+        config_path = Context.get_file_path(Context.get_parameter('MMWAVE_CONFIG'))
+        with open(config_path, 'r') as fp:
+            mmwaveConfigContent = fp.read()
+        self.cfg = get_config(mmwaveConfigContent)
+
         self.rangeFFTWindow = np.hamming
         self.dopplerFFTWindow = np.ones
 
-    def __call__(self, data):
-        # LOGGER.debug('start infer ..')
+    def __call__(self, file_list: 'list[str]'):
+        fit = FrameIter(self.cfg, file_list)
+        result = []
+        while True:
+            try:
+                frame_data = next(fit)
+            except StopIteration:
+                break
+            result.append(self.process(frame_data))
+        return result
 
-        return self.process(data)
+    def process(self, frame_data: np.ndarray):
+        range_fft = self.range_fft_frame(frame_data=frame_data)
 
-    def process(self, framedata: np.ndarray) -> float:
-        range_result = self.range_fft_frame(frame_data=framedata)
+        half = self.cfg.numSamplePerChirp // 2
+        doppler_fft = self.doppler_fft_frame(range_bin=range_fft[..., :half])
+        rd = doppler_fft[0, 0, :, :]
+        rd_mag = 20 * np.log10(np.abs(rd) + 1e-12)
 
         # empirical scaling factor
         strength_ratio = 0.1
-
         # get phase
-        ang = np.angle(range_result[0, 0, :, 0])
+        ang = np.angle(range_fft[0, 0, :, 0])
         distance = ang / 2 / np.pi * 5
+        distance = np.mean(distance) / strength_ratio
 
-        return np.mean(distance) / strength_ratio
+        return convert_ndarray_to_list({'range_doppler': rd_mag, 'distance': distance})
 
-    def awgn(self,x, snr, seed=7):
+    def awgn(self, x, snr, seed=7):
         np.random.seed(seed)
         t_snr = 10 ** (snr / 10.0)
         xpower = np.sum(x ** 2) / np.size(x)

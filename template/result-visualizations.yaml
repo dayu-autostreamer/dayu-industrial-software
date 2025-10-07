@@ -104,11 +104,17 @@ imu:
     hook_name: dag_offloading
     size: 2
 mmwave:
-  - name: 毫米波幅值曲线
+  - name: 毫米波时频图
+    type: image
+    variables: [ "毫米波时频" ]
+    hook_name: mmwave_frame
+    save_expense: true
+    size: 1
+  - name: 毫米波相位位移曲线
     type: curve
     x_axis: 任务序号
-    y_axis: 波长
-    variables: [ "波长" ]
+    y_axis: 位移距离(m)
+    variables: [ "相位位移" ]
     hook_name: mmwave_length
     size: 1
   - name: 任务端到端时延曲线
@@ -118,11 +124,6 @@ mmwave:
     variables: [ "端到端时延" ]
     hook_name: e2e_delay
     size: 1
-#  - name: 毫米波时频图
-#    type: image
-#    variables: [ "毫米波时频" ]
-#    hook_name: mmwave_image
-#    size: 1
   - name: 服务拓扑图
     type: topology
     variables: [ "服务拓扑卸载状态" ]

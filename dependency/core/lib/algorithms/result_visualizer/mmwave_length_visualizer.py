@@ -13,4 +13,7 @@ class MMWaveLengthVisualizer(CurveVisualizer, abc.ABC):
         super().__init__(**kwargs)
 
     def __call__(self, task: Task):
-        return {self.variables[0]: task.get_dag().get_node('mmwave-detection').service.get_content_data()}
+        content = task.get_last_content()
+        distance = content[0]['distance'] if content else 0.0
+
+        return {self.variables[0]: distance}
