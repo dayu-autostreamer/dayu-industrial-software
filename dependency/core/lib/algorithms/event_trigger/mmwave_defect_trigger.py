@@ -82,20 +82,20 @@ class MMWaveDefectTrigger(BaseTrigger, abc.ABC):
 
     def __call__(self, task: Task):
         single_res = task.get_dag().get_node('mmwave-detection').service.get_content_data()
-        MmwaveTrigger.frame_history.append(single_res)
-        if len(MmwaveTrigger.frame_history) >= 3*self.window_len*self.window_num:
-            MmwaveTrigger.frame_history = MmwaveTrigger.frame_history[-self.window_len * self.window_num:]
+        MMWaveDefectTrigger.frame_history.append(single_res)
+        if len(MMWaveDefectTrigger.frame_history) >= 3*self.window_len*self.window_num:
+            MMWaveDefectTrigger.frame_history = MMWaveDefectTrigger.frame_history[-self.window_len * self.window_num:]
         cnt = 0
-        if len(MmwaveTrigger.frame_history) < self.window_len * self.window_num:
+        if len(MMWaveDefectTrigger.frame_history) < self.window_len * self.window_num:
             return False, {}
         for i in range(self.window_num):
-            frame_window = MmwaveTrigger.frame_history[-(i+1)*self.window_len:-i*self.window_len]
+            frame_window = MMWaveDefectTrigger.frame_history[-(i+1)*self.window_len:-i*self.window_len]
             if i == 0:
-                frame_window = MmwaveTrigger.frame_history[-(i+1)*self.window_len:]
+                frame_window = MMWaveDefectTrigger.frame_history[-(i+1)*self.window_len:]
             if np.var(frame_window) > self.threshold:
                 cnt += 1
         if cnt >= (self.window_num+1)/2:
-            image = self.plot(np.asarray(MmwaveTrigger.frame_history[-self.window_len * self.window_num:]))
+            image = self.plot(np.asarray(MMWaveDefectTrigger.frame_history[-self.window_len * self.window_num:]))
             try:
                 base64_data = EncodeOps.encode_image(image)
             except Exception as e:
