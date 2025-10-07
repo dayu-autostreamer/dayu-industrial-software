@@ -550,8 +550,8 @@ class BackendCore:
                 try:
                     if 'warning_interval' in cfg and idx in self.event_results:
                         # If latest alarm distance is too close now, do not alarm (filtering same data source)
-                        if task_id - max([res['task_id'] for res in self.event_results[idx]
-                                          if res['source_id'] == source_id]) < cfg['warning_interval']:
+                        prev_ids = [res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]
+                        if prev_ids and (task_id - max(prev_ids)) < cfg['warning_interval']:
                             continue
 
                     is_warn, detail = vf_func(task)
