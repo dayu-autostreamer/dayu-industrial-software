@@ -18,7 +18,7 @@ pod-template:
     - name: SCH_DEPLOYMENT_POLICY_NAME
       value: full
     - name: SCH_AGENT_NAME
-      value: fixed
+      value: adaptive_feedback
     - name: SCH_AGENT_PARAMETERS
       value: "{'latency_constraint':0.7,'configuration':{},'offloading':{}}"
 port-open:
