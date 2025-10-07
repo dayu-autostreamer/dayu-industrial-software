@@ -7,4 +7,12 @@ source_list:
     dir: "mmwave_0/"
     metadata:
       fps: 60
+      buffer_size: 1
     importance: 7
+  - name: "mmwave_source_1"
+    url: ""
+    dir: "mmwave_1/"
+    metadata:
+      fps: 60
+      buffer_size: 1
+    importance: 4

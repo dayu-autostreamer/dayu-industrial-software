@@ -8,9 +8,9 @@ source_list:
     metadata:
       fps: 1
     importance: 7
-#  - name: "audio_source_1"
-#    url: ""
-#    dir: "audio_1/"
-#    metadata:
-#      fps: 1
-#    importance: 2
+  - name: "audio_source_1"
+    url: ""
+    dir: "audio_1/"
+    metadata:
+      fps: 1
+    importance: 2
