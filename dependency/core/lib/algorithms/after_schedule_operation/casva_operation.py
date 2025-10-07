@@ -24,7 +24,7 @@ class CASVAASOperation(BaseASOperation, abc.ABC):
         if scheduler_response is None:
             system.meta_data.update(self.default_metadata)
             default_execute_device = system.local_device
-            system.task_dag = Task.set_execute_device(system.task_dag, default_execute_device)
+            Task.set_execute_device(system.task_dag, default_execute_device)
         else:
             scheduler_policy = scheduler_response['plan']
             dag = scheduler_policy['dag']

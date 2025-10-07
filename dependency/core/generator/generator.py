@@ -32,12 +32,10 @@ class Generator:
         # meta_data contains data configuration decisions
         self.meta_data = metadata.copy()
 
-        LOGGER.debug(f'[DEBUG] meta_data in generator: {metadata}')
-
         """distributed devices information"""
         self.local_device = NodeInfo.get_local_device()
         self.all_edge_devices = Context.get_parameter('ALL_EDGE_DEVICES', direct=False)
-        self.task_dag = Task.set_execute_device(self.task_dag, self.local_device)
+        Task.set_execute_device(self.task_dag, self.local_device)
 
         """network communication base information"""
         self.scheduler_hostname = NodeInfo.get_cloud_node()
