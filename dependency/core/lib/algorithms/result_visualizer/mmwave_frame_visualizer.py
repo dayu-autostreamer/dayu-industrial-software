@@ -41,7 +41,7 @@ class MMWaveFrameVisualizer(ImageVisualizer, abc.ABC):
 
         # Optionally resize for better readability
         h, w = img_color.shape[:2]
-        scale = 2 if max(h, w) < 256 else 1
+        scale = 4
         img_color = cv2.resize(img_color, (max(h,w) * scale, max(h,w) * scale), interpolation=cv2.INTER_NEAREST)
 
         # Add simple annotations
