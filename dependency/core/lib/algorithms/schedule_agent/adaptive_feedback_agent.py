@@ -129,6 +129,9 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
                     [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
             )
 
+            new_pipeline.insert(0, {'service_name': 'start', 'execute_device': source_edge_device})
+            new_pipeline.append({'service_name': 'end', 'execute_device': cloud_device})
+
             # Build dag deployment back
             new_dag = Task.extract_dag_deployment_from_pipeline_deployment(new_pipeline)
 
