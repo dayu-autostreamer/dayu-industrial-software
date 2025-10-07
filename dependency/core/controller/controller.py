@@ -81,10 +81,6 @@ class Controller:
             return
         file_content = open(cur_task.get_file_path(), 'rb') if self.is_display else b''
 
-        LOGGER.debug(f'[CONTROLLER DEBUG] task data: {cur_task.serialize()}')
-        LOGGER.debug(f'[CONTROLLER DEBUG] file path: {cur_task.get_file_path()}')
-        LOGGER.debug(f'[CONTROLLER DEBUG] file content length: {len(file_content)}')
-
         http_request(url=self.distribute_address,
                      method=NetworkAPIMethod.DISTRIBUTOR_DISTRIBUTE,
                      files={'file': (cur_task.get_file_path(), file_content, 'multipart/form-data')},

@@ -93,6 +93,47 @@ class MMWaveConfig:
 
         return self.from_jsons(mmwaveJsonFileContent)
 
+    # serialize radar configuration to json string
+    def to_jsons(self, indent: int = 2) -> str:
+        # Build a JSON object matching the schema used by from_jsons
+        obj = {
+            "mmWaveDevices": [
+                {
+                    "rfConfig": {
+                        "rlChanCfg_t": {
+                            "txChannelEn": self.tx_pattern,
+                            "rxChannelEn": self.rx_pattern,
+                        },
+                        "MIMOScheme": self.mimo_scheme,
+                        "rlProfiles": [
+                            {
+                                "rlProfileCfg_t": {
+                                    "numAdcSamples": self.numSamplePerChirp,
+                                    "freqSlopeConst_MHz_usec": self.fslope_mhz_usec,
+                                    "rampEndTime_usec": self.ramptime_usec,
+                                    "idleTimeConst_usec": self.idletime_usec,
+                                    "digOutSampleRate": self.samp_rate_ksps,
+                                    "startFreqConst_GHz": self.start_freq_ghz,
+                                }
+                            }
+                        ],
+                        "rlFrameCfg_t": {
+                            "numLoops": self.numChirpPerFramePerTx,
+                            "numFrames": self.numFrame,
+                            "framePeriodicity_msec": self.framePeriodicity_msec,
+                        },
+                    }
+                }
+            ]
+        }
+        return json.dumps(obj, ensure_ascii=False, indent=indent)
+
+    # write radar configuration JSON to file
+    def to_json(self, mmwaveJsonFileName: str, indent: int = 2) -> 'MMWaveConfig':
+        content = self.to_jsons(indent=indent)
+        with open(mmwaveJsonFileName, 'w') as f:
+            f.write(content)
+
 
 def count_ones(x):
     cnt = 0
@@ -116,6 +157,7 @@ def get_at(obj, path: str, get_method=lambda o, path_piece: o[path_piece]):
             iter = get_method(iter, int(piece))
 
     return iter
+
 
 # Get mmwave configuration and return
 def get_config(mmwjsonContent: str) -> MMWaveConfig:

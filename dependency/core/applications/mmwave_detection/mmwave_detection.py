@@ -2,7 +2,7 @@ import numpy as np
 
 from core.lib.common import Context, convert_ndarray_to_list
 
-from .mmwave_config import get_config
+from .mmwave_config import get_config, MMWaveConfig
 from .data_reader import FrameIter
 
 
@@ -30,11 +30,6 @@ class MMWaveDetection:
     def process(self, frame_data: np.ndarray):
         range_fft = self.range_fft_frame(frame_data=frame_data)
 
-        half = self.cfg.numSamplePerChirp // 2
-        doppler_fft = self.doppler_fft_frame(range_bin=range_fft[..., :half])
-        rd = doppler_fft[0, 0, :, :]
-        rd_mag = 20 * np.log10(np.abs(rd) + 1e-12)
-
         # empirical scaling factor
         strength_ratio = 0.1
         # get phase
@@ -42,7 +37,7 @@ class MMWaveDetection:
         distance = ang / 2 / np.pi * 5
         distance = np.mean(distance) / strength_ratio
 
-        return convert_ndarray_to_list({'range_doppler': rd_mag, 'distance': distance})
+        return convert_ndarray_to_list({'config': self.cfg.to_jsons(), 'distance': distance})
 
     def awgn(self, x, snr, seed=7):
         np.random.seed(seed)

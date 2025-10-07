@@ -17,8 +17,6 @@ class FrameIter:
         if len(self.files) == self.fileIdx:
             raise StopIteration
 
-        # print(f'file[{self.fileIdx}]: {self.files[self.fileIdx]}')
-
         self.bufp = 0
         self.buf = np.fromfile(
             file=self.files[self.fileIdx],
