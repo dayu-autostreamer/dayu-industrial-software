@@ -24,8 +24,8 @@ audio:
   - name: 警报声告警
     warning: "工厂出现警报声"
     hook_name: abnormal_audio
-    hook_params: '{"audio_class":1}'
-    warning_interval: 10
+    hook_params: '{"audio_class":4}'
+    warning_interval: 200
 imu:
   - name: 任务时长告警
     warning: "任务出现严重超时"
