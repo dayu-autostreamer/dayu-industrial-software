@@ -47,8 +47,8 @@ class MMWaveFrameVisualizer(ImageVisualizer, abc.ABC):
         # Add simple annotations
         try:
             txt_color = (255, 255, 255)
-            cv2.putText(img_color, 'Range-Doppler Map (Tx0-Rx0)', (20, 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0, txt_color,2)
+            cv2.putText(img_color, 'Range-Doppler Map (Tx0-Rx0)', (15, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, txt_color,3)
         except Exception as e:
             LOGGER.debug(f'Annotation failed: {e}')
 
