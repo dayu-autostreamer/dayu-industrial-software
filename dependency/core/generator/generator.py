@@ -32,6 +32,8 @@ class Generator:
         # meta_data contains data configuration decisions
         self.meta_data = metadata.copy()
 
+        LOGGER.debug(f'[DEBUG] meta_data in generator: {metadata}')
+
         """distributed devices information"""
         self.local_device = NodeInfo.get_local_device()
         self.all_edge_devices = Context.get_parameter('ALL_EDGE_DEVICES', direct=False)

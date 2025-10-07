@@ -20,8 +20,6 @@ class SimpleASOperation(BaseASOperation, abc.ABC):
 
     def __call__(self, system, scheduler_response):
 
-        LOGGER.debug(f'[AFTER SCHEDULE OPERATION] scheduler response: {scheduler_response}')
-
         if scheduler_response is None:
             system.meta_data.update(self.default_metadata)
             default_execute_device = system.local_device
