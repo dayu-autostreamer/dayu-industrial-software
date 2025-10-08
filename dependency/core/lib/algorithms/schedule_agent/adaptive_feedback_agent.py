@@ -154,6 +154,8 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
                     [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
             )
 
+            LOGGER.info(f'[Adaptive Feedback] Adjusting pipeline as "{new_pipeline}"')
+
             new_pipeline.insert(0, {'service_name': 'start', 'execute_device': source_edge_device})
             new_pipeline.append({'service_name': 'end', 'execute_device': cloud_device})
 
