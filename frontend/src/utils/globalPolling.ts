@@ -46,7 +46,20 @@ class GlobalPollingService {
       this.intervalId = null;
     }
     this.running = false;
+    // Also clear any local records and UI messages when stopping
+    this.clearHistory();
+  }
+
+  // Explicitly clear locally retained event records and any visible messages
+  clearHistory() {
     this.lastSeen.clear();
+    this.lastRun = 0;
+    try {
+      // Close any stacked messages triggered by polling
+      (ElMessage as any).closeAll && (ElMessage as any).closeAll();
+    } catch {
+      // noop
+    }
   }
 
   private alarmKey(item: AlarmItem): string {
@@ -110,4 +123,3 @@ if (!w.__globalPollingInstance) {
 }
 
 export default globalPolling;
-
