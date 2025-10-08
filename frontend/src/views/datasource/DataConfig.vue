@@ -48,7 +48,7 @@
 
               </ul>
               <div style="text-align: center; margin-top: 20px;">
-                <el-button type="danger" :loading="loading" @click="delete_source(item.source_label)"
+                <el-button type="danger"  @click="delete_source(item.source_label)"
                 >删除
                 </el-button>
               </div>
