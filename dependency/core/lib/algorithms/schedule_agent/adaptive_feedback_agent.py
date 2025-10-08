@@ -138,7 +138,7 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
             LOGGER.debug('[SCHEDULE DEBUG] extract new dag done.')
             LOGGER.debug(f'[SCHEDULE DEBUG] new dag: {new_dag}')
 
-            policy.update({'dag': new_dag, 'pipe_seg': ps})
+            policy.update({'dag': new_dag})
 
         return policy
 
