@@ -1,5 +1,6 @@
 import abc
 from collections import deque
+import math
 from core.lib.common import ClassFactory, ClassType, KubeConfig, Context, ConfigLoader, LOGGER
 from core.lib.estimation import OverheadEstimator
 from core.lib.content import Task
@@ -27,12 +28,24 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
         self._since_last_adjust: int = 0
         self._high_breach_count: int = 0
         self._low_breach_count: int = 0
+        # For slower-than-1 additive increase, we accumulate fractional progress
+        self._increase_accum: float = 0.0
 
         self.alpha = 0.3
         self.hysteresis = 0.07
+        # Legacy linear step still used as a minimal increment when needed
         self.step = 1
         self.breach_needed = 2
         self.cooldown_steps = 1
+
+        # AIMD parameters (configurable)
+        # Multiplicative decrease factor in (0,1]; e.g., 0.5 halves edge segment count on high latency
+        self.aimd_decrease_factor: float = 0.5
+        # Additive increase rate per eligible low-latency event. Can be <1 for slower-than-1 increases.
+        # Example: 0.5 -> +1 every two eligible events on average.
+        self.aimd_increase_rate: float = 1.0
+        # Optional: initial pipeline edge segment from config
+        self.init_pipe_seg = 0
 
         if configuration is None:
             self.fixed_configuration = {}
@@ -47,33 +60,24 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
                                                     'scheduler/adaptive_feedback')
 
     def get_schedule_plan(self, info):
-        LOGGER.debug('[SCHEDULE DEBUG] AdaptiveFeedbackAgent get_schedule_plan called.')
+
+        policy = {}
+        policy.update(self.fixed_configuration)
+
+        cloud_device = self.cloud_device
+        source_edge_device = info['source_device']
+
+        dag = info['dag']
+        # Extract pipeline stages in order
+        pipeline = Task.extract_pipeline_deployment_from_dag_deployment(dag)
+        pipeline_len = len(pipeline)
+
+        # Configurable parameters with sane defaults
+        init_pipe_seg = self.init_pipe_seg
+        min_edge = 0
+        max_edge = pipeline_len
+
         with self.overhead_estimator:
-            LOGGER.debug('[SCHEDULE DEBUG] AdaptiveFeedbackAgent overhead estimation start.')
-            policy = {}
-            policy.update(self.fixed_configuration)
-
-            cloud_device = self.cloud_device
-            source_edge_device = info['source_device']
-            all_edge_devices = info['all_edge_devices']
-            all_devices = [*all_edge_devices, cloud_device]
-            service_info = KubeConfig.get_service_nodes_dict()
-
-            LOGGER.debug('[SCHEDULE DEBUG] set basic info done.')
-
-            dag = info['dag']
-            # Extract pipeline stages in order
-            pipeline = Task.extract_pipeline_deployment_from_dag_deployment(dag)
-
-            LOGGER.debug('[SCHEDULE DEBUG] extract pipeline done.')
-            LOGGER.debug(f'[SCHEDULE DEBUG] pipeline: {pipeline}')
-            pipeline_len = len(pipeline)
-
-            # Configurable parameters with sane defaults
-            init_pipe_seg = 0
-            min_edge = 0
-            max_edge = pipeline_len
-
             # Initialize pipe_seg once we know pipeline length
             if self._pipe_seg is None:
                 self._pipe_seg = max(min_edge, min(max_edge, init_pipe_seg))
@@ -98,14 +102,35 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
                         self._high_breach_count += 1
                         self._low_breach_count = 0
                         if self._high_breach_count >= self.breach_needed:
-                            self._pipe_seg = max(min_edge, self._pipe_seg - self.step)
+                            # Multiplicative Decrease (AIMD): rapidly reduce edge segment count
+                            new_seg = int(math.floor(self._pipe_seg * max(0.0, min(1.0, self.aimd_decrease_factor))))
+                            # Ensure progress by at least 1 when above min bound
+                            if new_seg == self._pipe_seg and self._pipe_seg > min_edge:
+                                new_seg = self._pipe_seg - max(1, self.step)
+                            self._pipe_seg = max(min_edge, new_seg)
                             adjusted = True
+                            # On decrease, optionally reset additive accumulator to avoid immediate growth
+                            self._increase_accum = 0.0
+                            # Reset breach counter after acting
+                            self._high_breach_count = 0
                     elif smoothed_delay < lower and self._pipe_seg < max_edge:
                         self._low_breach_count += 1
                         self._high_breach_count = 0
                         if self._low_breach_count >= self.breach_needed:
-                            self._pipe_seg = min(max_edge, self._pipe_seg + self.step)
-                            adjusted = True
+                            # Additive Increase (AIMD): slowly increase edge segment count
+                            self._increase_accum += max(0.0, self.aimd_increase_rate)
+                            inc = int(self._increase_accum)
+                            if inc <= 0:
+                                # Not enough accumulated to grow this round; keep waiting
+                                pass
+                            else:
+                                new_seg = min(max_edge, self._pipe_seg + inc)
+                                # Apply and carry leftover fractional accumulation
+                                self._pipe_seg = new_seg
+                                self._increase_accum -= inc
+                                adjusted = True
+                                # Reset breach counter after acting
+                                self._low_breach_count = 0
                     else:
                         # within deadband or at bounds
                         self._high_breach_count = 0
@@ -121,24 +146,20 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
             else:
                 self._since_last_adjust += 1
 
-            LOGGER.debug(f'[SCHEDULE DEBUG] AdaptiveFeedbackAgent decide pipe_seg={self._pipe_seg}')
             # Build new pipeline deployment according to decided pipe_seg
             ps = max(0, min(self._pipe_seg if self._pipe_seg is not None else 0, pipeline_len))
-            new_pipeline = (
-                    [{**p, 'execute_device': source_edge_device} for p in pipeline[:ps]] +
-                    [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
-            )
 
-            new_pipeline.insert(0, {'service_name': 'start', 'execute_device': source_edge_device})
-            new_pipeline.append({'service_name': 'end', 'execute_device': cloud_device})
+        new_pipeline = (
+                [{**p, 'execute_device': source_edge_device} for p in pipeline[:ps]] +
+                [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
+        )
 
-            # Build dag deployment back
-            new_dag = Task.extract_dag_deployment_from_pipeline_deployment(new_pipeline)
+        new_pipeline.insert(0, {'service_name': 'start', 'execute_device': source_edge_device})
+        new_pipeline.append({'service_name': 'end', 'execute_device': cloud_device})
 
-            LOGGER.debug('[SCHEDULE DEBUG] extract new dag done.')
-            LOGGER.debug(f'[SCHEDULE DEBUG] new dag: {new_dag}')
-
-            policy.update({'dag': new_dag})
+        # Build dag deployment back
+        new_dag = Task.extract_dag_deployment_from_pipeline_deployment(new_pipeline)
+        policy.update({'dag': new_dag})
 
         return policy
 
