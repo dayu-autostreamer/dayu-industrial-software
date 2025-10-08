@@ -59,5 +59,19 @@ imu:
     variables: [ "轨迹长度" ]
     hook_name: imu_trajectory_length
     size: 3
-radio:
+mmwave:
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 3
+  - name: 毫米波相位位移曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: 位移距离(m)
+    variables: [ "相位位移" ]
+    hook_name: mmwave_length
+    size: 3
 
