@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import pandas as pd
 import uvicorn
+import uuid
 import argparse
 import socket
 import requests
@@ -44,7 +45,8 @@ class IMUSource:
 
         self.play_mode = play_mode
 
-        self.file_name = 'temp_imu_data.npy'
+        self.file_name_prefix = 'temp_imu_data'
+        self.file_name_suffix = 'npy'
 
         self._csv_files = self._scan_csvs()
         self._csv_idx: int = 0  # point to next csv index
@@ -76,14 +78,18 @@ class IMUSource:
             assert self._cur_csv_df is not None
             data = self._extract_segment(start_idx, end_idx, self._cur_csv_df)
 
-            np.save(self.file_name, data)
+            file_name = f'{self.file_name_prefix}_{uuid.uuid4().hex}.{self.file_name_suffix}'
+            np.save(file_name, data)
 
             self._segment_idx += 1
 
+        return file_name
+
+
     def get_source_file(self, backtask: BackgroundTasks):
-        self.get_one_imu_file()
-        return FileResponse(path=self.file_name, filename=self.file_name, media_type='application/octet-stream',
-                            background=backtask.add_task(FileOps.remove_file, self.file_name))
+        file_name = self.get_one_imu_file()
+        return FileResponse(path=file_name, filename=file_name, media_type='application/octet-stream',
+                            background=backtask.add_task(FileOps.remove_file, file_name))
 
     def _scan_csvs(self) -> List[str]:
         files = sorted(glob.glob(os.path.join(self.data_dir, '*.csv')))
