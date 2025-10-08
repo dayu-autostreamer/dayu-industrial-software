@@ -61,6 +61,8 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
 
     def get_schedule_plan(self, info):
         with self.overhead_estimator:
+            LOGGER.info('[Adaptive Feedback] Generating schedule plan...')
+            LOGGER.debug(f'[Adaptive Feedback] Get info from source: {info}')
             policy = {}
             policy.update(self.fixed_configuration)
 
