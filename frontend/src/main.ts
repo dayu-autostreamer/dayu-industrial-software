@@ -29,6 +29,33 @@ app
 // Initialize global polling based on install state at app boot
 const installStore = useInstallStateStore();
 
+// Clear all local client-side caches/state when uninstalling
+function clearClientState() {
+  try { localStorage.clear(); } catch { /* noop */ }
+  try { sessionStorage.clear(); } catch { /* noop */ }
+  try { globalPolling.clearHistory?.(); } catch { /* noop */ }
+}
+
+// Keep install state in sync with backend periodically
+let installStatePollTimer: number | null = null;
+function startInstallStateAutoSync(intervalMs = 10000) {
+  if (installStatePollTimer) return;
+  installStatePollTimer = window.setInterval(async () => {
+    try {
+      const resp = await fetch("/api/install_state", { method: "GET" });
+      const data = await resp.json().catch(() => null as any);
+      const state = data && (data.state || data.status);
+      if (state === "install" && installStore.status !== "install") {
+        installStore.install();
+      } else if (state === "uninstall" && installStore.status !== "uninstall") {
+        installStore.uninstall();
+      }
+    } catch {
+      // network errors ignored; keep current client state until next tick
+    }
+  }, Math.max(2000, intervalMs));
+}
+
 async function initInstallStateAndPolling() {
   try {
     const resp = await fetch("/api/install_state", { method: "GET" });
@@ -40,6 +67,7 @@ async function initInstallStateAndPolling() {
     } else {
       installStore.uninstall();
       globalPolling.stop();
+      clearClientState();
     }
   } catch {
     // If API fails, don't start polling by default
@@ -53,10 +81,14 @@ async function initInstallStateAndPolling() {
         globalPolling.start({ alarmApi: "/api/event_result", interval: 5000 }).catch(() => {});
       } else {
         globalPolling.stop();
+        clearClientState();
       }
     },
     { immediate: false }
   );
+
+  // Start background sync so status stays updated with server changes
+  startInstallStateAutoSync(10000);
 }
 
 initInstallStateAndPolling();
