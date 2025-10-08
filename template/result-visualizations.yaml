@@ -68,7 +68,7 @@ audio:
   - name: 音频类别变化曲线
     type: curve
     x_axis: 任务序号
-    y_axis: "0-其他 1-喇叭\n2-钻孔 3-引擎\n4-重械 5-警报"
+    y_axis: "0-其他 1-喇叭\n2-钻孔 3-引擎\n4-警报 5-重械"
     variables: [ "音频类别" ]
     hook_name: audio_class
     size: 1
@@ -110,19 +110,19 @@ mmwave:
     hook_name: mmwave_frame
     save_expense: true
     size: 1
-  - name: 毫米波相位位移曲线
-    type: curve
-    x_axis: 任务序号
-    y_axis: 位移距离(m)
-    variables: [ "相位位移" ]
-    hook_name: mmwave_length
-    size: 1
   - name: 任务端到端时延曲线
     type: cdf
     x_axis: 时延
     y_axis: CDF
     variables: [ "端到端时延" ]
     hook_name: e2e_delay
+    size: 1
+  - name: 毫米波相位位移曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: 位移距离(m)
+    variables: [ "相位位移" ]
+    hook_name: mmwave_length
     size: 1
   - name: 服务拓扑图
     type: topology

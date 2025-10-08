@@ -9,12 +9,13 @@ video:
   - name: 任务时长告警
     warning: "任务出现严重超时"
     hook_name: delay_timeout
-    hook_params: '{"threshold":4}'
+    hook_params: '{"threshold":6}'
     warning_interval: 20
   - name: 发泡塑料边缘告警
     warning: "材料边缘位置偏移程度过大"
     hook_name: ixpe_offset
     hook_params: '{"LThreshold":270,"RThreshold":1008}'
+    warning_interval: 20
 audio:
   - name: 任务时长告警
     warning: "任务出现严重超时"
@@ -25,7 +26,7 @@ audio:
     warning: "工厂出现警报声"
     hook_name: abnormal_audio
     hook_params: '{"audio_class":4}'
-    warning_interval: 200
+    warning_interval: 30
 imu:
   - name: 任务时长告警
     warning: "任务出现严重超时"
