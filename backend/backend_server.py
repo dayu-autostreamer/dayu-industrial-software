@@ -601,6 +601,7 @@ class BackendServer:
         self.server.source_label = ''
         self.server.is_get_result = False
         self.server.task_results.clear()
+        self.server.full_event_results.clear()
         self.server.customized_source_result_visualization_configs.clear()
         time.sleep(1)
 
