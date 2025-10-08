@@ -21,7 +21,7 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
         self.latency_constraint = latency_constraint
 
         # Bounded history buffer for recent end-to-end delays (seconds)
-        self.history_latency_buffer: deque = deque(maxlen=10)
+        self.history_latency_buffer: deque = deque(maxlen=20)
 
         # Internal adaptive state
         self._pipe_seg: int = None  # initialized on first plan based on config or 0

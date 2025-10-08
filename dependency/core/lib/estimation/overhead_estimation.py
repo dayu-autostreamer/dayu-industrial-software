@@ -106,5 +106,4 @@ class OverheadEstimator:
 
     @staticmethod
     def _format_dt(dt: datetime) -> str:
-        # ISO-like without timezone, with millisecond precision
-        return dt.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        return dt.strftime('%Y-%m-%d %H:%M:%S.%f')
