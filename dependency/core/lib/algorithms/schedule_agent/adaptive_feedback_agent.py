@@ -60,24 +60,24 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
                                                     'scheduler/adaptive_feedback')
 
     def get_schedule_plan(self, info):
-
-        policy = {}
-        policy.update(self.fixed_configuration)
-
-        cloud_device = self.cloud_device
-        source_edge_device = info['source_device']
-
-        dag = info['dag']
-        # Extract pipeline stages in order
-        pipeline = Task.extract_pipeline_deployment_from_dag_deployment(dag)
-        pipeline_len = len(pipeline)
-
-        # Configurable parameters with sane defaults
-        init_pipe_seg = self.init_pipe_seg
-        min_edge = 0
-        max_edge = pipeline_len
-
         with self.overhead_estimator:
+            policy = {}
+            policy.update(self.fixed_configuration)
+
+            cloud_device = self.cloud_device
+            source_edge_device = info['source_device']
+
+            dag = info['dag']
+            # Extract pipeline stages in order
+            pipeline = Task.extract_pipeline_deployment_from_dag_deployment(dag)
+            pipeline_len = len(pipeline)
+
+            # Configurable parameters with sane defaults
+            init_pipe_seg = self.init_pipe_seg
+            min_edge = 0
+            max_edge = pipeline_len
+
+
             # Initialize pipe_seg once we know pipeline length
             if self._pipe_seg is None:
                 self._pipe_seg = max(min_edge, min(max_edge, init_pipe_seg))
@@ -149,17 +149,17 @@ class AdaptiveFeedbackAgent(BaseAgent, abc.ABC):
             # Build new pipeline deployment according to decided pipe_seg
             ps = max(0, min(self._pipe_seg if self._pipe_seg is not None else 0, pipeline_len))
 
-        new_pipeline = (
-                [{**p, 'execute_device': source_edge_device} for p in pipeline[:ps]] +
-                [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
-        )
+            new_pipeline = (
+                    [{**p, 'execute_device': source_edge_device} for p in pipeline[:ps]] +
+                    [{**p, 'execute_device': cloud_device} for p in pipeline[ps:]]
+            )
 
-        new_pipeline.insert(0, {'service_name': 'start', 'execute_device': source_edge_device})
-        new_pipeline.append({'service_name': 'end', 'execute_device': cloud_device})
+            new_pipeline.insert(0, {'service_name': 'start', 'execute_device': source_edge_device})
+            new_pipeline.append({'service_name': 'end', 'execute_device': cloud_device})
 
-        # Build dag deployment back
-        new_dag = Task.extract_dag_deployment_from_pipeline_deployment(new_pipeline)
-        policy.update({'dag': new_dag})
+            # Build dag deployment back
+            new_dag = Task.extract_dag_deployment_from_pipeline_deployment(new_pipeline)
+            policy.update({'dag': new_dag})
 
         return policy
 

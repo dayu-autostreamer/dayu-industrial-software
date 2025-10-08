@@ -459,6 +459,10 @@ class BackendCore:
             source_id = task.get_source_id()
             LOGGER.debug(task.get_delay_info())
 
+            # Filter tasks with severe timeout
+            if task.calculate_total_time() > 6:
+                continue
+
             if not self.source_open:
                 break
 
@@ -540,6 +544,10 @@ class BackendCore:
             source_id = task.get_source_id()
             source_name = self.find_source_name_by_id(source_id)
             task_id = task.get_task_id()
+
+            # Filter tasks with severe timeout
+            if task.calculate_total_time() > 6:
+                continue
 
             cfgs = self.event_trigger_config[task.get_source_type()] \
                 if (self.event_trigger_config['allow-flexible-switch']
