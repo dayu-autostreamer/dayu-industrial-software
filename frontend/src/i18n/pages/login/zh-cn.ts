@@ -24,5 +24,5 @@ export default {
 	scan: {
 		text: 'Open the mobile phone to scan and quickly log in / register',
 	},
-	signInText: '欢迎来到大禹系统！',
+	signInText: '欢迎进入系统！',
 };
