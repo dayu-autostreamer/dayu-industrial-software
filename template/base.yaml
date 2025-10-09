@@ -9,8 +9,8 @@ crd-meta:
   kind: JointMultiEdgeService
 default-image-meta:
   registry: repo:5000
-  repository: dayuhub
-  tag: is-v1.1
+  repository: dayuhub-is
+  tag: v1.1
 default-file-mount-prefix: "/data/dayu-industrial-software-files"
 datasource:
   use-simulation: true
