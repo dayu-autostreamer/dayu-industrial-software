@@ -121,7 +121,7 @@ spec:
                   value: "8000"
                 - name: FILE_PREFIX
                   value: "$DATASOURCE_DATA_ROOT"
-              image: $REGISTRY/$REPOSITORY/datasource:is-hgz-v1.1
+              image: $REGISTRY/$REPOSITORY/datasource:$TAG
               imagePullPolicy: Always
               name: datasource
               ports:
@@ -163,7 +163,7 @@ spec:
           - env:
             - name: GUNICORN_PORT
               value: "8000"
-            image: $REGISTRY/$REPOSITORY/backend:is-hgz-v1.1
+            image: $REGISTRY/$REPOSITORY/backend:$TAG
             imagePullPolicy: Always
             name: backend
             ports:
@@ -211,7 +211,7 @@ spec:
               value: 'false'
             - name: VITE_PUBLIC_PATH
               value: /vue-next-admin-preview/
-            image: $REGISTRY/$REPOSITORY/frontend:is-hgz-v1.1
+            image: $REGISTRY/$REPOSITORY/frontend:$TAG
             imagePullPolicy: Always
             name: frontend
             ports:
