@@ -1,4 +1,5 @@
 namespace: dayu-is
+system-name: "感算控多设备协同与多类型任务实时调度系统"
 log-level: DEBUG
 log-file-name:
 pod-permission:

@@ -6,7 +6,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta
 			name="keywords"
-			content="系统"
+			content="大禹系统"
 		/>
 		<meta
 			name="description"
@@ -14,7 +14,11 @@
 		/>
 		<!-- <link rel="icon" href="/favicon.ico" /> -->
 		<link rel="icon" href="/@/assets/logo-mini.svg" />
-		<title>感算控多设备协同与多类型任务实时调度系统</title>
+		<title>Loading…</title>
+		<script type="module">
+			const title = import.meta.env?.VITE_SYSTEM_NAME || '大禹系统';
+			if (title && typeof title === 'string') document.title = title;
+		</script>
 	</head>
 	<body>
 		<div id="app"></div>

@@ -16,6 +16,6 @@
   type: curve
   x_axis: 时间
   y_axis: 调度周期 (毫秒)
-  variables: [ "Overhead" ]
+  variables: [ "任务协同调度周期" ]
   hook_name: schedule_overhead
   size: 1

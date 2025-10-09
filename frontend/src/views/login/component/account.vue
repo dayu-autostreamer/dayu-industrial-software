@@ -3,7 +3,7 @@
     <el-form-item class="login-animation1">
       <div class="platform-description">
         <h3>欢迎来到大禹系统</h3>
-        <p>感算控多设备协同与多类型任务实时调度</p>
+        <p>大禹：工业感算控一体化云边协同算力调度</p>
         <el-tag type="success">系统版本: {{ dayuVersion }}</el-tag>
       </div>
     </el-form-item>
@@ -11,7 +11,7 @@
     <el-form-item class="login-animation2">
       <el-button type="primary" class="login-content-submit" round v-waves @click="onSignIn"
                  :loading="state.loading.signIn">
-        <h4>进入感算控多设备协同与多类型任务实时调度系统</h4>
+        <h4>进入大禹系统</h4>
       </el-button>
     </el-form-item>
   </el-form>
