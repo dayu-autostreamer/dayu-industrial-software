@@ -68,7 +68,6 @@ class MMWaveSource:
         return self._bin_files[self._bin_idx]
 
     def get_source_file(self, backtask: BackgroundTasks):
-        LOGGER.debug('hello!!')
         file_name = self.get_one_mmwave_file()
         self._bin_idx += 1
         return FileResponse(path=file_name, filename=file_name, media_type='application/octet-stream')

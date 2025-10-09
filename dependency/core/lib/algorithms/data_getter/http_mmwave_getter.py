@@ -30,12 +30,10 @@ class HttpMMWaveGetter(BaseDataGetter, abc.ABC):
         FileOps.create_directory(tmp_dir)
 
         downloaded = 0
-        attempts = 0
-        max_attempts = buffer_size * 3  # simple retry budget
-        while downloaded < buffer_size and attempts < max_attempts:
-            attempts += 1
+        while downloaded < buffer_size:
             resp = http_request(url=system.mmwave_data_source + '/file', no_decode=True, stream=True)
             if not resp or resp.status_code != 200:
+                time.sleep(1)
                 continue
             out_path = os.path.join(tmp_dir, f"frame_{downloaded}.bin")
             try:
