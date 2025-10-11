@@ -6,13 +6,13 @@ from core.lib.common import FileOps, Context
 
 
 class OverheadEstimator:
-    def __init__(self, method_name, save_dir):
+    def __init__(self, method_name, save_dir, source_id = 0):
 
         self.method_name = method_name
         self.timer = Timer(f'Runtime Overhead of {method_name}')
         self.overhead_file = Context.get_file_path(os.path.join(save_dir, f'{method_name}_Overhead.txt'))
         self.latest_overhead = 0
-
+        self.source_id = source_id
         # initialize file with header
         self.clear()
 
@@ -76,7 +76,7 @@ class OverheadEstimator:
         end_str = self._format_dt(datetime.fromtimestamp(end_ts)) if end_ts else ''
         with open(self.overhead_file, 'a') as f:
             # CSV row: timestamp,start_time,end_time,duration_seconds
-            f.write(f"{ts_str},{start_str},{end_str},{float(overhead):.6f}\n")
+            f.write(f"{ts_str},{start_str},{end_str},{float(overhead):.6f},source_id:{self.source_id}\n")
 
     def clear(self):
         """
