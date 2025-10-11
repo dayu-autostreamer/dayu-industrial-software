@@ -246,10 +246,11 @@ export default {
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
+        const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
 
         const newTasks = data.flatMap(task => ({
           ...task,
-          timestamp: `${hours}:${minutes}:${seconds}`,
+          timestamp: `${hours}:${minutes}:${seconds}.${milliseconds}`,
           data: task.data.map(item => ({
             id: String(item.id),
             data: item.data
