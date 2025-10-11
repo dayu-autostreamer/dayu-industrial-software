@@ -52,6 +52,11 @@ class OverheadEstimator:
                         durations.append(float(parts[-1]))
                     except ValueError:
                         continue
+                elif len(parts) >= 5:
+                    try:
+                        durations.append(float(parts[-2]))
+                    except ValueError:
+                        continue
                 else:
                     # legacy format: a single float per line
                     try:
@@ -92,9 +97,9 @@ class OverheadEstimator:
             created = self._format_dt(datetime.now())
             f.write(f"# Overhead Log for {self.method_name}\n")
             f.write(f"# Created: {created}\n")
-            f.write("# Columns: timestamp,start_time,end_time,duration_seconds\n")
+            f.write("# Columns: timestamp,start_time,end_time,duration_seconds,source_id\n")
             # CSV header line for easy parsing
-            f.write("timestamp,start_time,end_time,duration_seconds\n")
+            f.write("timestamp,start_time,end_time,duration_seconds,source_id\n")
 
     def _ensure_file_initialized(self):
         dir_path = os.path.dirname(self.overhead_file)
