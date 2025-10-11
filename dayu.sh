@@ -121,7 +121,7 @@ spec:
                   value: "8000"
                 - name: FILE_PREFIX
                   value: "$DATASOURCE_DATA_ROOT"
-              image: $REGISTRY/$REPOSITORY/datasource:is-hgz-v1.1
+              image: $REGISTRY/$REPOSITORY/datasource:$TAG
               imagePullPolicy: Always
               name: datasource
               ports:
@@ -163,7 +163,7 @@ spec:
           - env:
             - name: GUNICORN_PORT
               value: "8000"
-            image: $REGISTRY/$REPOSITORY/backend:is-hgz-v1.1
+            image: $REGISTRY/$REPOSITORY/backend:$TAG
             imagePullPolicy: Always
             name: backend
             ports:
@@ -199,6 +199,8 @@ spec:
           - env:
             - name: VITE_DAYU_VERSION
               value: $TAG
+            - name: VITE_SYSTEM_NAME
+              value: $SYSTEM_NAME
             - name: VITE_BACKEND_ADDRESS
               value: 'http://$CLOUD_IP:$BACKEND_PORT'
             - name: VITE_PORT
@@ -209,7 +211,7 @@ spec:
               value: 'false'
             - name: VITE_PUBLIC_PATH
               value: /vue-next-admin-preview/
-            image: $REGISTRY/$REPOSITORY/frontend:is-hgz-v1.1
+            image: $REGISTRY/$REPOSITORY/frontend:$TAG
             imagePullPolicy: Always
             name: frontend
             ports:
@@ -391,6 +393,7 @@ import_config() {
     fi
 
     NAMESPACE=$(yq e '.namespace' "$TMP_FILE")
+    SYSTEM_NAME=$(yq e '.system-name' "$TMP_FILE")
     LOG_LEVEL=$(yq e '.log-level' "$TMP_FILE")
     SERVICE_ACCOUNT=$(yq e '.pod-permission.service-account' "$TMP_FILE")
     CLUSTER_ROLE_BINDING=$(yq e '.pod-permission.cluster-role-binding' "$TMP_FILE")
@@ -475,6 +478,7 @@ display_config() {
     echo "        Configuration imported"
     echo "----------------------------------------"
     echo "  Namespace: $NAMESPACE"
+    echo "  System Name: $SYSTEM_NAME"
     echo "  Log Level: $LOG_LEVEL"
     echo "  Service Account: $SERVICE_ACCOUNT"
     echo "  Cluster Role Binding: $CLUSTER_ROLE_BINDING"

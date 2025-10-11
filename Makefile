@@ -1,9 +1,9 @@
 SHELL=/bin/bash
 
 REGISTRY := $(or $(REG),docker.io)
-REPOSITORY := $(or $(REPO),dayuhub)
+REPOSITORY := $(or $(REPO),dayuhub-is)
 IMAGE_REPO ?= $(REGISTRY)/$(REPOSITORY)
-IMAGE_TAG ?= $(or $(TAG),is-v1.1)
+IMAGE_TAG ?= $(or $(TAG),v1.1)
 
 .EXPORT_ALL_VARIABLES:
 

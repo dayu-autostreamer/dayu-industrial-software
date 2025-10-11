@@ -22,7 +22,7 @@ video:
     variables: [ "端到端时延" ]
     hook_name: e2e_delay
     size: 3
-  - name: 发泡塑料原材料边缘位置曲线
+  - name: 发泡塑料边缘位置曲线
     type: curve
     x_axis: 任务序号
     y_axis: 边缘位置

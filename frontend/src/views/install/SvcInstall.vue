@@ -61,7 +61,7 @@
           style="width: 38%; margin-top: 20px"
           v-model="source.dag_selected"
           @change="updateDagSelection(index, source, source.dag_selected)"
-          placeholder="Assign dag"
+          placeholder="请分配应用"
       >
         <template v-for="(option, index) in dagOptions" :key="index">
           <el-option
@@ -77,7 +77,7 @@
           style="width: 58%; margin-top: 20px; margin-left: 4%"
           v-model="source.node_selected"
           @change="updateNodeSelection(index, source, source.node_selected)"
-          placeholder="Bind edge nodes (default all nodes)"
+          placeholder="请分配边缘设备"
           multiple
       >
         <template v-for="(option, index) in nodeOptions" :key="index">
