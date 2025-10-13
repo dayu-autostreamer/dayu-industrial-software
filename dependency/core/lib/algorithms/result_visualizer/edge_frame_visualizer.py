@@ -17,12 +17,15 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
     def draw_edges(self, image, lps, rps):
         import cv2
         cv2.putText(image, f'lps:{lps}  rps:{rps}', (50, 50), cv2.FONT_HERSHEY_COMPLEX, 2.0, (208, 2, 27), 5)
-        cv2.line(image, (lps, 300), (lps, 500), (0, 0, 255), 4, 8)
-        cv2.line(image, (rps, 300), (rps, 500), (0, 0, 255), 4, 8)
+        if lps and lps>0:
+            cv2.line(image, (lps, 300), (lps, 500), (0, 0, 255), 4, 8)
+        if rps and rps>0:
+            cv2.line(image, (rps, 300), (rps, 500), (0, 0, 255), 4, 8)
 
         return image
 
     def __call__(self, task: Task):
+        import cv2
         try:
             if self.edge_service:
                 content = task.get_dag().get_node(self.edge_service).service.get_content_data()
@@ -32,17 +35,18 @@ class EdgeFrameVisualizer(ImageVisualizer, abc.ABC):
             content = task.get_last_content()
 
         try:
-            frame = content['frame']
-            image = EncodeOps.decode_image(frame)
-            image = self.draw_edges(image, content['lps'], content['rps'])
+            file_path = task.get_file_path()
+            image = cv2.VideoCapture(file_path).read()[1]
+            lps = content['lps'] if 'lps' in content else 0
+            rps = content['rps'] if 'rps' in content else 0
+            image = self.draw_edges(image, lps, rps)
 
             base64_data = EncodeOps.encode_image(image)
         except Exception as e:
-            import cv2
             base64_data = EncodeOps.encode_image(
                 cv2.imread(self.default_visualization_image)
             )
             LOGGER.warning(f'Video visualization fetch failed: {str(e)}')
             LOGGER.exception(e)
 
-        return {'image': base64_data}
+        return {self.variables[0]: base64_data}

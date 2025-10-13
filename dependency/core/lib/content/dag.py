@@ -1,5 +1,6 @@
 import copy
 import json
+import heapq
 from typing import List
 
 from .service import Service
@@ -324,3 +325,51 @@ class DAG:
             [f"{node} -> {[self.get_node(child).service for child in node.next_nodes]}"
              for node in self.nodes.values()]
         )
+
+    def get_topologically_sorted_services(self) -> List[str]:
+        """
+        Return a list of service names in topological order, excluding 'start' and 'end'.
+
+        Implementation details:
+        - Uses Kahn's algorithm with a min-heap to break ties deterministically by
+          lexicographical order when multiple nodes have in-degree 0 at the same time.
+        - Raises ValueError if the graph contains a cycle or references a non-existent node.
+        """
+        # Build in-degree map for all nodes
+        indegree = {name: 0 for name in self.nodes}
+        for parent_name, node in self.nodes.items():
+            for child_name in node.next_nodes:
+                if child_name not in indegree:
+                    # Defensive check: dangling edge to a missing node
+                    raise ValueError(
+                        f"Invalid reference in DAG: {parent_name} -> {child_name} (node not found)"
+                    )
+                indegree[child_name] += 1
+
+        # Initialize a min-heap with all zero in-degree nodes for deterministic ordering
+        zero_heap = [name for name, deg in indegree.items() if deg == 0]
+        heapq.heapify(zero_heap)
+
+        ordered: List[str] = []
+        visited_count = 0
+
+        # Process nodes in Kahn's algorithm
+        while zero_heap:
+            name = heapq.heappop(zero_heap)
+            visited_count += 1
+
+            # Exclude 'start' and 'end' from the result while maintaining ordering side effects
+            if name not in ("start", "end"):
+                ordered.append(name)
+
+            # Decrease in-degree of children and push newly unlocked nodes
+            for child_name in self.nodes[name].next_nodes:
+                indegree[child_name] -= 1
+                if indegree[child_name] == 0:
+                    heapq.heappush(zero_heap, child_name)
+
+        # If not all nodes were processed, a cycle exists
+        if visited_count != len(self.nodes):
+            raise ValueError("Cycle detected in DAG; cannot compute topological order")
+
+        return ordered

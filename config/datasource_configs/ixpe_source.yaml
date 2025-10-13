@@ -9,15 +9,15 @@ source_list:
       resolution: "540p"
       fps: 30
       encoding: "mp4v"
-      buffer_size: 1
+      buffer_size: 2
     importance: 5
-#  - name: "ixpe_camera_1"
-#    url: ""
-#    dir: "edge_eye_1/"
-#    metadata:
-#      resolution: "540p"
-#      fps: 30
-#      encoding: "mp4v"
-#      buffer_size: 1
-#    importance: 4
+  - name: "ixpe_camera_1"
+    url: ""
+    dir: "edge_eye_1/"
+    metadata:
+      resolution: "540p"
+      fps: 30
+      encoding: "mp4v"
+      buffer_size: 2
+    importance: 4
 

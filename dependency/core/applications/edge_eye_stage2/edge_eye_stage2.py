@@ -1,4 +1,3 @@
-import time
 import redis
 
 from .util_ixpe import ESCPN
@@ -20,9 +19,6 @@ class EdgeEyeStage2:
         self.sr_generator = ESCPN(model_path, device)
 
     def __call__(self, input_ctx):
-
-        start = time.time()
-
         if 'frame' in input_ctx:
             input_ctx['frame'] = EncodeOps.decode_image(input_ctx['frame'])
         if 'bar_roi' in input_ctx:
@@ -30,16 +26,8 @@ class EdgeEyeStage2:
         if 'abs_point' in input_ctx:
             input_ctx['abs_point'] = tuple(input_ctx['abs_point'])
 
-        end_pre = time.time()
-        LOGGER.debug(f'preprocess time: {end_pre - start}s')
-
         output_ctx = self.process_task(input_ctx)
 
-        end_process = time.time()
-        LOGGER.debug(f'process time: {end_process - end_pre}s')
-
-        if 'frame' in output_ctx:
-            output_ctx['frame'] = EncodeOps.encode_image(output_ctx['frame'])
         if 'bar_roi' in output_ctx:
             output_ctx['bar_roi'] = EncodeOps.encode_image(output_ctx['bar_roi'])
         if "abs_point" in output_ctx:
@@ -53,19 +41,13 @@ class EdgeEyeStage2:
         if "rabs_point" in output_ctx:
             output_ctx["rabs_point"] = list(output_ctx["rabs_point"])
 
-        end_after = time.time()
-        LOGGER.debug(f'after process time: {end_after - end_process}s')
-
-        end = time.time()
-
-        LOGGER.debug(f'real service call time: {end - start}s')
-
         return output_ctx
 
     def process_task(self, input_ctx):
         output_ctx = {}
 
-        if 'frame' not in input_ctx:
+        if 'frame' not in input_ctx or 'bar_roi' not in input_ctx or 'abs_point' not in input_ctx:
+            # case 1: return empty
             LOGGER.debug("case 1: return empty due to no input_ctx")
             return output_ctx
 
@@ -77,10 +59,9 @@ class EdgeEyeStage2:
         if lps == 0 and rps == 0:
             output_ctx["bar_roi"] = bar_roi
             output_ctx["abs_point"] = abs_point
-            output_ctx["frame"] = frame
 
-            # case 2: return 3 parameters
-            LOGGER.debug("case 2: return 3 parameters")
+            # case 2: return 2 parameters
+            LOGGER.debug("case 2: return 2 parameters")
             return output_ctx
         else:
             lroi, rroi, p1, p3 = self.extractMinimizedROI(
@@ -99,10 +80,9 @@ class EdgeEyeStage2:
                 output_ctx["srr"] = srr
                 output_ctx["labs_point"] = labs_point
                 output_ctx["rabs_point"] = rabs_point
-                output_ctx["frame"] = frame
 
-                # case 4: return 5 parameters
-                LOGGER.debug("case 4: return 5 parameters")
+                # case 4: return 4 parameters
+                LOGGER.debug("case 4: return 4 parameters")
                 return output_ctx
 
     def extractMinimizedROI(self, bar_roi, lps, rps, abs_point):

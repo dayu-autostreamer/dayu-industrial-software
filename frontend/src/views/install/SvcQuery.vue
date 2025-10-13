@@ -67,6 +67,26 @@ export default {
       installed.value = newValue;
     });
     const loading = ref(null)
+
+    // ========== 新增：getGlobalPolling（与 SvcInstall 的实现兼容） ==========
+    function getGlobalPolling() {
+      if (!window.__svcInstallPolling) {
+        // minimal placeholder so stop() exists if not initialized elsewhere
+        window.__svcInstallPolling = {
+          intervalId: null,
+          running: false,
+          interval: 5000,
+          alarmApi: null,
+          lastSeen: new Set(),
+          start: async function () { this.running = true; },
+          stop: function () { if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; } this.running = false; this.lastSeen.clear(); },
+          isRunning: function () { return this.running; }
+        };
+      }
+      return window.__svcInstallPolling;
+    }
+    // ===================================================================
+
     setInterval(() => {
       fetch('/api/install_state').then(response=> response.json())
       .then(data=>{
@@ -96,6 +116,14 @@ export default {
           loading.value = false;
           // this.getServiceList();
           if(state === 'success'){
+             // ========== 新增：停止全局轮询 ==========
+            try {
+              const g = getGlobalPolling();
+              g.stop();
+            } catch (e) {
+              // ignore
+            }
+            // =========================================
             install_state.uninstall();
             msg += ". Refreshing"
             ElMessage({

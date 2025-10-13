@@ -7,7 +7,9 @@ import os
 import time
 from core.lib.content import Task
 from core.lib.common import LOGGER, Context, YamlOps, FileOps, Counter, SystemConstant, KubeConfig, Queue
+from core.lib.common import ConfigBoundInstanceCache
 from core.lib.network import http_request, NodeInfo, PortInfo, merge_address, NetworkAPIPath, NetworkAPIMethod
+from core.lib.estimation import Timer
 
 from kube_helper import KubeHelper
 from template_helper import TemplateHelper
@@ -25,17 +27,44 @@ class BackendCore:
         self.priority = None
         self.result_visualization_configs = None
         self.system_visualization_configs = None
+        self.free_visualization_configs = None
+        self.event_trigger_config = None
         self.customized_source_result_visualization_configs = {}
+        self.visualization_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'RESULT_VISUALIZER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {}),
+                variables=vf['variables']
+            )
+        )
+        self.free_visualization_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'RESULT_VISUALIZER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {}),
+                variables=vf['variables']
+            )
+        )
+        self.event_config_cache = ConfigBoundInstanceCache(
+            factory=lambda vf: Context.get_algorithm(
+                'EVENT_TRIGGER',
+                al_name=vf['hook_name'],
+                **(dict(eval(vf['hook_params'])) if 'hook_params' in vf else {})
+            )
+        )
 
         self.source_configs = []
 
         self.dags = []
 
         self.time_ticket = 0
+        self.buffered_result_size = 20
 
         self.result_url = None
         self.result_file_url = None
         self.resource_url = None
+        self.free_result_url = None
         self.log_fetch_url = None
         self.log_clear_url = None
 
@@ -44,7 +73,9 @@ class BackendCore:
         self.source_label = ''
 
         self.task_results = {}
-        self.task_results_for_priority = Queue()
+        self.event_results = {}
+        self.full_event_results = []
+        self.task_results_for_priority = Queue(self.buffered_result_size)
         self.priority_task_buffer = []
 
         self.is_get_result = False
@@ -67,6 +98,8 @@ class BackendCore:
             self.priority = base_info['priority']
             self.result_visualization_configs = base_info['result-visualizations']
             self.system_visualization_configs = base_info['system-visualizations']
+            self.free_visualization_configs = base_info['free-visualizations']
+            self.event_trigger_config = base_info['event-triggers']
         except KeyError as e:
             LOGGER.warning(f'Parse base info failed: {str(e)}')
             LOGGER.exception(e)
@@ -233,6 +266,15 @@ class BackendCore:
                 return source_config
         return None
 
+    def find_source_name_by_id(self, source_id):
+        source_config = self.find_datasource_configuration_by_label(self.source_label)
+        if not source_config:
+            return None
+        for source in source_config['source_list']:
+            if source['id'] == source_id:
+                return source['name']
+        return None
+
     def fill_datasource_config(self, config):
         config['source_label'] = f'source_config_{Counter.get_count("source_label")}'
         source_list = config['source_list']
@@ -350,23 +392,44 @@ class BackendCore:
 
         return source_ids
 
-    def prepare_result_visualization_data(self, task):
+    def prepare_result_visualization_data(self, task, is_last=False):
         source_id = task.get_source_id()
         if source_id in self.customized_source_result_visualization_configs:
-            visualizations = self.customized_source_result_visualization_configs[source_id]
+            viz_configs = self.customized_source_result_visualization_configs[source_id]
         else:
-            visualizations = self.result_visualization_configs[task.get_source_type()] \
+            viz_configs = self.result_visualization_configs[task.get_source_type()] \
                 if (self.result_visualization_configs['allow-flexible-switch'] and
                     task.get_source_type() in self.result_visualization_configs) \
                 else self.result_visualization_configs['base']
+
+        viz_functions = self.visualization_cache.sync_and_get(viz_configs)
         visualization_data = []
-        for idx, vf in enumerate(visualizations):
+        for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
             try:
-                al_name = vf['hook_name']
-                al_params = eval(vf['hook_params']) if 'hook_params' in vf else {}
-                al_params.update({'variables': vf['variables']})
-                vf_func = Context.get_algorithm('RESULT_VISUALIZER', al_name=al_name, **al_params)
-                visualization_data.append({"id": idx, "data": vf_func(task)})
+                if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
+                    visualization_data.append({"id": idx, "data": {v: None for v in viz_config['variables']}})
+                else:
+                    visualization_data.append({"id": idx, "data": viz_func(task)})
+            except Exception as e:
+                LOGGER.warning(f'Failed to load result visualization data: {e}')
+                LOGGER.exception(e)
+
+        return visualization_data
+
+    def prepare_free_result_visualization_data(self, task, is_last=False):
+        viz_configs = self.free_visualization_configs[task.get_source_type()] \
+            if (self.free_visualization_configs['allow-flexible-switch'] and
+                task.get_source_type() in self.free_visualization_configs) \
+            else self.free_visualization_configs['base']
+
+        viz_functions = self.free_visualization_cache.sync_and_get(viz_configs)
+        visualization_data = []
+        for idx, (viz_config, viz_func) in enumerate(zip(viz_configs, viz_functions)):
+            try:
+                if 'save_expense' in viz_config and viz_config['save_expense'] and not is_last:
+                    visualization_data.append({"id": idx, "data": {v: None for v in viz_config['variables']}})
+                else:
+                    visualization_data.append({"id": idx, "data": viz_func(task)})
             except Exception as e:
                 LOGGER.warning(f'Failed to load result visualization data: {e}')
                 LOGGER.exception(e)
@@ -392,33 +455,139 @@ class BackendCore:
         for result in results:
             if result is None or result == '':
                 continue
-
             task = Task.deserialize(result)
-
             source_id = task.get_source_id()
-            task_id = task.get_task_id()
-            file_path = self.get_file_result(task.get_file_path())
             LOGGER.debug(task.get_delay_info())
 
-            try:
-                visualization_data = self.prepare_result_visualization_data(task)
-            except Exception as e:
-                LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
-                LOGGER.exception(e)
+            # Filter tasks with severe timeout
+            if task.calculate_total_time() > 6:
                 continue
-
-            if os.path.exists(file_path):
-                os.remove(file_path)
 
             if not self.source_open:
                 break
 
-            self.task_results[source_id].put_all([{
-                'task_id': task_id,
-                'data': visualization_data,
-            }])
+            self.task_results[source_id].put(copy.deepcopy(task))
+            self.task_results_for_priority.put(copy.deepcopy(task))
 
-            self.task_results_for_priority.put_all([copy.deepcopy(task)])
+    def fetch_visualization_data(self, source_id):
+        assert source_id in self.task_results, f'Source_id {source_id} not found in task results!'
+        tasks = self.task_results[source_id].get_all()
+        vis_results = []
+
+        with Timer(f'Visualization preparation for {len(tasks)} tasks'):
+            for idx, task in enumerate(tasks):
+                file_path = self.get_file_result(task.get_file_path())
+                try:
+                    visualization_data = self.prepare_result_visualization_data(task, idx == len(tasks) - 1)
+                except Exception as e:
+                    LOGGER.warning(f'Prepare visualization data failed: {str(e)}')
+                    LOGGER.exception(e)
+                    continue
+
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+
+                vis_results.append({
+                    'task_id': task.get_task_id(),
+                    'data': visualization_data,
+                })
+
+        return vis_results
+
+    def get_free_visualization_config(self):
+        self.parse_base_info()
+        source_config = self.find_datasource_configuration_by_label(self.source_label)
+        source_type = source_config['source_type']
+
+        visualizations = self.free_visualization_configs[source_type] \
+            if (self.free_visualization_configs['allow-flexible-switch'] and
+                source_type in self.free_visualization_configs) \
+            else self.free_visualization_configs['base']
+
+        return [{'id': idx, **vf} for idx, vf in enumerate(visualizations)]
+
+    def fetch_free_task_visualization_data(self, start_time, end_time, source_id):
+        assert source_id in self.get_source_ids(), f'Source_id {source_id} not found!'
+        self.get_free_url()
+        if self.free_result_url is None:
+            return []
+
+        response = http_request(self.free_result_url,
+                                method=NetworkAPIMethod.DISTRIBUTOR_RESULT_BY_TIME,
+                                json={'start_time': start_time, 'end_time': end_time, 'source_id': source_id})
+        results = response['result']
+
+        free_task_vis_results = []
+        with Timer(f'Visualization preparation for {len(results)} free tasks'):
+            for idx, result in enumerate(results):
+                task = Task.deserialize(result)
+                try:
+                    visualization_data = self.prepare_free_result_visualization_data(task)
+                except Exception as e:
+                    LOGGER.warning(f'Prepare visualization free task data failed: {str(e)}')
+                    LOGGER.exception(e)
+                    continue
+                free_task_vis_results.append({
+                    'task_id': task.get_task_id(),
+                    'data': visualization_data
+                })
+
+        return free_task_vis_results
+
+    def parse_event_result(self, results):
+        # Process a batch of new data at a time.
+        for result in results:
+            if result is None or result == '':
+                continue
+
+            task = Task.deserialize(result)
+            source_id = task.get_source_id()
+            source_name = self.find_source_name_by_id(source_id)
+            task_id = task.get_task_id()
+
+            # Filter tasks with severe timeout
+            if task.calculate_total_time() > 6:
+                continue
+
+            cfgs = self.event_trigger_config[task.get_source_type()] \
+                if (self.event_trigger_config['allow-flexible-switch']
+                    and task.get_source_type() in self.event_trigger_config) else \
+                self.event_trigger_config['base']
+            event_functions = self.event_config_cache.sync_and_get(cfgs)
+            for idx, (cfg, vf_func) in enumerate(zip(cfgs, event_functions)):
+                try:
+                    if 'warning_interval' in cfg and idx in self.event_results:
+                        # If latest alarm distance is too close now, do not alarm (filtering same data source)
+                        prev_ids = [res['task_id'] for res in self.event_results[idx] if res['source_id'] == source_id]
+                        if prev_ids and (task_id - max(prev_ids)) < cfg['warning_interval']:
+                            continue
+
+                    is_warn, detail = vf_func(task)
+                    if is_warn:
+                        self.event_results.setdefault(idx, []).append({
+                            "task_id": task_id,
+                            "source_id": source_id,
+                            "source_name": source_name,
+                            "message": cfg['warning'],
+                            "is_read": False
+                        })
+                        timestamp = time.time()
+                        task_tmp_data = task.get_tmp_data()
+                        if task_tmp_data:
+                            for name, time_tick in task_tmp_data.items():
+                                if name.endswith('total_start_time'):
+                                    timestamp = time_tick
+                                    break
+                        self.full_event_results.append({
+                            'task_id': task_id,
+                            "source_id": source_id,
+                            'message': cfg['warning'],
+                            'tms': timestamp,
+                            'detail': detail
+                        })
+                except Exception as e:
+                    LOGGER.warning(f'Failed to load event data: {e}')
+                    LOGGER.exception(e)
 
     def run_get_result(self):
         time_ticket = 0
@@ -431,7 +600,7 @@ class BackendCore:
                     continue
                 response = http_request(self.result_url,
                                         method=NetworkAPIMethod.DISTRIBUTOR_RESULT,
-                                        json={'time_ticket': time_ticket, 'size': 0})
+                                        json={'time_ticket': time_ticket, 'size': self.buffered_result_size})
 
                 if not response:
                     self.result_url = None
@@ -440,9 +609,11 @@ class BackendCore:
                     continue
 
                 time_ticket = response["time_ticket"]
-                LOGGER.debug(f'time ticket: {time_ticket}')
                 results = response['result']
+                self.parse_event_result(results)
+                LOGGER.debug(f'Fetch {len(results)} tasks from time ticket: {time_ticket}')
                 self.parse_task_result(results)
+
 
             except Exception as e:
                 LOGGER.warning(f'Error occurred in getting task result: {str(e)}')
@@ -515,6 +686,16 @@ class BackendCore:
         self.resource_url = merge_address(NodeInfo.hostname2ip(cloud_hostname),
                                           port=scheduler_port,
                                           path=NetworkAPIPath.SCHEDULER_GET_RESOURCE)
+
+    def get_free_url(self):
+        cloud_hostname = NodeInfo.get_cloud_node()
+        try:
+            distributor_port = PortInfo.get_component_port(SystemConstant.DISTRIBUTOR.value)
+        except AssertionError:
+            return
+        self.free_result_url = merge_address(NodeInfo.hostname2ip(cloud_hostname),
+                                             port=distributor_port,
+                                             path=NetworkAPIPath.DISTRIBUTOR_RESULT_BY_TIME)
 
     def get_result_url(self):
         cloud_hostname = NodeInfo.get_cloud_node()
@@ -641,18 +822,40 @@ class BackendCore:
             ]
         }
         """
-        show_time = time.time() - 5
-        services = KubeConfig.get_node_services_dict()[node]
-        self.priority_task_buffer.extend(self.task_results_for_priority.get_all())
-        # Filter tasks satisfied time requirements
-        self.priority_task_buffer = [task for task in self.priority_task_buffer if task.get_total_end_time() <= show_time]
-        priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in services}
+        device_services = KubeConfig.get_node_services_dict()[node]
+        tasks: list[Task] = self.task_results_for_priority.get_all()
+        total_time_list = sorted([task.get_real_end_to_end_time() for task in tasks])
+        show_time = time.time() - 4 - min(total_time_list[len(total_time_list) // 2], 2) if total_time_list else 0
+        print('*** current time: ', time.time())
+        print('*** show_time: ', show_time)
+        print('*** control interval: ', total_time_list[len(total_time_list) // 2] if total_time_list else 0)
+        self.priority_task_buffer.extend(tasks)
 
-        for service in services:
-            for task in self.priority_task_buffer:
+        for task in self.priority_task_buffer:
+            print(f'---task_id: {task.get_task_id()}, total_end_time: {task.get_total_end_time()}')
+        # Filter tasks satisfied time requirements
+        self.priority_task_buffer = [task for task in self.priority_task_buffer if
+                                     task.get_total_end_time() >= show_time]
+        priority_queue = {service: [[] for _ in range(self.priority['priority_levels'])] for service in device_services}
+
+        for task in self.priority_task_buffer:
+            ordered_services = task.get_topologically_sorted_services()
+
+            # Adjust the key order of priority_queue to follow ordered_services with minimal overhead
+            # Keep only services present in the current priority_queue, then append remaining keys preserving order
+            ordered = [s for s in ordered_services if s in priority_queue]
+            if ordered:
+                remaining = [k for k in priority_queue.keys() if k not in ordered]
+                priority_queue = {k: priority_queue[k] for k in (*ordered, *remaining)}
+
+            for service in ordered_services:
                 enter_time, quit_time = task.extract_priority_timestamp(service)
-                if task.get(service) and task.get(service).get_execute_device() == node and \
-                        enter_time <= show_time <= quit_time:
+                print(f'---task_id: {task.get_task_id()}, service: {service}, '
+                      f'enter_time: {enter_time}, quit_time: {quit_time}')
+                if task.get_service(service) and \
+                        service in device_services and \
+                        task.get_service(service).get_execute_device() == node and \
+                        quit_time >= show_time:
                     priority_queue[service][task.get_service(service).get_priority()].append({
                         'source_id': task.get_source_id(),
                         'task_id': task.get_task_id(),

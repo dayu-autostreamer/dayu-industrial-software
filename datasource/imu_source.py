@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import pandas as pd
 import uvicorn
+import uuid
 import argparse
 import socket
 import requests
@@ -44,7 +45,8 @@ class IMUSource:
 
         self.play_mode = play_mode
 
-        self.file_name = 'temp_imu_data.npy'
+        self.file_name_prefix = 'temp_imu_data'
+        self.file_name_suffix = 'npy'
 
         self._csv_files = self._scan_csvs()
         self._csv_idx: int = 0  # point to next csv index
@@ -76,14 +78,18 @@ class IMUSource:
             assert self._cur_csv_df is not None
             data = self._extract_segment(start_idx, end_idx, self._cur_csv_df)
 
-            np.save(self.file_name, data)
+            file_name = f'{self.file_name_prefix}_{uuid.uuid4().hex}.{self.file_name_suffix}'
+            np.save(file_name, data)
 
             self._segment_idx += 1
 
+        return file_name
+
+
     def get_source_file(self, backtask: BackgroundTasks):
-        self.get_one_imu_file()
-        return FileResponse(path=self.file_name, filename=self.file_name, media_type='text/plain',
-                            background=backtask.add_task(FileOps.remove_file, self.file_name))
+        file_name = self.get_one_imu_file()
+        return FileResponse(path=file_name, filename=file_name, media_type='application/octet-stream',
+                            background=backtask.add_task(FileOps.remove_file, file_name))
 
     def _scan_csvs(self) -> List[str]:
         files = sorted(glob.glob(os.path.join(self.data_dir, '*.csv')))
@@ -265,17 +271,27 @@ async def add_source(request: SourceRequest):
     return {"status": "success"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
 
 
-def wait_for_port(port: int, timeout=10):
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        if is_port_in_use(port):
-            return True
-        time.sleep(0.5)
+def wait_for_http_ready(port: int, timeout=10) -> bool:
+    url = f"http://127.0.0.1:{port}/health"
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            r = requests.get(url, timeout=0.5, headers={"Connection": "close"})
+            if r.status_code == 200:
+                return True
+        except requests.RequestException:
+            pass
+        time.sleep(0.2)
     return False
 
 
@@ -313,12 +329,14 @@ if __name__ == '__main__':
 
     if is_port_in_use(server_port):
         # server already in running
+        LOGGER.info('Server already running, just registering source...')
         register_source(args.root, server_path, args.play_mode)
     else:
         # first run server
+        LOGGER.info('Starting server and registering source...')
         server_thread = threading.Thread(target=run_server, args=(server_port,), daemon=True)
         server_thread.start()
-        if wait_for_port(server_port):
+        if wait_for_http_ready(server_port):
             register_source(args.root, server_path, args.play_mode)
             server_thread.join()
         else:

@@ -194,8 +194,6 @@ class CalPosition:
         return boundry
 
     def calculatePosInMROI(self, mroi, position='left', abs_point=(0, 0)):
-        lps = 0
-        rps = 0
         ff = self.ff
         # 这里的edges只是一块区域，最好附加上相对于bar_roi的详细位置
         super_edges = edgeDetection(mroi, ff=ff)

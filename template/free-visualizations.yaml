@@ -1,0 +1,77 @@
+allow-flexible-switch: true
+base:
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 3
+  - name: 目标数量曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: 数量
+    variables: [ "目标数量" ]
+    hook_name: obj_num
+    size: 3
+video:
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 3
+  - name: 发泡塑料边缘位置曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: 边缘位置
+    variables: [ "左边缘","右边缘" ]
+    hook_name: edge_eye_position
+    size: 3
+audio:
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 3
+  - name: 音频类别变化曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: "0-其他 1-喇叭\n2-钻孔 3-引擎\n4-重械 5-警报"
+    variables: [ "音频类别" ]
+    hook_name: audio_class
+    size: 3
+imu:
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 3
+  - name: 惯性感知轨迹长度曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: 长度
+    variables: [ "轨迹长度" ]
+    hook_name: imu_trajectory_length
+    size: 3
+mmwave:
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 3
+  - name: 毫米波相位位移曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: 位移距离(m)
+    variables: [ "相位位移" ]
+    hook_name: mmwave_length
+    size: 3
+

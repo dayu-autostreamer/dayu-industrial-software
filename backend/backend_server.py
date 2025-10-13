@@ -112,6 +112,26 @@ class BackendServer:
                      response_class=JSONResponse,
                      methods=[NetworkAPIMethod.BACKEND_TASK_RESULT]
                      ),
+            APIRoute(NetworkAPIPath.BACKEND_FREE_VISUALIZATION_CONFIG,
+                     self.get_free_visualization_config,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_FREE_VISUALIZATION_CONFIG]
+                     ),
+            APIRoute(NetworkAPIPath.BACKEND_FREE_TASK_RESULT,
+                     self.get_free_task_result,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_FREE_TASK_RESULT]
+                     ),
+            APIRoute(NetworkAPIPath.BACKEND_EVENT_RESULT,
+                     self.get_event_result,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_EVENT_RESULT]
+                     ),
+            APIRoute(NetworkAPIPath.BACKEND_EVENT_DETAIL,
+                     self.get_event_detail,
+                     response_class=JSONResponse,
+                     methods=[NetworkAPIMethod.BACKEND_EVENT_DETAIL]
+                     ),
             APIRoute(NetworkAPIPath.BACKEND_SYSTEM_PARAMETERS,
                      self.get_system_parameters,
                      response_class=JSONResponse,
@@ -513,10 +533,8 @@ class BackendServer:
     async def uninstall_service(self):
         """
         {'state':"success/fail",'msg':'...'}
-
         :return:
         """
-
         try:
             result, msg = self.server.parse_and_delete_templates()
 
@@ -563,7 +581,7 @@ class BackendServer:
         self.server.source_label = source_label
         source_ids = self.server.get_source_ids()
         for source_id in source_ids:
-            self.server.task_results[source_id] = Queue(20)
+            self.server.task_results[source_id] = Queue(self.server.buffered_result_size)
 
         time.sleep((len(source_ids) - 1) * 4)
 
@@ -583,6 +601,7 @@ class BackendServer:
         self.server.source_label = ''
         self.server.is_get_result = False
         self.server.task_results.clear()
+        self.server.full_event_results.clear()
         self.server.customized_source_result_visualization_configs.clear()
         time.sleep(1)
 
@@ -590,7 +609,6 @@ class BackendServer:
 
     async def get_query_state(self):
         """
-
         :return:
         {'state':'open/close','source_label':''}
         """
@@ -628,7 +646,7 @@ class BackendServer:
 
     async def get_task_result(self):
         """
-        10 lasted results
+        20 lasted results
         {
         'datasource1':[
             task_id: 12,
@@ -645,8 +663,96 @@ class BackendServer:
         source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
         for source in source_config['source_list']:
             source_id = source['id']
-            ans[source_id] = self.server.task_results[source_id].get_all()
+            ans[source_id] = self.server.fetch_visualization_data(source_id)
 
+        return ans
+
+    async def get_free_visualization_config(self):
+        """
+        get free visualization configuration
+        """
+        return self.server.get_free_visualization_config()
+
+    async def get_free_task_result(self, start_time: str = None, end_time: str = None):
+        """
+        Get free query results within a time window
+        :param start_time: optional, float unix timestamp or ISO8601 string
+        :param end_time: optional, float unix timestamp or ISO8601 string
+        :return:
+            {
+            'datasource1':[
+                task_id: 12,
+                data: {0:{"delay":"0.5"}...}
+
+            ],
+            'datasource2':[]
+            }
+        """
+        if not self.server.source_open:
+            return {}
+
+        # helper to parse time parameter
+        def parse_time(t):
+            if t is None:
+                return None
+            try:
+                return float(t)
+            except Exception:
+                try:
+                    ts = t.strip()
+                    # Handle trailing Z (UTC)
+                    if ts.endswith('Z'):
+                        ts = ts[:-1] + '+00:00'
+                    return datetime.fromisoformat(ts).timestamp()
+                except Exception:
+                    LOGGER.warning(f'Invalid time format for parameter: {t}')
+                    return None
+
+        start_ts = parse_time(start_time)
+        end_ts = parse_time(end_time)
+
+        if start_ts is None or end_ts is None or start_ts > end_ts:
+            LOGGER.warning(f'Invalid start time "{start_ts}" and end time "{end_ts}"')
+            return {}
+
+        ans = {}
+        source_config = self.server.find_datasource_configuration_by_label(self.server.source_label)
+        for source in source_config['source_list']:
+            source_id = source['id']
+            ans[source_id] = self.server.fetch_free_task_visualization_data(start_ts, end_ts, source_id)
+
+        return ans
+
+    async def get_event_result(self):
+        """
+        Query event alert interface
+        :return:
+        {
+            'datasource1': [
+                'task_id':
+                'massage':
+            ],
+            'datasource2':[]
+        }
+        """
+        if not self.server.source_open:
+            return {}
+
+        ans = []
+        for idx, event_res in self.server.event_results.items():
+            for info in event_res:
+                if info['is_read']:
+                    continue
+                info['is_read'] = True
+                ans.append(info)
+
+        return ans
+
+    async def get_event_detail(self):
+        if not self.server.source_open:
+            return []
+        ans = copy.deepcopy(self.server.full_event_results)
+        self.server.full_event_results = []
         return ans
 
     async def get_system_parameters(self):
@@ -663,8 +769,9 @@ class BackendServer:
         """
         body: file
         :return:
-            {'state':success/fail, 'msg':'...'}
+        {'state': success / fail, 'msg': '...'}
         """
+
         source_id = int(source_id)
         file_data = await file.read()
         with open('result_visualization_config.yaml', 'wb') as buffer:
@@ -678,11 +785,13 @@ class BackendServer:
         else:
             return {'state': 'fail', 'msg': '可视化模块配置失败，请检查上传文件格式'}
 
+
     async def get_system_visualization_config(self):
         """
         get visualization configuration
         """
         return self.server.get_system_visualization_config()
+
 
     async def get_datasource_state(self):
         state = 'open' if self.server.source_open else 'close'
@@ -695,8 +804,10 @@ class BackendServer:
             return {'state': 'close'}
         return {'state': state, **config}
 
+
     async def reset_datasource(self):
         self.server.source_open = False
+
 
     async def download_log(self, backtask: BackgroundTasks):
         """
@@ -718,17 +829,17 @@ class BackendServer:
             background=backtask.add_task(FileOps.remove_file, self.server.log_file_path)
         )
 
+
     async def get_priority_info(self):
         """
         :return:
         {
-            "nodes": [node1,node2,...],
-            "services": {node1:[service1,...], node2:[service2,...]},
-            "priority_num":10
+            "nodes": [node1, node2, ...],
+            "services": {node1: [service1, ...], node2: [service2, ...]},
+            "priority_num": 10
         }
         """
         return self.server.get_priority_info()
-
 
 
     async def get_priority_queue(self, node):
@@ -737,28 +848,28 @@ class BackendServer:
         :return:
         {
             service1:
-            [
-                # priority queue 1
-                [{
-                source_id: 1,
-                task_id: 1,
-                importance: 1
-                urgency: 1
-                },{},{},{}],
-                [],
-                [],
-                [],
-                []
-            ],
+                [
+                    # priority queue 1
+                    [{
+                        source_id: 1,
+                        task_id: 1,
+                        importance: 1
+                        urgency: 1
+                    }, {}, {}, {}],
+                    [],
+                    [],
+                    [],
+                    []
+                ],
             service2:
-            [
-                [],
-                [],
-                [],
-                [],
-                []
+                [
+                    [],
+                    [],
+                    [],
+                    [],
+                    []
 
-            ]
+                ]
         }
         """
         return self.server.get_priority_queue(node)

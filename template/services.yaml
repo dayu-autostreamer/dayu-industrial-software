@@ -1,42 +1,42 @@
 - id: edge-eye-stage1
   service: edge-eye-stage1
-  name: edge-eye stage1
-  description: 参考点区域检测
+  name: 参考点区域检测
+  description: edge-eye-stage1
   input: universal_structure
   output: universal_structure
   yaml: edge-eye-stage1.yaml
 - id: edge-eye-stage2
   service: edge-eye-stage2
-  name: edge-eye stage2
-  description: 区域超分辨率
+  name: 区域超分辨率
+  description: edge-eye-stage2
   input: universal_structure
   output: universal_structure
   yaml: edge-eye-stage2.yaml
 - id: edge-eye-stage3
   service: edge-eye-stage3
-  name: edge-eye stage3
-  description: 材料边缘检测
+  name: 材料边缘检测
+  description: edge-eye-stage3
   input: universal_structure
   output: universal_structure
   yaml: edge-eye-stage3.yaml
 - id: audio-sampling
   service: audio-sampling
-  name: audio sampling
-  description: 音频降采样
+  name: 音频降采样
+  description: audio-sampling
   input: audio
   output: audio
   yaml: audio-sampling.yaml
 - id: audio-classification
   service: audio-classification
-  name: audio classification
-  description: 音频分类
+  name: 音频分类
+  description: audio-classification
   input: audio
   output: text
   yaml: audio-classification.yaml
 - id: imu-trajectory-sensing
   service: imu-trajectory-sensing
-  name: imu trajectory sensing
-  description: 惯性轨迹感知
+  name: 惯性轨迹感知
+  description: imu-trajectory-sensing
   input: imu_data
   output: text
   yaml: imu-trajectory-sensing.yaml
@@ -47,3 +47,10 @@
   input: frame
   output: bbox
   yaml: waveform-detection.yaml
+- id: mmwave-detection
+  service: mmwave-detection
+  name: 毫米波缺陷感知
+  description: mmwave-detection
+  input: mmwave_data
+  output: text
+  yaml: mmwave-detection.yaml

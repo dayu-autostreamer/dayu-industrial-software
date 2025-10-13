@@ -2,6 +2,7 @@ from typing import List
 import os
 import glob
 import uvicorn
+import uuid
 import wave
 import argparse
 import socket
@@ -43,7 +44,8 @@ class AudioSource:
         self.play_mode = play_mode
         self.frames_per_task = 1
 
-        self.file_name = 'temp_audio_data.wav'
+        self.file_name_prefix = 'temp_audio_data'
+        self.file_name_suffix = 'wav'
 
         self._wav_files = self._scan_wavs()
         self._wav_idx = 0  # Next wav index to load
@@ -84,18 +86,20 @@ class AudioSource:
                 src.setpos(start_frame)
                 audio_data = src.readframes(cur_nframes)
 
-            with wave.open(self.file_name, 'wb') as dst:
+            file_name = f'{self.file_name_prefix}_{uuid.uuid4().hex}.{self.file_name_suffix}'
+
+            with wave.open(file_name, 'wb') as dst:
                 dst.setparams(self._cur_params)   # 先拷贝原参数
                 dst.setnframes(cur_nframes)       # 再指定当前段的帧数
                 dst.writeframes(audio_data)
 
             self._segment_idx += 1  # 下次请求取下一段
 
-            return self.file_name
+            return file_name
 
     def get_source_file(self, backtask: BackgroundTasks):
         file_name = self.get_one_audio_file()
-        return FileResponse(path=file_name, filename=file_name, media_type='text/plain',
+        return FileResponse(path=file_name, filename=file_name, media_type='application/octet-stream',
                             background=backtask.add_task(FileOps.remove_file, file_name))
 
     def _scan_wavs(self) -> List[str]:

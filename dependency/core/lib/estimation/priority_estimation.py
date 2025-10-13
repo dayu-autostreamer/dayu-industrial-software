@@ -1,5 +1,6 @@
 import json
 import time
+import bisect
 
 
 class PriorityEstimator:
@@ -8,6 +9,8 @@ class PriorityEstimator:
         self.importance_weight = importance_weight
         self.urgency_weight = urgency_weight
         self.deadline = deadline
+        # Track which services have sorted histories to skip repeated checks
+        self._sorted_services = set()
 
     def calculate_priority(self, task):
         importance = task.get_source_importance()  # Value range: 0~(priority_level_num-1)
@@ -37,6 +40,7 @@ class PriorityEstimator:
         if urgency_threshold_list is None:
             return 0
         else:
+            # thresholds are expected to be sorted ascending
             urgency = 0
             for value in urgency_threshold_list:
                 if remaining_time >= value:
@@ -50,8 +54,19 @@ class PriorityEstimator:
         if len(urgency_list) < self.priority_level_num - 1:
             return None
         else:
-            # collect last num of each urgency unit as threshold
+            # Ensure the history is sorted before using it (also persist this fix once)
+            if any(urgency_list[i] > urgency_list[i + 1] for i in range(len(urgency_list) - 1)):
+                urgency_list.sort()
+                with open(f'{service_name}.json', 'w') as f:
+                    json.dump(urgency_list, f)
+                self._sorted_services.add(service_name)
+
+            # urgency_list is maintained in non-decreasing order by update_urgency_history
             urgency_threshold = self.split_list_into_chunks_last(urgency_list, self.priority_level_num - 1)
+            # Ensure thresholds are non-decreasing to keep comparison logic stable
+            for i in range(1, len(urgency_threshold)):
+                if urgency_threshold[i] < urgency_threshold[i - 1]:
+                    urgency_threshold[i] = urgency_threshold[i - 1]
             return urgency_threshold
 
     def get_urgency_history(self, service_name):
@@ -64,7 +79,15 @@ class PriorityEstimator:
 
     def update_urgency_history(self, service_name, urgency):
         urgency_history = self.get_urgency_history(service_name)
-        urgency_history.append(urgency)
+
+        # One-time normalization per service: if not known sorted, verify and fix
+        if service_name not in self._sorted_services:
+            if any(urgency_history[i] > urgency_history[i + 1] for i in range(len(urgency_history) - 1)):
+                urgency_history.sort()
+            self._sorted_services.add(service_name)
+
+        # Insert the new value while keeping non-decreasing order
+        bisect.insort(urgency_history, urgency)
         with open(f'{service_name}.json', 'w') as f:
             json.dump(urgency_history, f)
 

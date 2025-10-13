@@ -43,5 +43,5 @@ class AudioSampling:
         """
         dummy_pcm = np.zeros(int(16000 * seconds), dtype=np.int16).tobytes()
         for _ in range(iters):
-            _ = self.resample(dummy_pcm, 16000, 16000)
+            _ = self.resample(dummy_pcm, 16000, 8000)
             _ = self.remove_noise(dummy_pcm, 16000, 2, 1)

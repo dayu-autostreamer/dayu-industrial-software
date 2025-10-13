@@ -1,0 +1,18 @@
+source_name: "工厂毫米波雷达"
+source_type: "mmwave"
+source_mode: "http_mmwave"
+source_list:
+  - name: "mmwave_source_0"
+    url: ""
+    dir: "mmwave_0/"
+    metadata:
+      fps: 60
+      buffer_size: 1
+    importance: 7
+  - name: "mmwave_source_1"
+    url: ""
+    dir: "mmwave_1/"
+    metadata:
+      fps: 60
+      buffer_size: 1
+    importance: 4

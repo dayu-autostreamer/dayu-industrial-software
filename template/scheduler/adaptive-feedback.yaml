@@ -1,0 +1,30 @@
+position: cloud
+pod-template:
+  image: scheduler
+  imagePullPolicy: Always
+  env:
+    - name: SCH_CONFIG_EXTRACTION_NAME
+      value: simple
+    - name: SCH_SCENARIO_EXTRACTION_NAME
+      value: simple
+    - name: SCH_STARTUP_POLICY_NAME
+      value: fixed
+    - name: SCH_POLICY_EXTRACTION_NAME
+      value: simple
+    - name: SCH_SELECTION_POLICY_NAME
+      value: fixed
+    - name: SCH_SELECTION_POLICY_PARAMETERS
+      value: "{'fixed_value':0, 'fixed_type':'position'}"
+    - name: SCH_DEPLOYMENT_POLICY_NAME
+      value: full
+    - name: SCH_AGENT_NAME
+      value: adaptive_feedback
+    - name: SCH_AGENT_PARAMETERS
+      value: "{'latency_constraint':0.9,'configuration':{}}"
+port-open:
+  pos: cloud
+  port: 9000
+file-mount:
+  - pos: cloud
+    path: 'scheduler/adaptive_feedback/'
+

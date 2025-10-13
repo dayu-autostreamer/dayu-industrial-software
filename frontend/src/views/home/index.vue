@@ -1,7 +1,7 @@
 <template>
 	<div class="home-container layout-pd">
 
-		大禹：工业感算控多设备协同与多类型任务实时调度系统
+		大禹系统
 	</div>
 </template>
 

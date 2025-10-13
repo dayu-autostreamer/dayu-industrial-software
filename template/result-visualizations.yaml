@@ -4,6 +4,7 @@ base:
     type: image
     variables: [ "Frame with Regions of Interest" ]
     hook_name: roi_frame
+    save_expense: true
     size: 1
   - name: 任务端到端时延曲线
     type: cdf
@@ -19,16 +20,17 @@ base:
     variables: [ "目标数量" ]
     hook_name: obj_num
     size: 1
-  - name: 服务拓扑图
+  - name: 服务卸载状态拓扑图
     type: topology
     variables: [ "服务拓扑卸载状态" ]
     hook_name: dag_offloading
     size: 2
 video:
-  - name: Frame Visualization
+  - name: 发泡塑料制造画面
     type: image
     variables: [ "发泡塑料制造画面" ]
     hook_name: edge_frame
+    save_expense: true
     size: 1
   - name: 任务端到端时延曲线
     type: cdf
@@ -37,14 +39,14 @@ video:
     variables: [ "端到端时延" ]
     hook_name: e2e_delay
     size: 1
-  - name: 发泡塑料原材料边缘位置曲线
+  - name: 发泡塑料边缘位置曲线
     type: curve
     x_axis: 任务序号
     y_axis: 边缘位置
     variables: [ "左边缘","右边缘" ]
     hook_name: edge_eye_position
     size: 1
-  - name: 服务拓扑图
+  - name: 服务卸载状态拓扑图
     type: topology
     variables: [ "服务拓扑卸载状态" ]
     hook_name: dag_offloading
@@ -54,6 +56,7 @@ audio:
     type: image
     variables: [ "音频频谱图" ]
     hook_name: audio_frame
+    save_expense: true
     size: 1
   - name: 任务端到端时延曲线
     type: cdf
@@ -65,20 +68,21 @@ audio:
   - name: 音频类别变化曲线
     type: curve
     x_axis: 任务序号
-    y_axis: 音频类别
-    variables: [ "0:其他 1:喇叭 2:钻孔 3:引擎 4:重型机械 5:警报" ]
+    y_axis: "0-其他 1-喇叭\n2-钻孔 3-引擎\n4-警报 5-重械"
+    variables: [ "音频类别" ]
     hook_name: audio_class
     size: 1
-  - name: 服务拓扑图
+  - name: 服务卸载状态拓扑图
     type: topology
     variables: [ "服务拓扑卸载状态" ]
     hook_name: dag_offloading
     size: 2
 imu:
-  - name: 惯性感知轨迹
+  - name: 惯性轨迹可视化图
     type: image
     variables: [ "惯性感知轨迹" ]
     hook_name: imu_frame
+    save_expense: true
     size: 1
   - name: 任务端到端时延曲线
     type: cdf
@@ -94,10 +98,34 @@ imu:
     variables: [ "轨迹长度" ]
     hook_name: imu_trajectory_length
     size: 1
-  - name: 服务拓扑图
+  - name: 服务卸载状态拓扑图
     type: topology
     variables: [ "服务拓扑卸载状态" ]
     hook_name: dag_offloading
     size: 2
-radio:
-
+mmwave:
+  - name: 毫米波距离多普勒谱图
+    type: image
+    variables: [ "距离多普勒谱图" ]
+    hook_name: mmwave_frame
+    save_expense: true
+    size: 1
+  - name: 任务端到端时延曲线
+    type: cdf
+    x_axis: 时延
+    y_axis: CDF
+    variables: [ "端到端时延" ]
+    hook_name: e2e_delay
+    size: 1
+  - name: 毫米波距离变化曲线
+    type: curve
+    x_axis: 任务序号
+    y_axis: 距离(m)
+    variables: [ "毫米波与钢板距离" ]
+    hook_name: mmwave_length
+    size: 1
+  - name: 服务卸载状态拓扑图
+    type: topology
+    variables: [ "服务拓扑卸载状态" ]
+    hook_name: dag_offloading
+    size: 2

@@ -61,7 +61,7 @@
           style="width: 38%; margin-top: 20px"
           v-model="source.dag_selected"
           @change="updateDagSelection(index, source, source.dag_selected)"
-          placeholder="Assign dag"
+          placeholder="请分配应用"
       >
         <template v-for="(option, index) in dagOptions" :key="index">
           <el-option
@@ -77,7 +77,7 @@
           style="width: 58%; margin-top: 20px; margin-left: 4%"
           v-model="source.node_selected"
           @change="updateNodeSelection(index, source, source.node_selected)"
-          placeholder="Bind edge nodes (default all nodes)"
+          placeholder="请分配边缘设备"
           multiple
       >
         <template v-for="(option, index) in nodeOptions" :key="index">
@@ -134,7 +134,7 @@ export default {
     };
   },
   setup() {
-
+    const ALARM_QUERY_API = '/api/event_result';
     const INSTALL_STATE_KEY = 'savedInstallConfig';
     const DRAFT_STATE_KEY = 'savedDraftConfig';
     const LENGTH_KEYS = {
@@ -278,7 +278,7 @@ export default {
           const prevNodeL = localStorage.getItem(LENGTH_KEYS.node);
           if (prevNodeL && received_node.length < prevNodeL) {
             const config = loadStorage();
-            config.selectedSources = selectedSources.map(source => ({
+            config.selectedSources = selectedSources.value.map(source => ({
               ...source,
               node_selected: source.node_selected.filter(nodeName =>
                   nodeOptions.value.some(node => node.name === nodeName)

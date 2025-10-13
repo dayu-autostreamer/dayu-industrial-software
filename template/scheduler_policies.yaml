@@ -6,33 +6,17 @@
     controller: controller-no-delete.yaml
     distributor: distributor-base.yaml
     monitor: monitor-base.yaml
+- id: adaptive_feedback
+  name: Adaptive Feedback Policy
+  yaml: adaptive-feedback.yaml
+  dependency:
+    generator: generator-base.yaml
+    controller: controller-no-delete.yaml
+    distributor: distributor-base.yaml
+    monitor: monitor-base.yaml
 - id: hei
   name: Hierarchical Embodied Intelligence
   yaml: hei.yaml
-  dependency:
-    generator: generator-base.yaml
-    controller: controller-for-evaluation.yaml
-    distributor: distributor-base.yaml
-    monitor: monitor-base.yaml
-- id: hei-macro-only
-  name: Hierarchical Embodied Intelligence (Macro Only)
-  yaml: hei-macro-only.yaml
-  dependency:
-    generator: generator-base.yaml
-    controller: controller-for-evaluation.yaml
-    distributor: distributor-base.yaml
-    monitor: monitor-base.yaml
-- id: hei-micro-only
-  name: Hierarchical Embodied Intelligence (Micro Only)
-  yaml: hei-micro-only.yaml
-  dependency:
-    generator: generator-base.yaml
-    controller: controller-for-evaluation.yaml
-    distributor: distributor-base.yaml
-    monitor: monitor-base.yaml
-- id: hei-synchronous
-  name: Hierarchical Embodied Intelligence (Synchronous)
-  yaml: hei-synchronous.yaml
   dependency:
     generator: generator-base.yaml
     controller: controller-for-evaluation.yaml

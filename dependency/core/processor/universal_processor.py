@@ -19,12 +19,15 @@ class UniversalProcessor(Processor):
     def __call__(self, task: Task):
         data_file_path = task.get_file_path()
         content = copy.deepcopy(task.get_prev_content())
-        if content is None:
-            cap = cv2.VideoCapture(data_file_path)
-            _, frame = cap.read()
-            content = {'frame':EncodeOps.encode_image(frame)}
+
+        cap = cv2.VideoCapture(data_file_path)
+        _, frame = cap.read()
+        content = {'frame': EncodeOps.encode_image(frame)} if content is None \
+            else {**content, 'frame': EncodeOps.encode_image(frame)}
 
         result = self.infer(content)
+        result.pop('frame', None)
+
         task.set_current_content(result)
 
         return task

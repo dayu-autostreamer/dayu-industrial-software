@@ -27,6 +27,7 @@ class HttpAudioGetter(BaseDataGetter, abc.ABC):
         while not response:
             response = http_request(url=system.audio_data_source + '/file', no_decode=True, stream=True)
             if not response:
+                time.sleep(1)
                 continue
 
             self.file_name = NameMaintainer.get_task_data_file_name(system.source_id, task_id, self.file_suffix)
@@ -46,8 +47,8 @@ class HttpAudioGetter(BaseDataGetter, abc.ABC):
         LOGGER.info(f'[Audio Simulation] source {system.source_id}: sleep {sleep_time}s')
         time.sleep(sleep_time)
 
-        data_source = wave.open(self.file_name, 'r')
-        nchannels, sampwidth, framerate, nframes = data_source.getparams()[:4]
+        with wave.open(self.file_name, 'r') as data_source:
+            nchannels, sampwidth, framerate, nframes = data_source.getparams()[:4]
 
         metadata = copy.deepcopy(system.meta_data)
         metadata.update({'nchannels': nchannels, 'sampwidth': sampwidth, 'framerate': framerate})
