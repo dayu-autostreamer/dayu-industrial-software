@@ -95,8 +95,10 @@ class Scheduler:
 
     def get_schedule_overhead(self):
         overheads = []
+        LOGGER.info('Get Overhead start')
         for source_id in self.schedule_table:
             agent = self.schedule_table[source_id]
             overheads.append(agent.get_schedule_overhead())
-
+            LOGGER.info(f'{source_id}:{overheads[-1]}')
+        LOGGER.info('Get Overhead end')
         return sum(overheads) / len(overheads) if overheads else 0
