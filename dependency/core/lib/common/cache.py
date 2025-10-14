@@ -5,11 +5,11 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
-# ---------- Helpers ----------
 
 def _canonical_json(o: Any) -> str:
     """Stable JSON serialization used for hashing (order-insensitive)."""
     return json.dumps(o, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
 
 def default_stable_key_fn(cfg: Dict[str, Any]) -> str:
     """
@@ -22,7 +22,8 @@ def default_stable_key_fn(cfg: Dict[str, Any]) -> str:
     vars_ser = _canonical_json(cfg.get("variables", {}))
     return f"{t}|vars:{vars_ser}"
 
-def default_config_hash_fn(cfg: Dict[str, Any], ignored_keys: Iterable[str] = ("id","name")) -> str:
+
+def default_config_hash_fn(cfg: Dict[str, Any], ignored_keys: Iterable[str] = ("id", "name")) -> str:
     """
     Hash only behavior-affecting fields, ignoring identity keys such as id/name.
     """
@@ -30,7 +31,6 @@ def default_config_hash_fn(cfg: Dict[str, Any], ignored_keys: Iterable[str] = ("
     s = _canonical_json(filt)
     return hashlib.blake2b(s.encode("utf-8"), digest_size=16).hexdigest()
 
-# ---------- Internal entry ----------
 
 @dataclass
 class _Entry:
@@ -38,7 +38,6 @@ class _Entry:
     cfg_hash: str
     last_used_ts: float
 
-# ---------- Main class ----------
 
 class ConfigBoundInstanceCache:
     """
@@ -63,14 +62,14 @@ class ConfigBoundInstanceCache:
     """
 
     def __init__(
-        self,
-        factory: Callable[[Dict[str, Any]], Any],
-        reconfigure: Optional[Callable[[Any, Dict[str, Any]], bool]] = None,
-        closer: Optional[Callable[[Any], None]] = None,
-        stable_key_fn: Callable[[Dict[str, Any]], str] = default_stable_key_fn,
-        config_hash_fn: Callable[[Dict[str, Any]], str] = default_config_hash_fn,
-        capacity: Optional[int] = None,   # Global max instances across namespaces
-        default_namespace: str = "__default__",
+            self,
+            factory: Callable[[Dict[str, Any]], Any],
+            reconfigure: Optional[Callable[[Any, Dict[str, Any]], bool]] = None,
+            closer: Optional[Callable[[Any], None]] = None,
+            stable_key_fn: Callable[[Dict[str, Any]], str] = default_stable_key_fn,
+            config_hash_fn: Callable[[Dict[str, Any]], str] = default_config_hash_fn,
+            capacity: Optional[int] = None,  # Global max instances across namespaces
+            default_namespace: str = "__default__",
     ) -> None:
         self._factory = factory
         self._reconfigure = reconfigure
@@ -84,12 +83,10 @@ class ConfigBoundInstanceCache:
         self._cache: Dict[str, Dict[str, _Entry]] = {}
         self._lock = threading.RLock()
 
-    # ---------- Public API ----------
-
     def sync_and_get(
-        self,
-        cfg_list: List[Dict[str, Any]],
-        namespace: Optional[str] = None,
+            self,
+            cfg_list: List[Dict[str, Any]],
+            namespace: Optional[str] = None,
     ) -> List[Any]:
         """
         Reconcile instances in `namespace` against `cfg_list`:
@@ -215,8 +212,6 @@ class ConfigBoundInstanceCache:
                 if not slot:
                     self._cache.pop(ns, None)
         return removed
-
-    # ---------- Internal ----------
 
     def _evict_lru_if_needed(self) -> None:
         """Global LRU eviction across namespaces when capacity is exceeded."""
