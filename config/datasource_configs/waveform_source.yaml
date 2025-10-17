@@ -4,7 +4,16 @@ source_mode: "rtsp_video"
 source_list:
   - name: "waveform_source_0"
     url: ""
-    dir: "waveform/"
+    dir: "waveform_0/"
+    metadata:
+      resolution: "1080p"
+      fps: 30
+      encoding: "mp4v"
+      buffer_size: 1
+    importance: 5
+  - name: "waveform_source_1"
+    url: ""
+    dir: "waveform_1/"
     metadata:
       resolution: "1080p"
       fps: 30

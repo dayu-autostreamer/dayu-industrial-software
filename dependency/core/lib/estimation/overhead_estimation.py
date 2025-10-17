@@ -1,20 +1,53 @@
 import os
 from datetime import datetime
+from contextlib import contextmanager
+
+try:
+    import fcntl  # POSIX file locking
+except Exception:  # pragma: no cover
+    fcntl = None
 
 from .time_estimation import Timer
 from core.lib.common import FileOps, Context
 
 
 class OverheadEstimator:
-    def __init__(self, method_name, save_dir):
+    def __init__(self, method_name, save_dir, agent_id=0):
 
         self.method_name = method_name
         self.timer = Timer(f'Runtime Overhead of {method_name}')
         self.overhead_file = Context.get_file_path(os.path.join(save_dir, f'{method_name}_Overhead.txt'))
         self.latest_overhead = 0
+        self.agent_id = agent_id
+        # ensure directory and header exist; do NOT truncate existing logs implicitly
+        self._ensure_file_initialized()
 
-        # initialize file with header
-        self.clear()
+    @contextmanager
+    def _lock_file(self, file_obj):
+        """Cross-process exclusive lock (best-effort)."""
+        if fcntl is None:
+            # On non-POSIX platforms we skip locking; on Linux/macOS this path won't be taken.
+            yield
+            return
+        fd = file_obj.fileno()
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+
+    @contextmanager
+    def _lock_file_shared(self, file_obj):
+        """Cross-process shared lock for readers (best-effort)."""
+        if fcntl is None:
+            yield
+            return
+        fd = file_obj.fileno()
+        fcntl.flock(fd, fcntl.LOCK_SH)
+        try:
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
 
     def __enter__(self):
         self.timer.__enter__()
@@ -38,31 +71,33 @@ class OverheadEstimator:
             return 0.0
         durations = []
         with open(self.overhead_file, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                # skip comments and header line
-                if line.startswith('#') or line.lower().startswith('timestamp'):
-                    continue
-                parts = [p.strip() for p in line.split(',')]
-                # CSV format: timestamp,start_time,end_time,duration_seconds
-                if len(parts) >= 4:
-                    try:
-                        durations.append(float(parts[-1]))
-                    except ValueError:
+            with self._lock_file_shared(f):
+                for line in f:
+                    line = line.strip()
+                    if not line:
                         continue
-                else:
-                    # legacy format: a single float per line
-                    try:
-                        durations.append(float(line))
-                    except ValueError:
+                    # skip comments and header line
+                    if line.startswith('#') or line.lower().startswith('agent_id'):
                         continue
+                    parts = [p.strip() for p in line.split(',')]
+                    # CSV format: agent_id,timestamp,start_time,end_time,duration_seconds
+                    if len(parts) >= 5:
+                        try:
+                            durations.append(float(parts[-1]))
+                        except ValueError:
+                            continue
+                    else:
+                        # legacy format: a single float per line
+                        try:
+                            durations.append(float(line))
+                        except ValueError:
+                            continue
         return sum(durations) / len(durations) if durations else 0.0
 
     def write_overhead(self, overhead):
         """
         Append a record with human-readable timestamps and duration in seconds.
+        Safe for concurrent writers on POSIX platforms.
         """
         # ensure directory and header exist
         self._ensure_file_initialized()
@@ -74,35 +109,69 @@ class OverheadEstimator:
         ts_str = self._format_dt(datetime.fromtimestamp(end_ts)) if end_ts else self._format_dt(now)
         start_str = self._format_dt(datetime.fromtimestamp(start_ts)) if start_ts else ''
         end_str = self._format_dt(datetime.fromtimestamp(end_ts)) if end_ts else ''
+        line = f"{self.agent_id},{ts_str},{start_str},{end_str},{float(overhead):.6f}\n"
+        # open and lock for append
         with open(self.overhead_file, 'a') as f:
-            # CSV row: timestamp,start_time,end_time,duration_seconds
-            f.write(f"{ts_str},{start_str},{end_str},{float(overhead):.6f}\n")
+            with self._lock_file(f):
+                f.write(line)
+                f.flush()
+                os.fsync(f.fileno())
 
     def clear(self):
         """
         Reset the overhead log by recreating the file with a descriptive header.
+        Use this explicitly if you want to start a fresh log. Thread/process-safe.
         """
         self.latest_overhead = 0
         # ensure directory exists
         dir_path = os.path.dirname(self.overhead_file)
         if dir_path:
             FileOps.create_directory(dir_path)
-        # write header and column names
+        # write header and column names with exclusive lock
+        # open with write mode to truncate
         with open(self.overhead_file, 'w') as f:
-            created = self._format_dt(datetime.now())
-            f.write(f"# Overhead Log for {self.method_name}\n")
-            f.write(f"# Created: {created}\n")
-            f.write("# Columns: timestamp,start_time,end_time,duration_seconds\n")
-            # CSV header line for easy parsing
-            f.write("timestamp,start_time,end_time,duration_seconds\n")
+            with self._lock_file(f):
+                created = self._format_dt(datetime.now())
+                f.write(f"# Overhead Log for {self.method_name}\n")
+                f.write(f"# Created: {created}\n")
+                f.write("# Columns: agent_id,timestamp,start_time,end_time,duration_seconds\n")
+                # CSV header line for easy parsing
+                f.write("agent_id,timestamp,start_time,end_time,duration_seconds\n")
+                f.flush()
+                os.fsync(f.fileno())
 
     def _ensure_file_initialized(self):
         dir_path = os.path.dirname(self.overhead_file)
         if dir_path:
             FileOps.create_directory(dir_path)
-        if not os.path.exists(self.overhead_file) or os.path.getsize(self.overhead_file) == 0:
-            # create file with header if missing/empty
-            self.clear()
+        # Create file if missing, or ensure header exists if empty, under lock
+        if not os.path.exists(self.overhead_file):
+            # create and write header
+            with open(self.overhead_file, 'w') as f:
+                with self._lock_file(f):
+                    created = self._format_dt(datetime.now())
+                    f.write(f"# Overhead Log for {self.method_name}\n")
+                    f.write(f"# Created: {created}\n")
+                    f.write("# Columns: agent_id,timestamp,start_time,end_time,duration_seconds\n")
+                    f.write("agent_id,timestamp,start_time,end_time,duration_seconds\n")
+                    f.flush()
+                    os.fsync(f.fileno())
+        else:
+            # If the file exists but is empty, write header
+            if os.path.getsize(self.overhead_file) == 0:
+                with open(self.overhead_file, 'r+') as f:
+                    with self._lock_file(f):
+                        # Double-check size under lock
+                        f.seek(0, os.SEEK_END)
+                        if f.tell() == 0:
+                            f.seek(0)
+                            created = self._format_dt(datetime.now())
+                            f.write(f"# Overhead Log for {self.method_name}\n")
+                            f.write(f"# Created: {created}\n")
+                            f.write("# Columns: agent_id,timestamp,start_time,end_time,duration_seconds\n")
+                            f.write("agent_id,timestamp,start_time,end_time,duration_seconds\n")
+                            f.flush()
+                            os.fsync(f.fileno())
 
     @staticmethod
     def _format_dt(dt: datetime) -> str:
