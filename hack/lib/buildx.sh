@@ -81,6 +81,7 @@ dayu::buildx::import_docker_info() {
     [edge-eye-stage2]="build/edge_eye_stage2.Dockerfile"
     [edge-eye-stage3]="build/edge_eye_stage3.Dockerfile"
     [imu-trajectory-sensing]="build/imu_trajectory_sensing.Dockerfile"
+    [waveform-detection]="build/waveform_detection.Dockerfile"
     [mmwave-detection]="build/mmwave_detection.Dockerfile"
   )
   # Corresponding platforms
@@ -101,6 +102,7 @@ dayu::buildx::import_docker_info() {
     [edge-eye-stage2]="linux/amd64,linux/arm64"
     [edge-eye-stage3]="linux/amd64,linux/arm64"
     [imu-trajectory-sensing]="linux/amd64,linux/arm64"
+    [waveform-detection]="linux/amd64,linux/arm64"
     [mmwave-detection]="linux/amd64,linux/arm64"
   )
   # Images requiring special treatment, their platforms, and Dockerfiles

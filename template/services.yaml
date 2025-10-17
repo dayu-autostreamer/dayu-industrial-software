@@ -40,6 +40,13 @@
   input: imu_data
   output: text
   yaml: imu-trajectory-sensing.yaml
+- id: waveform-detection
+  service: waveform-detection
+  name: 钢材涡流缺陷检测
+  description: waveform detection (detection-pure)
+  input: frame
+  output: bbox
+  yaml: waveform-detection.yaml
 - id: mmwave-detection
   service: mmwave-detection
   name: 毫米波缺陷感知
