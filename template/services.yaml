@@ -42,7 +42,7 @@
   yaml: imu-trajectory-sensing.yaml
 - id: waveform-detection
   service: waveform-detection
-  name: waveform detection
+  name: 钢材涡流缺陷检测
   description: waveform detection (detection-pure)
   input: frame
   output: bbox
